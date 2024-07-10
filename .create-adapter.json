@@ -1,0 +1,46 @@
+{
+    "cli": true,
+    "target": "directory",
+    "adapterName": "miner",
+    "title": "crypto miner control",
+    "description": "Interact with different crypto miner apis",
+    "keywords": [
+        "crypto",
+        "bitcoin",
+        "miner",
+        "braiins",
+        "luxor"
+    ],
+    "expert": "yes",
+    "features": [
+        "adapter"
+    ],
+    "adminFeatures": [],
+    "type": "hardware",
+    "startMode": "daemon",
+    "connectionType": "local",
+    "dataSource": "poll",
+    "connectionIndicator": "yes",
+    "language": "TypeScript",
+    "nodeVersion": "20",
+    "adminUi": "json",
+    "tools": [
+        "ESLint",
+        "code coverage",
+        "devcontainer"
+    ],
+    "releaseScript": "yes",
+    "devServer": "yes",
+    "devServerPort": 8081,
+    "indentation": "Space (4)",
+    "quotes": "single",
+    "authorName": "SimonFischer04",
+    "authorGithub": "SimonFischer04",
+    "authorEmail": "simi.fischa@gmail.com",
+    "gitRemoteProtocol": "SSH",
+    "gitCommit": "yes",
+    "defaultBranch": "main",
+    "license": "GNU GPLv3",
+    "dependabot": "yes",
+    "creatorVersion": "2.6.3"
+}
