@@ -5,6 +5,10 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
@@ -21,8 +25,16 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+var main_exports = {};
+__export(main_exports, {
+  MinerAdapter: () => MinerAdapter
+});
+module.exports = __toCommonJS(main_exports);
 var utils = __toESM(require("@iobroker/adapter-core"));
-class Miner extends utils.Adapter {
+var import_MinerAdapterDeviceManagement = __toESM(require("./lib/MinerAdapterDeviceManagement"));
+class MinerAdapter extends utils.Adapter {
+  deviceManagement;
   constructor(options = {}) {
     super({
       ...options,
@@ -31,13 +43,14 @@ class Miner extends utils.Adapter {
     this.on("ready", this.onReady.bind(this));
     this.on("stateChange", this.onStateChange.bind(this));
     this.on("unload", this.onUnload.bind(this));
+    this.deviceManagement = new import_MinerAdapterDeviceManagement.default(this);
   }
   /**
    * Is called when databases are connected and adapter received configuration.
    */
   async onReady() {
     this.setState("info.connection", false, true);
-    this.log.info("config option1: " + this.config.option1);
+    this.log.info("aconfig option1: " + this.config.option1);
     this.log.info("config option2: " + this.config.option2);
     await this.setObjectNotExistsAsync("testVariable", {
       type: "state",
@@ -62,8 +75,11 @@ class Miner extends utils.Adapter {
   /**
    * Is called when adapter shuts down - callback has to be called under any circumstances!
    */
-  onUnload(callback) {
+  async onUnload(callback) {
     try {
+      if (this.deviceManagement) {
+        await this.deviceManagement.close();
+      }
       callback();
     } catch (e) {
       callback();
@@ -89,6 +105,9 @@ class Miner extends utils.Adapter {
   onStateChange(id, state) {
     if (state) {
       this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
+      if (this.deviceManagement) {
+        this.deviceManagement.debugging();
+      }
     } else {
       this.log.info(`state ${id} deleted`);
     }
@@ -108,10 +127,29 @@ class Miner extends utils.Adapter {
   //         }
   //     }
   // }
+  async addDevice(category, name, ip, mac, pollInterval, enabled) {
+    const idName = mac.replace(/:/g, "");
+    await this.extendObjectAsync(this.namespace + "." + idName, {
+      type: "device",
+      common: {
+        name: name || ip
+      },
+      native: {
+        enabled,
+        pingInterval: pollInterval != null ? pollInterval : this.config.pollInterval,
+        ip,
+        mac
+      }
+    });
+  }
 }
 if (require.main !== module) {
-  module.exports = (options) => new Miner(options);
+  module.exports = (options) => new MinerAdapter(options);
 } else {
-  (() => new Miner())();
+  (() => new MinerAdapter())();
 }
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  MinerAdapter
+});
 //# sourceMappingURL=main.js.map

@@ -1,16 +1,52 @@
 {
-    "i18n": true,
-    "type": "panel",
-    "items": {
+  "i18n": true,
+  "type": "tabs",
+  "items": {
+    "settings": {
+      "type": "panel",
+      "label": "Settings",
+      "items": {
         "option1": {
-            "type": "checkbox",
-            "label": "option1",
-            "newLine": true
+          "type": "checkbox",
+          "label": "option1",
+          "newLine": true
         },
         "option2": {
-            "type": "text",
-            "label": "option2",
-            "newLine": true
+          "type": "text",
+          "label": "option2",
+          "newLine": true
+        },
+        "pollInterval": {
+          "type": "number",
+          "label": "Poll Interval",
+          "newLine": true
         }
+      }
+    },
+    "_deviceManager": {
+      "type": "panel",
+      "label": "Devices",
+      "items": {
+        "_dm": {
+          "type": "deviceManager",
+          "sm": 12,
+          "style": {
+            "width": "100%",
+            "height": "100%",
+            "overflow": "hidden"
+          }
+        }
+      },
+      "style": {
+        "width": "100%",
+        "height": "100%",
+        "overflow": "hidden"
+      },
+      "innerStyle": {
+        "width": "100%",
+        "height": "100%",
+        "overflow": "hidden"
+      }
     }
+  }
 }

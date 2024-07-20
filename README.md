@@ -14,6 +14,17 @@
 
 Interact with different crypto miner apis
 
+## Roadmap
+- v0.1: device management, trm implementation
+- bos+, luxos, xmrig, ...?
+- pools
+- move device logic to dedicated js lib
+- lint / pretty config ...
+- device discover
+- sentry
+- remaining code todos
+- ...
+
 ## Developer manual
 This section is intended for the developer. It can be deleted later.
 
