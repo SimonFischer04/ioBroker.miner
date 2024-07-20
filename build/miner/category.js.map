@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../src/miner/category.ts"],
+  "sourcesContent": ["export const categories = {\n    miner: 'Miner',\n    pool: 'Pool'\n} as const;\n\nexport type Category = keyof typeof categories;\n\nexport function categoryKeys(): Category[] {\n    return Object.keys(categories) as Category[];\n}\n\nexport default {}"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AAAO,MAAM,aAAa;AAAA,EACtB,OAAO;AAAA,EACP,MAAM;AACV;AAIO,SAAS,eAA2B;AACvC,SAAO,OAAO,KAAK,UAAU;AACjC;AAEA,IAAO,mBAAQ,CAAC;",
+  "names": []
+}

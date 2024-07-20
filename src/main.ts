@@ -5,11 +5,14 @@
 // The adapter-core module gives you access to the core ioBroker functions
 // you need to create an adapter
 import * as utils from '@iobroker/adapter-core';
+import MinerAdapterDeviceManagement from './lib/MinerAdapterDeviceManagement';
+import {Category} from './miner/category';
 
 // Load your modules here, e.g.:
 // import * as fs from "fs";
 
-class Miner extends utils.Adapter {
+export class MinerAdapter extends utils.Adapter {
+    private readonly deviceManagement: MinerAdapterDeviceManagement;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -21,6 +24,8 @@ class Miner extends utils.Adapter {
         // this.on('objectChange', this.onObjectChange.bind(this));
         // this.on('message', this.onMessage.bind(this));
         this.on('unload', this.onUnload.bind(this));
+
+        this.deviceManagement = new MinerAdapterDeviceManagement(this);
     }
 
     /**
@@ -34,7 +39,7 @@ class Miner extends utils.Adapter {
 
         // The adapters config (in the instance object everything under the attribute "native") is accessible via
         // this.config:
-        this.log.info('config option1: ' + this.config.option1);
+        this.log.info('aconfig option1: ' + this.config.option1);
         this.log.info('config option2: ' + this.config.option2);
 
         /*
@@ -86,13 +91,17 @@ class Miner extends utils.Adapter {
     /**
      * Is called when adapter shuts down - callback has to be called under any circumstances!
      */
-    private onUnload(callback: () => void): void {
+    private async onUnload(callback: () => void): Promise<void> {
         try {
             // Here you must clear all timeouts or intervals that may still be active
             // clearTimeout(timeout1);
             // clearTimeout(timeout2);
             // ...
             // clearInterval(interval1);
+
+            if (this.deviceManagement) {
+                await this.deviceManagement.close();
+            }
 
             callback();
         } catch (e) {
@@ -122,6 +131,10 @@ class Miner extends utils.Adapter {
         if (state) {
             // The state was changed
             this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
+
+            if(this.deviceManagement) {
+                this.deviceManagement.debugging();
+            }
         } else {
             // The state was deleted
             this.log.info(`state ${id} deleted`);
@@ -145,12 +158,31 @@ class Miner extends utils.Adapter {
     //     }
     // }
 
+    public async addDevice(category: Category, name: string, ip: string, mac: string, pollInterval: number, enabled: boolean): Promise<void> {
+        // TODO: send arp
+        const idName = mac.replace(/:/g, '');
+
+        await this.extendObjectAsync(this.namespace + '.' + idName, {
+            type: 'device',
+            common: {
+                name: name || ip
+            },
+            native: {
+                enabled: enabled,
+                pingInterval: pollInterval ?? this.config.pollInterval,
+                ip: ip,
+                mac: mac
+            }
+        });
+
+        // todo: create object states
+    }
 }
 
 if (require.main !== module) {
     // Export the constructor in compact mode
-    module.exports = (options: Partial<utils.AdapterOptions> | undefined) => new Miner(options);
+    module.exports = (options: Partial<utils.AdapterOptions> | undefined) => new MinerAdapter(options);
 } else {
     // otherwise start the instance directly
-    (() => new Miner())();
+    (() => new MinerAdapter())();
 }
