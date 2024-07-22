@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../src/miner/miner/TeamRedMiner.ts"],
+  "sourcesContent": ["import {PollingMiner} from './PollingMiner';\nimport {TeamRedMinerSettings} from '../model/MinerSettings';\n\nexport class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {\n    // TODO: actually does not support full claymore api\n    // TODO: sgminer api\n\n    public connect(): Promise<void> {\n        throw new Error('Method not implemented.');\n    }\n\n    public start(): Promise<void> {\n        throw new Error('Method not implemented.');\n    }\n\n    public fetchData(): Promise<void> {\n        throw new Error('Method not implemented.');\n    }\n\n    public stop(): Promise<void> {\n        throw new Error('Method not implemented.');\n    }\n\n    public close(): Promise<void> {\n        throw new Error('Method not implemented.');\n    }\n}"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,0BAA2B;AAGpB,MAAM,qBAAqB,iCAAmC;AAAA;AAAA;AAAA,EAI1D,UAAyB;AAC5B,UAAM,IAAI,MAAM,yBAAyB;AAAA,EAC7C;AAAA,EAEO,QAAuB;AAC1B,UAAM,IAAI,MAAM,yBAAyB;AAAA,EAC7C;AAAA,EAEO,YAA2B;AAC9B,UAAM,IAAI,MAAM,yBAAyB;AAAA,EAC7C;AAAA,EAEO,OAAsB;AACzB,UAAM,IAAI,MAAM,yBAAyB;AAAA,EAC7C;AAAA,EAEO,QAAuB;AAC1B,UAAM,IAAI,MAAM,yBAAyB;AAAA,EAC7C;AACJ;",
+  "names": []
+}

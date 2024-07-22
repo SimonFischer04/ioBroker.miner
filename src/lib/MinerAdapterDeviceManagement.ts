@@ -1,6 +1,7 @@
 import {ActionContext, DeviceInfo, DeviceManagement, JsonFormData} from '@iobroker/dm-utils';
 import {MinerAdapter} from '../main';
-import {categories, categoryKeys} from '../miner/category';
+import {categoryKeys} from '../miner/model/Category';
+import {minerTypeKeys} from '../miner/model/MinerSettings';
 
 class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
     async getInstanceInfo() {
@@ -59,19 +60,37 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             items: {
                 category: {
                     type: 'select',
+                    newLine: true,
                     label: 'category', // TODO: translate
                     // TODO: FixMeLater
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
-                    options: categoryKeys().map(key => {return {
-                        // TODO: translate
-                        // TODO: wtf fix this. using object value as label but then translating does not make any sense ...
-                        value: key,
-                        label: categories[key]
-                    }})
+                    options: categoryKeys.map(key => {
+                        return {
+                            value: key,
+                            // TODO: translate(key)
+                            label: key
+                        }
+                    })
+                },
+                minerType: {
+                    type: 'select',
+                    newLine: true,
+                    label: 'minerType', // TODO: translate
+                    // TODO: FixMeLater
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    options: minerTypeKeys.map(key => {
+                        return {
+                            value: key,
+                            // TODO: translate(key)
+                            label: key
+                        }
+                    })
                 },
                 name: {
                     type: 'text',
+                    newLine: true,
                     // TODO: FixMeLater
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
@@ -90,8 +109,9 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         uk: 'Ім\'я'
                     }
                 },
-                ip: {
+                host: {
                     type: 'text',
+                    newLine: true,
                     // TODO: FixMeLater
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
@@ -114,6 +134,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 // TODO: get by request
                 mac: {
                     type: 'text',
+                    newLine: true,
                     // TODO: FixMeLater
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
@@ -136,6 +157,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 // TODO: show only if miner requires polling? possible to dynamically add fields to form?
                 pollInterval: {
                     type: 'number',
+                    newLine: true,
                     // TODO: FixMeLater
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
@@ -157,6 +179,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 },
                 enabled: {
                     type: 'checkbox',
+                    newLine: true,
                     label: {
                         'en': 'enabled',
                         'de': 'aktiviert',
@@ -176,8 +199,9 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         {
             data: {
                 category: 'miner',
+                minerType: undefined,
                 name: '',
-                ip: '',
+                host: '',
                 mac: '',
                 pollInterval: this.adapter.config.pollInterval,
                 enabled: true
@@ -203,6 +227,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         if (result === null || result === undefined) {
             return {refresh: false};
         }
+
+        // TODO: check category && minerType
 
         // Check if mac was entered
         // TODO: get from device
@@ -286,14 +312,16 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
 
         debugger
 
-        for (const i in devices) {
-            console.error('aTF2', i);
+        for (const device of devices) {
+            // TODO: add more info
+
+            arrDevices.push({
+                id: device._id,
+                name: device.common.name
+            })
         }
 
-        return [{
-            id: 'my ID',
-            name: 'My Name',
-        }];
+        return arrDevices;
     }
 
     async debugging(): Promise<void> {
@@ -303,8 +331,9 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
 
         debugger
 
-        for (const i in devices) {
-            console.error('TF2', i);
+        // for (const i in devices) {
+        for (const i of devices) {
+            console.error('bTF2', i);
         }
     }
 

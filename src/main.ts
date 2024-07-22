@@ -6,7 +6,7 @@
 // you need to create an adapter
 import * as utils from '@iobroker/adapter-core';
 import MinerAdapterDeviceManagement from './lib/MinerAdapterDeviceManagement';
-import {Category} from './miner/category';
+import {Category, categoryKeys} from './miner/model/Category';
 
 // Load your modules here, e.g.:
 // import * as fs from "fs";
@@ -33,6 +33,7 @@ export class MinerAdapter extends utils.Adapter {
      */
     private async onReady(): Promise<void> {
         // Initialize your adapter here
+        await this.createBasicObjectStructure();
 
         // Reset the connection indicator during startup
         this.setState('info.connection', false, true);
@@ -41,6 +42,7 @@ export class MinerAdapter extends utils.Adapter {
         // this.config:
         this.log.info('aconfig option1: ' + this.config.option1);
         this.log.info('config option2: ' + this.config.option2);
+        console.log('testABC')
 
         /*
         For every state in the system there has to be also an object of type state
@@ -75,10 +77,10 @@ export class MinerAdapter extends utils.Adapter {
 
         // same thing, but the value is flagged "ack"
         // ack should be always set to true if the value is received from or acknowledged from the target system
-        await this.setStateAsync('testVariable', { val: true, ack: true });
+        await this.setStateAsync('testVariable', {val: true, ack: true});
 
         // same thing, but the state is deleted after 30s (getState will return null afterwards)
-        await this.setStateAsync('testVariable', { val: true, ack: true, expire: 30 });
+        await this.setStateAsync('testVariable', {val: true, ack: true, expire: 30});
 
         // examples for the checkPassword/checkGroup functions
         let result = await this.checkPasswordAsync('admin', 'iobroker');
@@ -86,6 +88,19 @@ export class MinerAdapter extends utils.Adapter {
 
         result = await this.checkGroupAsync('admin', 'admin');
         this.log.info('check group user admin group admin: ' + result);
+    }
+
+    private async createBasicObjectStructure(): Promise<void> {
+        for (const key of categoryKeys) {
+            await this.setObjectNotExistsAsync(key, {
+                type: 'folder',
+                common: {
+                    // TODO: translate(key+"Folder") oda so
+                    name: key
+                },
+                native: {}
+            });
+        }
     }
 
     /**
@@ -132,7 +147,7 @@ export class MinerAdapter extends utils.Adapter {
             // The state was changed
             this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
 
-            if(this.deviceManagement) {
+            if (this.deviceManagement) {
                 this.deviceManagement.debugging();
             }
         } else {
@@ -158,19 +173,19 @@ export class MinerAdapter extends utils.Adapter {
     //     }
     // }
 
-    public async addDevice(category: Category, name: string, ip: string, mac: string, pollInterval: number, enabled: boolean): Promise<void> {
+    public async addDevice(category: Category, name: string, host: string, mac: string, pollInterval: number, enabled: boolean): Promise<void> {
         // TODO: send arp
-        const idName = mac.replace(/:/g, '');
+        const idName = `${category}.${mac.replace(/:/g, '')}`;
 
-        await this.extendObjectAsync(this.namespace + '.' + idName, {
+        await this.extendObject(idName, {
             type: 'device',
             common: {
-                name: name || ip
+                name: name || host
             },
             native: {
                 enabled: enabled,
                 pingInterval: pollInterval ?? this.config.pollInterval,
-                ip: ip,
+                host: host,
                 mac: mac
             }
         });

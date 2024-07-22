@@ -22,7 +22,8 @@ __export(MinerAdapterDeviceManagement_exports, {
 });
 module.exports = __toCommonJS(MinerAdapterDeviceManagement_exports);
 var import_dm_utils = require("@iobroker/dm-utils");
-var import_category = require("../miner/category");
+var import_Category = require("../miner/model/Category");
+var import_MinerSettings = require("../miner/model/MinerSettings");
 class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
   async getInstanceInfo() {
     const data = {
@@ -79,22 +80,39 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         items: {
           category: {
             type: "select",
+            newLine: true,
             label: "category",
             // TODO: translate
             // TODO: FixMeLater
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            options: (0, import_category.categoryKeys)().map((key) => {
+            options: import_Category.categoryKeys.map((key) => {
               return {
-                // TODO: translate
-                // TODO: wtf fix this. using object value as label but then translating does not make any sense ...
                 value: key,
-                label: import_category.categories[key]
+                // TODO: translate(key)
+                label: key
+              };
+            })
+          },
+          minerType: {
+            type: "select",
+            newLine: true,
+            label: "minerType",
+            // TODO: translate
+            // TODO: FixMeLater
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            options: import_MinerSettings.minerTypeKeys.map((key) => {
+              return {
+                value: key,
+                // TODO: translate(key)
+                label: key
               };
             })
           },
           name: {
             type: "text",
+            newLine: true,
             // TODO: FixMeLater
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -113,8 +131,9 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
               uk: "\u0406\u043C'\u044F"
             }
           },
-          ip: {
+          host: {
             type: "text",
+            newLine: true,
             // TODO: FixMeLater
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -137,6 +156,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
           // TODO: get by request
           mac: {
             type: "text",
+            newLine: true,
             // TODO: FixMeLater
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -159,6 +179,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
           // TODO: show only if miner requires polling? possible to dynamically add fields to form?
           pollInterval: {
             type: "number",
+            newLine: true,
             // TODO: FixMeLater
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -181,6 +202,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
           },
           enabled: {
             type: "checkbox",
+            newLine: true,
             label: {
               "en": "enabled",
               "de": "aktiviert",
@@ -200,8 +222,9 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
       {
         data: {
           category: "miner",
+          minerType: void 0,
           name: "",
-          ip: "",
+          host: "",
           mac: "",
           pollInterval: this.adapter.config.pollInterval,
           enabled: true
@@ -252,21 +275,21 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     const arrDevices = [];
     console.error("alistDevices");
     debugger;
-    for (const i in devices) {
-      console.error("aTF2", i);
+    for (const device of devices) {
+      arrDevices.push({
+        id: device._id,
+        name: device.common.name
+      });
     }
-    return [{
-      id: "my ID",
-      name: "My Name"
-    }];
+    return arrDevices;
   }
   async debugging() {
     const devices = await this.adapter.getDevicesAsync();
     const arrDevices = [];
     console.error("listDevices");
     debugger;
-    for (const i in devices) {
-      console.error("TF2", i);
+    for (const i of devices) {
+      console.error("bTF2", i);
     }
   }
   async close() {

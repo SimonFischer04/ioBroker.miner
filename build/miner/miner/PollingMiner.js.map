@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../src/miner/miner/PollingMiner.ts"],
+  "sourcesContent": ["import {Miner} from './Miner';\nimport {MinerSettings} from '../model/MinerSettings';\n\nexport abstract class PollingMiner<S extends MinerSettings> extends Miner<S> {\n    /*\nTODO: pollInterval: NodeJs.Timeout\nauto close in close method\n*/\n\n    public abstract fetchData(): Promise<void>;\n}"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA,mBAAoB;AAGb,MAAe,qBAA8C,mBAAS;AAO7E;",
+  "names": []
+}

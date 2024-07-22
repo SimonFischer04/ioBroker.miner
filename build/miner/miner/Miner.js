@@ -16,24 +16,18 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-var category_exports = {};
-__export(category_exports, {
-  categories: () => categories,
-  categoryKeys: () => categoryKeys,
-  default: () => category_default
+var Miner_exports = {};
+__export(Miner_exports, {
+  Miner: () => Miner
 });
-module.exports = __toCommonJS(category_exports);
-const categories = {
-  miner: "Miner",
-  pool: "Pool"
-};
-function categoryKeys() {
-  return Object.keys(categories);
+module.exports = __toCommonJS(Miner_exports);
+class Miner {
+  constructor(settings) {
+    this.settings = settings;
+  }
 }
-var category_default = {};
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  categories,
-  categoryKeys
+  Miner
 });
-//# sourceMappingURL=category.js.map
+//# sourceMappingURL=Miner.js.map

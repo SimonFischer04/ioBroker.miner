@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../src/miner/model/Category.ts"],
+  "sourcesContent": ["export const categoryKeys = [\n    'miner',\n    'pool'\n] as const;\n\nexport type Category = (typeof categoryKeys)[number];"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAO,MAAM,eAAe;AAAA,EACxB;AAAA,EACA;AACJ;",
+  "names": []
+}

@@ -33,6 +33,7 @@ __export(main_exports, {
 module.exports = __toCommonJS(main_exports);
 var utils = __toESM(require("@iobroker/adapter-core"));
 var import_MinerAdapterDeviceManagement = __toESM(require("./lib/MinerAdapterDeviceManagement"));
+var import_Category = require("./miner/model/Category");
 class MinerAdapter extends utils.Adapter {
   deviceManagement;
   constructor(options = {}) {
@@ -49,9 +50,11 @@ class MinerAdapter extends utils.Adapter {
    * Is called when databases are connected and adapter received configuration.
    */
   async onReady() {
+    await this.createBasicObjectStructure();
     this.setState("info.connection", false, true);
     this.log.info("aconfig option1: " + this.config.option1);
     this.log.info("config option2: " + this.config.option2);
+    console.log("testABC");
     await this.setObjectNotExistsAsync("testVariable", {
       type: "state",
       common: {
@@ -71,6 +74,18 @@ class MinerAdapter extends utils.Adapter {
     this.log.info("check user admin pw iobroker: " + result);
     result = await this.checkGroupAsync("admin", "admin");
     this.log.info("check group user admin group admin: " + result);
+  }
+  async createBasicObjectStructure() {
+    for (const key of import_Category.categoryKeys) {
+      await this.setObjectNotExistsAsync(key, {
+        type: "folder",
+        common: {
+          // TODO: translate(key+"Folder") oda so
+          name: key
+        },
+        native: {}
+      });
+    }
   }
   /**
    * Is called when adapter shuts down - callback has to be called under any circumstances!
@@ -127,17 +142,17 @@ class MinerAdapter extends utils.Adapter {
   //         }
   //     }
   // }
-  async addDevice(category, name, ip, mac, pollInterval, enabled) {
-    const idName = mac.replace(/:/g, "");
-    await this.extendObjectAsync(this.namespace + "." + idName, {
+  async addDevice(category, name, host, mac, pollInterval, enabled) {
+    const idName = `${category}.${mac.replace(/:/g, "")}`;
+    await this.extendObject(idName, {
       type: "device",
       common: {
-        name: name || ip
+        name: name || host
       },
       native: {
         enabled,
         pingInterval: pollInterval != null ? pollInterval : this.config.pollInterval,
-        ip,
+        host,
         mac
       }
     });
