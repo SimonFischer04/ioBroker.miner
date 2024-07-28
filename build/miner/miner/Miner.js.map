@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["../../../src/miner/miner/Miner.ts"],
-  "sourcesContent": ["// TODO:  ?\nimport {MinerSettings} from '../model/MinerSettings';\n\nexport abstract class Miner<S extends MinerSettings> {\n    constructor(\n        protected readonly settings: S\n    ) {\n    }\n\n    public abstract connect(): Promise<void>;\n\n    public abstract start(): Promise<void>;\n\n    /**\n     * Stop mining\n     */\n    public abstract stop(): Promise<void>;\n\n    /**\n     * Close / cleanup any open resources\n     */\n    public abstract close(): Promise<void>;\n}"],
-  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAGO,MAAe,MAA+B;AAAA,EACjD,YACuB,UACrB;AADqB;AAAA,EAEvB;AAeJ;",
-  "names": []
-}

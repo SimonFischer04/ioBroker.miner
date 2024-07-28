@@ -33,9 +33,12 @@ __export(main_exports, {
 module.exports = __toCommonJS(main_exports);
 var utils = __toESM(require("@iobroker/adapter-core"));
 var import_MinerAdapterDeviceManagement = __toESM(require("./lib/MinerAdapterDeviceManagement"));
-var import_Category = require("./miner/model/Category");
+var import_Category = require("./lib/miner/model/Category");
+var import_MinerManager = require("./lib/miner/miner/MinerManager");
+var import_IOBrokerMinerSettings = require("./miner/model/IOBrokerMinerSettings");
 class MinerAdapter extends utils.Adapter {
   deviceManagement;
+  minerManager = new import_MinerManager.MinerManager();
   constructor(options = {}) {
     super({
       ...options,
@@ -50,8 +53,8 @@ class MinerAdapter extends utils.Adapter {
    * Is called when databases are connected and adapter received configuration.
    */
   async onReady() {
+    await this.setState("info.connection", false, true);
     await this.createBasicObjectStructure();
-    this.setState("info.connection", false, true);
     this.log.info("aconfig option1: " + this.config.option1);
     this.log.info("config option2: " + this.config.option2);
     console.log("testABC");
@@ -70,28 +73,14 @@ class MinerAdapter extends utils.Adapter {
     await this.setStateAsync("testVariable", true);
     await this.setStateAsync("testVariable", { val: true, ack: true });
     await this.setStateAsync("testVariable", { val: true, ack: true, expire: 30 });
-    let result = await this.checkPasswordAsync("admin", "iobroker");
-    this.log.info("check user admin pw iobroker: " + result);
-    result = await this.checkGroupAsync("admin", "admin");
-    this.log.info("check group user admin group admin: " + result);
-  }
-  async createBasicObjectStructure() {
-    for (const key of import_Category.categoryKeys) {
-      await this.setObjectNotExistsAsync(key, {
-        type: "folder",
-        common: {
-          // TODO: translate(key+"Folder") oda so
-          name: key
-        },
-        native: {}
-      });
-    }
+    await this.tryKnownDevices();
   }
   /**
    * Is called when adapter shuts down - callback has to be called under any circumstances!
    */
   async onUnload(callback) {
     try {
+      await this.minerManager.close();
       if (this.deviceManagement) {
         await this.deviceManagement.close();
       }
@@ -142,20 +131,63 @@ class MinerAdapter extends utils.Adapter {
   //         }
   //     }
   // }
-  async addDevice(category, name, host, mac, pollInterval, enabled) {
-    const idName = `${category}.${mac.replace(/:/g, "")}`;
-    await this.extendObject(idName, {
+  async createBasicObjectStructure() {
+    for (const key of import_Category.categoryKeys) {
+      await this.setObjectNotExistsAsync(key, {
+        type: "folder",
+        common: {
+          // TODO: translate(key+"Folder") oda so
+          name: key
+        },
+        native: {}
+      });
+    }
+  }
+  // Try to initialise and connect to already known devices
+  async tryKnownDevices() {
+    const knownDevices = await this.getDevicesAsync();
+    for (const device of knownDevices) {
+      await this.initDevice(device);
+    }
+  }
+  async addDevice(settings) {
+    if (!(0, import_IOBrokerMinerSettings.isMiner)(settings)) {
+      this.log.error(`category ${settings.category} is not yet supported.`);
+      return;
+    }
+    const id = this.getDeviceObjectId(settings);
+    await this.extendObject(id, {
       type: "device",
       common: {
-        name: name || host
+        name: settings.name || settings.host
       },
-      native: {
-        enabled,
-        pingInterval: pollInterval != null ? pollInterval : this.config.pollInterval,
-        host,
-        mac
-      }
+      native: settings
     });
+    const obj = await this.getObjectAsync(id);
+    this.log.debug(`created new device obj: ${JSON.stringify(obj)}`);
+    await this.initDevice(obj);
+  }
+  async initDevice(device) {
+    const settings = device.native;
+    if (!(0, import_IOBrokerMinerSettings.isMiner)(settings)) {
+      this.log.error(`tryKnownDevices category ${settings.category} not yet supported`);
+      return;
+    }
+    await this.createDeviceStateObjects(settings);
+    await this.minerManager.init(settings.settings);
+  }
+  async createDeviceStateObjects(settings) {
+    if (!(0, import_IOBrokerMinerSettings.isMiner)(settings)) {
+      this.log.error(`createDeviceStateObjects category ${settings.category} not yet supported`);
+      return;
+    }
+  }
+  getDeviceObjectId(settings) {
+    if (!(0, import_IOBrokerMinerSettings.isMiner)(settings)) {
+      this.log.error(`category ${settings.category} is not yet supported.`);
+      return "TODO";
+    }
+    return `${settings.category}.${settings.mac.replace(/:/g, "")}`;
   }
 }
 if (require.main !== module) {

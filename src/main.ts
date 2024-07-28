@@ -1,18 +1,12 @@
-/*
- * Created with @iobroker/create-adapter v2.6.3
- */
-
-// The adapter-core module gives you access to the core ioBroker functions
-// you need to create an adapter
 import * as utils from '@iobroker/adapter-core';
 import MinerAdapterDeviceManagement from './lib/MinerAdapterDeviceManagement';
-import {Category, categoryKeys} from './miner/model/Category';
-
-// Load your modules here, e.g.:
-// import * as fs from "fs";
+import {categoryKeys} from './lib/miner/model/Category';
+import {MinerManager} from './lib/miner/miner/MinerManager';
+import {IOBrokerDeviceSettings, isMiner} from './miner/model/IOBrokerMinerSettings';
 
 export class MinerAdapter extends utils.Adapter {
     private readonly deviceManagement: MinerAdapterDeviceManagement;
+    private readonly minerManager: MinerManager = new MinerManager();
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -32,11 +26,11 @@ export class MinerAdapter extends utils.Adapter {
      * Is called when databases are connected and adapter received configuration.
      */
     private async onReady(): Promise<void> {
+        // Reset the connection indicator during startup
+        await this.setState('info.connection', false, true);
+
         // Initialize your adapter here
         await this.createBasicObjectStructure();
-
-        // Reset the connection indicator during startup
-        this.setState('info.connection', false, true);
 
         // The adapters config (in the instance object everything under the attribute "native") is accessible via
         // this.config:
@@ -82,25 +76,7 @@ export class MinerAdapter extends utils.Adapter {
         // same thing, but the state is deleted after 30s (getState will return null afterwards)
         await this.setStateAsync('testVariable', {val: true, ack: true, expire: 30});
 
-        // examples for the checkPassword/checkGroup functions
-        let result = await this.checkPasswordAsync('admin', 'iobroker');
-        this.log.info('check user admin pw iobroker: ' + result);
-
-        result = await this.checkGroupAsync('admin', 'admin');
-        this.log.info('check group user admin group admin: ' + result);
-    }
-
-    private async createBasicObjectStructure(): Promise<void> {
-        for (const key of categoryKeys) {
-            await this.setObjectNotExistsAsync(key, {
-                type: 'folder',
-                common: {
-                    // TODO: translate(key+"Folder") oda so
-                    name: key
-                },
-                native: {}
-            });
-        }
+        await this.tryKnownDevices();
     }
 
     /**
@@ -108,11 +84,7 @@ export class MinerAdapter extends utils.Adapter {
      */
     private async onUnload(callback: () => void): Promise<void> {
         try {
-            // Here you must clear all timeouts or intervals that may still be active
-            // clearTimeout(timeout1);
-            // clearTimeout(timeout2);
-            // ...
-            // clearInterval(interval1);
+            await this.minerManager.close();
 
             if (this.deviceManagement) {
                 await this.deviceManagement.close();
@@ -173,24 +145,80 @@ export class MinerAdapter extends utils.Adapter {
     //     }
     // }
 
-    public async addDevice(category: Category, name: string, host: string, mac: string, pollInterval: number, enabled: boolean): Promise<void> {
-        // TODO: send arp
-        const idName = `${category}.${mac.replace(/:/g, '')}`;
+    private async createBasicObjectStructure(): Promise<void> {
+        for (const key of categoryKeys) {
+            await this.setObjectNotExistsAsync(key, {
+                type: 'folder',
+                common: {
+                    // TODO: translate(key+"Folder") oda so
+                    name: key
+                },
+                native: {}
+            });
+        }
+    }
 
-        await this.extendObject(idName, {
+    // Try to initialise and connect to already known devices
+    private async tryKnownDevices(): Promise<void> {
+        const knownDevices = await this.getDevicesAsync();
+
+        for (const device of knownDevices) {
+            await this.initDevice(device);
+        }
+    }
+
+    public async addDevice(settings: IOBrokerDeviceSettings): Promise<void> {
+        if (!isMiner(settings)) { // TODO: pool support
+            this.log.error(`category ${settings.category} is not yet supported.`);
+            return;
+        }
+
+        // TODO: fill settings.mac using arp request
+        const id = this.getDeviceObjectId(settings);
+
+        await this.extendObject(id, {
             type: 'device',
             common: {
-                name: name || host
+                name: settings.name || settings.host
             },
-            native: {
-                enabled: enabled,
-                pingInterval: pollInterval ?? this.config.pollInterval,
-                host: host,
-                mac: mac
-            }
+            native: settings
         });
 
-        // todo: create object states
+        const obj: ioBroker.DeviceObject = await this.getObjectAsync(id) as ioBroker.DeviceObject;
+        this.log.debug(`created new device obj: ${JSON.stringify(obj)}`);
+
+        await this.initDevice(obj);
+    }
+
+    private async initDevice(device: ioBroker.DeviceObject): Promise<void> {
+        const settings: IOBrokerDeviceSettings = device.native as IOBrokerDeviceSettings;
+
+        if (!isMiner(settings)) {
+            this.log.error(`tryKnownDevices category ${settings.category} not yet supported`);
+            return;
+        }
+
+        await this.createDeviceStateObjects(settings);
+
+        await this.minerManager.init(settings.settings);
+    }
+
+    private async createDeviceStateObjects(settings: IOBrokerDeviceSettings): Promise<void> {
+        if (!isMiner(settings)) {
+            this.log.error(`createDeviceStateObjects category ${settings.category} not yet supported`);
+            return;
+        }
+
+        // todo: create more states
+    }
+
+    private getDeviceObjectId(settings: IOBrokerDeviceSettings): string {
+        if (!isMiner(settings)) { // TODO: pool support
+            this.log.error(`category ${settings.category} is not yet supported.`);
+            return 'TODO';
+        }
+
+        return `${settings.category}.${settings.mac.replace(/:/g, '')}`;
     }
 }
 

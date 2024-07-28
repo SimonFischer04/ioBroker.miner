@@ -2,13 +2,13 @@ import {Socket} from 'node:net';
 import {ClaymoreMinerSettings} from '../model/MinerSettings';
 import {PollingMiner} from './PollingMiner';
 
-export class ClayMoreMiner extends PollingMiner<ClaymoreMinerSettings> {
+export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
     private client: Socket = new Socket();
 
-    public connect(): Promise<void> {
+    public async connect(): Promise<void> {
         if (!this.client.pending) {
             // TODO: change to (singleton) logger (file?)
-            console.warn('ClayMoreMiner/connect: called with already open socket')
+            console.warn('ClaymoreMiner/connect: called with already open socket')
         }
 
         this.client.connect(this.settings.port, this.settings.host, () => {

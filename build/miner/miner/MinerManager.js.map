@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["../../../src/miner/miner/MinerManager.ts"],
-  "sourcesContent": ["import {Miner} from './Miner';\nimport {MinerSettings} from '../model/MinerSettings';\n\nexport class MinerManager {\n    private readonly miners: Miner<MinerSettings>[] = [];\n\n    public async close(): Promise<void> {\n        for (const miner of this.miners) {\n            await miner.close();\n        }\n    }\n}"],
-  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAGO,MAAM,aAAa;AAAA,EACL,SAAiC,CAAC;AAAA,EAEnD,MAAa,QAAuB;AAChC,eAAW,SAAS,KAAK,QAAQ;AAC7B,YAAM,MAAM,MAAM;AAAA,IACtB;AAAA,EACJ;AACJ;",
-  "names": []
-}

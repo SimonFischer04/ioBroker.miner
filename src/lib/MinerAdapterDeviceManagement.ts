@@ -1,7 +1,8 @@
 import {ActionContext, DeviceInfo, DeviceManagement, JsonFormData} from '@iobroker/dm-utils';
 import {MinerAdapter} from '../main';
-import {categoryKeys} from '../miner/model/Category';
-import {minerTypeKeys} from '../miner/model/MinerSettings';
+import {categoryKeys} from './miner/model/Category';
+import {MinerSettings, minerTypeKeys, TeamRedMinerSettings} from './miner/model/MinerSettings';
+import {IOBrokerMinerSettings, isMiner} from '../miner/model/IOBrokerMinerSettings';
 
 class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
     async getInstanceInfo() {
@@ -161,8 +162,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     // TODO: FixMeLater
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
-                    min: 5,
-                    unit: 's',
+                    min: 10_000,
+                    unit: 'ms',
                     label: {
                         'en': 'poll interval', // TODO: also fix translate in jsonConfig.json
                         'de': 'Abrufintervall',
@@ -258,8 +259,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 return {refresh: false};
             }
         }
-        // Check if ip was entered
-        if (result.ip === '') {
+        // Check if host/ip was entered
+        if (result.host === '') {
             // TODO: Objects are not valid as a React child (found: object with keys {en, de, ru, pt, nl, fr, it, es, pl, zh-cn, uk}). If you meant to render a collection of children, use an array instead.
             await context.showMessage(`Please enter an IP address`);
             // await context.showMessage({
@@ -278,10 +279,10 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             return {refresh: false};
         }
         // Check if ip is valid
-        if (result.ip !== '') {
+        if (result.host !== '') {
             // Check ip has the right format
             // TODO: fix this check
-            if (!result.ip.match(/^(\d{1,3}\.){3}\d{1,3}$/) && false) {
+            if (!result.host.match(/^(\d{1,3}\.){3}\d{1,3}$/) && false) {
                 // TODO: Objects are not valid as a React child (found: object with keys {en, de, ru, pt, nl, fr, it, es, pl, zh-cn, uk}). If you meant to render a collection of children, use an array instead.
                 await context.showMessage(`IP address ${result?.ip} is not valid`);
                 // await context.showMessage({
@@ -301,7 +302,57 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             }
         }
 
-        await this.adapter.addDevice(result.category, result.name, result.ip, result.mac, result.pollInterval, result.enabled);
+        if (!isMiner({category: result.category})) { // TODO: pool support
+            this.log.error(`MinerAdapterDeviceManagement/handleNewDevice category ${result.category} is not yet supported.`);
+            return {refresh: false};
+        }
+
+        let minerSettings: MinerSettings = {
+            minerType: result.minerType
+        }
+
+        switch (minerSettings.minerType) {
+            case 'teamRedMiner': {
+                const pollInterval = result.pollInterval ?? this.adapter.config.pollInterval;
+
+                const trmSettings: Omit<TeamRedMinerSettings, 'minerType'> = {
+                    claymore: {
+                        minerType: 'claymoreMiner',
+                        pollInterval,
+                        host: result.host,
+                        password: 'TODO', // TODO
+                        port: 3333 // TODO: make configurable
+                    },
+                    sg: {
+                        minerType: 'sgMiner',
+                        pollInterval,
+                        host: result.host,
+                        port: 4028 // TODO: make configurable
+                    }
+                }
+                minerSettings = {
+                    ...minerSettings,
+                    ...trmSettings
+                }
+                break;
+            }
+
+            default: {
+                this.adapter.log.error(`MinerAdapterDeviceManagement/handleNewDevice minerType ${minerSettings.minerType} not yet supported`);
+                return {refresh: false};
+            }
+        }
+
+        const settings: IOBrokerMinerSettings = {
+            category: result.category,
+            name: result.name,
+            host: result.host,
+            mac: result.mac,
+            enabled: result.enabled,
+            settings: minerSettings
+        }
+        await this.adapter.addDevice(settings);
+
         return {refresh: true};
     }
 

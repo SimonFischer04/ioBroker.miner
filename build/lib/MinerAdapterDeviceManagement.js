@@ -22,8 +22,9 @@ __export(MinerAdapterDeviceManagement_exports, {
 });
 module.exports = __toCommonJS(MinerAdapterDeviceManagement_exports);
 var import_dm_utils = require("@iobroker/dm-utils");
-var import_Category = require("../miner/model/Category");
-var import_MinerSettings = require("../miner/model/MinerSettings");
+var import_Category = require("./miner/model/Category");
+var import_MinerSettings = require("./miner/model/MinerSettings");
+var import_IOBrokerMinerSettings = require("../miner/model/IOBrokerMinerSettings");
 class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
   async getInstanceInfo() {
     const data = {
@@ -73,6 +74,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     return data;
   }
   async handleNewDevice(context) {
+    var _a;
     this.adapter.log.info("handleNewDevice");
     const result = await context.showForm(
       {
@@ -183,8 +185,8 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             // TODO: FixMeLater
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            min: 5,
-            unit: "s",
+            min: 1e4,
+            unit: "ms",
             label: {
               "en": "poll interval",
               // TODO: also fix translate in jsonConfig.json
@@ -257,17 +259,64 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         return { refresh: false };
       }
     }
-    if (result.ip === "") {
+    if (result.host === "") {
       await context.showMessage(`Please enter an IP address`);
       return { refresh: false };
     }
-    if (result.ip !== "") {
-      if (!result.ip.match(/^(\d{1,3}\.){3}\d{1,3}$/) && false) {
+    if (result.host !== "") {
+      if (!result.host.match(/^(\d{1,3}\.){3}\d{1,3}$/) && false) {
         await context.showMessage(`IP address ${result == null ? void 0 : result.ip} is not valid`);
         return { refresh: false };
       }
     }
-    await this.adapter.addDevice(result.category, result.name, result.ip, result.mac, result.pollInterval, result.enabled);
+    if (!(0, import_IOBrokerMinerSettings.isMiner)({ category: result.category })) {
+      this.log.error(`MinerAdapterDeviceManagement/handleNewDevice category ${result.category} is not yet supported.`);
+      return { refresh: false };
+    }
+    let minerSettings = {
+      minerType: result.minerType
+    };
+    switch (minerSettings.minerType) {
+      case "teamRedMiner": {
+        const pollInterval = (_a = result.pollInterval) != null ? _a : this.adapter.config.pollInterval;
+        const trmSettings = {
+          claymore: {
+            minerType: "claymoreMiner",
+            pollInterval,
+            host: result.host,
+            password: "TODO",
+            // TODO
+            port: 3333
+            // TODO: make configurable
+          },
+          sg: {
+            minerType: "sgMiner",
+            pollInterval,
+            host: result.host,
+            port: 4028
+            // TODO: make configurable
+          }
+        };
+        minerSettings = {
+          ...minerSettings,
+          ...trmSettings
+        };
+        break;
+      }
+      default: {
+        this.adapter.log.error(`MinerAdapterDeviceManagement/handleNewDevice minerType ${minerSettings.minerType} not yet supported`);
+        return { refresh: false };
+      }
+    }
+    const settings = {
+      category: result.category,
+      name: result.name,
+      host: result.host,
+      mac: result.mac,
+      enabled: result.enabled,
+      settings: minerSettings
+    };
+    await this.adapter.addDevice(settings);
     return { refresh: true };
   }
   async listDevices() {
