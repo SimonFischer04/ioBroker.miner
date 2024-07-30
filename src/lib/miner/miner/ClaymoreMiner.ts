@@ -9,12 +9,33 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
         if (!this.client.pending) {
             // TODO: change to (singleton) logger (file?)
             console.warn('ClaymoreMiner/connect: called with already open socket')
+            return;
         }
 
-        this.client.connect(this.settings.port, this.settings.host, () => {
-            console.log('Connected to server');
-            // TODO: set connection state? # ned here, cause des kumt in lib. simply resolve promise only when connected / reject otherwise?
-        });
+        try {
+            this.client.on('data', (data) => {
+                console.log('Received: ', data.toString());
+                // client.destroy();
+            });
+
+            this.client.on('close', () => {
+                console.log('Connection closed');
+            });
+
+            this.client.on('error', (err) => {
+                console.error('Error:', err);
+            });
+
+            this.client.connect(this.settings.port, this.settings.host, () => {
+                console.log('Connected to server');
+                // this.start();
+                this.stop();
+                // TODO: set connection state? # ned here, cause des kumt in lib. simply resolve promise only when connected / reject otherwise?
+            });
+        } catch (e) {
+            console.error('ClaymoreMiner/connect: failed to connect to server', e);
+            return Promise.reject(e);
+        }
 
         return Promise.resolve();
     }
@@ -24,10 +45,10 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
             id: 0,
             jsonrpc: '2.0',
             method: 'control_gpu',
-            params: ['-1', '0']
-            // params: ["-1", "2"]
+            params: ['-1', '2']
         }) + '\n');
 
+        // TODO
         // promisify()
         return Promise.resolve();
     }
@@ -37,7 +58,14 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
     }
 
     public stop(): Promise<void> {
-        throw new Error('Method not implemented.');
+        this.client.write(JSON.stringify({
+            id: 0,
+            jsonrpc: '2.0',
+            method: 'control_gpu',
+            params: ['-1', '0']
+        }) + '\n');
+
+        return Promise.resolve();
     }
 
     public close(): Promise<void> {

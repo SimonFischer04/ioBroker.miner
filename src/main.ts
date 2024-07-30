@@ -3,6 +3,7 @@ import MinerAdapterDeviceManagement from './lib/MinerAdapterDeviceManagement';
 import {categoryKeys} from './lib/miner/model/Category';
 import {MinerManager} from './lib/miner/miner/MinerManager';
 import {IOBrokerDeviceSettings, isMiner} from './miner/model/IOBrokerMinerSettings';
+import {MinerObject} from './miner/model/MinerObject';
 
 export class MinerAdapter extends utils.Adapter {
     private readonly deviceManagement: MinerAdapterDeviceManagement;
@@ -76,7 +77,10 @@ export class MinerAdapter extends utils.Adapter {
         // same thing, but the state is deleted after 30s (getState will return null afterwards)
         await this.setStateAsync('testVariable', {val: true, ack: true, expire: 30});
 
+        // try to connect to already known devices
         await this.tryKnownDevices();
+
+        this.subscribeStates('miner.*.control.*');
     }
 
     /**
@@ -114,13 +118,60 @@ export class MinerAdapter extends utils.Adapter {
     /**
      * Is called if a subscribed state changes
      */
-    private onStateChange(id: string, state: ioBroker.State | null | undefined): void {
+    private async onStateChange(id: string, state: ioBroker.State | null | undefined): Promise<void> {
         if (state) {
             // The state was changed
             this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
 
-            if (this.deviceManagement) {
-                this.deviceManagement.debugging();
+            // if (this.deviceManagement) {
+            //     this.deviceManagement.debugging();
+            // }
+
+            // adapters usually should not process ack=true messages
+            if (state.ack)
+                return
+
+            // example: miner.0.miner.d85ed30e24d3.control.running
+            const parts = id.split('.');
+            if (parts.length < 5) {
+                this.log.error(`invalid state id: ${id}`);
+                return;
+            }
+
+            const deviceObjectId: string = parts.slice(0, 4).join('.');
+            const obj = await this.getObjectAsync(deviceObjectId);
+            if (obj === null || obj === undefined) {
+                this.log.warn(`Object ${deviceObjectId} not found`);
+                return;
+            }
+            const deviceSettings = obj.native as IOBrokerDeviceSettings;
+            if (!isMiner(deviceSettings)) {
+                this.log.warn(`category ${deviceSettings.category} not yet supported`);
+                return;
+            }
+
+            const minerObjectId: MinerObject = parts.slice(4).join('.') as MinerObject;
+
+            switch (minerObjectId) {
+                case MinerObject.running: {
+                    this.log.debug(`running state changed to ${state.val}`);
+
+                    if (deviceSettings.settings.id === undefined) {
+                        this.log.error(`device ${deviceSettings.name} has no id`);
+                        return;
+                    }
+
+                    if (state.val) {
+                        await this.minerManager.startMiner(deviceSettings.settings.id);
+                    } else {
+                        await this.minerManager.stopMiner(deviceSettings.settings.id);
+                    }
+                    break;
+                }
+
+                default: {
+                    this.log.warn(`unknown handling of state ${id}`);
+                }
             }
         } else {
             // The state was deleted
@@ -200,6 +251,11 @@ export class MinerAdapter extends utils.Adapter {
 
         await this.createDeviceStateObjects(settings);
 
+        if (!settings.enabled) {
+            this.log.info(`device ${settings.name} is disabled`);
+            return;
+        }
+
         await this.minerManager.init(settings.settings);
     }
 
@@ -208,6 +264,30 @@ export class MinerAdapter extends utils.Adapter {
             this.log.error(`createDeviceStateObjects category ${settings.category} not yet supported`);
             return;
         }
+
+        await this.extendObject(`${this.getDeviceObjectId(settings)}.${MinerObject.controls}`, {
+            type: 'channel',
+            common: {
+                name: 'device controls'
+            },
+        });
+
+        await this.extendObject(`${this.getDeviceObjectId(settings)}.${MinerObject.info}`, {
+            type: 'channel',
+            common: {
+                name: 'device information'
+            },
+        });
+
+        await this.extendObject(`${this.getDeviceObjectId(settings)}.${MinerObject.running}`, {
+            type: 'state',
+            common: {
+                name: 'mining running',
+                type: 'boolean',
+                read: true,
+                write: true
+            },
+        });
 
         // todo: create more states
     }

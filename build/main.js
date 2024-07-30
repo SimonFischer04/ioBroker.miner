@@ -36,6 +36,7 @@ var import_MinerAdapterDeviceManagement = __toESM(require("./lib/MinerAdapterDev
 var import_Category = require("./lib/miner/model/Category");
 var import_MinerManager = require("./lib/miner/miner/MinerManager");
 var import_IOBrokerMinerSettings = require("./miner/model/IOBrokerMinerSettings");
+var import_MinerObject = require("./miner/model/MinerObject");
 class MinerAdapter extends utils.Adapter {
   deviceManagement;
   minerManager = new import_MinerManager.MinerManager();
@@ -74,6 +75,7 @@ class MinerAdapter extends utils.Adapter {
     await this.setStateAsync("testVariable", { val: true, ack: true });
     await this.setStateAsync("testVariable", { val: true, ack: true, expire: 30 });
     await this.tryKnownDevices();
+    this.subscribeStates("miner.*.control.*");
   }
   /**
    * Is called when adapter shuts down - callback has to be called under any circumstances!
@@ -106,11 +108,45 @@ class MinerAdapter extends utils.Adapter {
   /**
    * Is called if a subscribed state changes
    */
-  onStateChange(id, state) {
+  async onStateChange(id, state) {
     if (state) {
       this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
-      if (this.deviceManagement) {
-        this.deviceManagement.debugging();
+      if (state.ack)
+        return;
+      const parts = id.split(".");
+      if (parts.length < 5) {
+        this.log.error(`invalid state id: ${id}`);
+        return;
+      }
+      const deviceObjectId = parts.slice(0, 4).join(".");
+      const obj = await this.getObjectAsync(deviceObjectId);
+      if (obj === null || obj === void 0) {
+        this.log.warn(`Object ${deviceObjectId} not found`);
+        return;
+      }
+      const deviceSettings = obj.native;
+      if (!(0, import_IOBrokerMinerSettings.isMiner)(deviceSettings)) {
+        this.log.warn(`category ${deviceSettings.category} not yet supported`);
+        return;
+      }
+      const minerObjectId = parts.slice(4).join(".");
+      switch (minerObjectId) {
+        case import_MinerObject.MinerObject.running: {
+          this.log.debug(`running state changed to ${state.val}`);
+          if (deviceSettings.settings.id === void 0) {
+            this.log.error(`device ${deviceSettings.name} has no id`);
+            return;
+          }
+          if (state.val) {
+            await this.minerManager.startMiner(deviceSettings.settings.id);
+          } else {
+            await this.minerManager.stopMiner(deviceSettings.settings.id);
+          }
+          break;
+        }
+        default: {
+          this.log.warn(`unknown handling of state ${id}`);
+        }
       }
     } else {
       this.log.info(`state ${id} deleted`);
@@ -174,6 +210,10 @@ class MinerAdapter extends utils.Adapter {
       return;
     }
     await this.createDeviceStateObjects(settings);
+    if (!settings.enabled) {
+      this.log.info(`device ${settings.name} is disabled`);
+      return;
+    }
     await this.minerManager.init(settings.settings);
   }
   async createDeviceStateObjects(settings) {
@@ -181,6 +221,27 @@ class MinerAdapter extends utils.Adapter {
       this.log.error(`createDeviceStateObjects category ${settings.category} not yet supported`);
       return;
     }
+    await this.extendObject(`${this.getDeviceObjectId(settings)}.${import_MinerObject.MinerObject.controls}`, {
+      type: "channel",
+      common: {
+        name: "device controls"
+      }
+    });
+    await this.extendObject(`${this.getDeviceObjectId(settings)}.${import_MinerObject.MinerObject.info}`, {
+      type: "channel",
+      common: {
+        name: "device information"
+      }
+    });
+    await this.extendObject(`${this.getDeviceObjectId(settings)}.${import_MinerObject.MinerObject.running}`, {
+      type: "state",
+      common: {
+        name: "mining running",
+        type: "boolean",
+        read: true,
+        write: true
+      }
+    });
   }
   getDeviceObjectId(settings) {
     if (!(0, import_IOBrokerMinerSettings.isMiner)(settings)) {

@@ -28,6 +28,7 @@ export interface IOBrokerPoolSettings extends IOBrokerDeviceSettings {
     // TODO
 }
 
+// TODO: check everywhere this is used
 export function isMiner(settings: IOBrokerDeviceSettings): settings is IOBrokerMinerSettings {
     return settings.category === 'miner';
 }

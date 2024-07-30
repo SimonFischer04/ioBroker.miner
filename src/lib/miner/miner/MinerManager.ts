@@ -17,4 +17,26 @@ export class MinerManager {
             await miner.close();
         }
     }
+
+    private getMinerById(id: string): Miner<MinerSettings> | undefined {
+        return this.miners.find(miner => miner.settings.id === id);
+    }
+
+    public async startMiner(id: string): Promise<void> {
+        const miner = this.getMinerById(id);
+        if (!miner) {
+            throw new Error(`miner with id ${id} not found`);
+        }
+
+        await miner.start();
+    }
+
+    public async stopMiner(id: string): Promise<void> {
+        const miner = this.getMinerById(id);
+        if (!miner) {
+            throw new Error(`miner with id ${id} not found`);
+        }
+
+        await miner.stop();
+    }
 }

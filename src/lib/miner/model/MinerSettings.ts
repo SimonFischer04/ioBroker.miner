@@ -7,6 +7,9 @@ export const minerTypeKeys = [
 export type MinerType = (typeof minerTypeKeys)[number];
 
 export interface MinerSettings {
+    // id to uniquely identify this miner
+    id?: string;
+
     minerType: MinerType;
 }
 
