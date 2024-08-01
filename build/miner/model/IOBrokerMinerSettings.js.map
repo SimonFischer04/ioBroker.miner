@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../src/miner/model/IOBrokerMinerSettings.ts"],
+  "sourcesContent": ["import {MinerSettings} from '../../lib/miner/model/MinerSettings';\nimport {Category, categoryKeys} from '../../lib/miner/model/Category';\n\n/*\n    this adapter needs/stores more info per miner than is strictly required if just using the lib, so create su-types\n */\n\n// settings / native part of iobroker 'device'- objects\nexport interface IOBrokerDeviceSettings {\n    category: Category;\n}\n\nexport interface IOBrokerMinerSettings extends IOBrokerDeviceSettings {\n    category: (typeof categoryKeys)[0];\n    name: string;\n    host: string;\n    mac: string;\n\n    // adapter allows to temporarily disable handling a device (no connection created to the device, controls do nothing, ...)\n    // does not really make sense in a lib context, as then it also just not initialise the device\n    enabled: boolean;\n\n    settings: MinerSettings;\n}\n\nexport interface IOBrokerPoolSettings extends IOBrokerDeviceSettings {\n    category: (typeof categoryKeys)[1];\n    // TODO\n}\n\n// TODO: check everywhere this is used\nexport function isMiner(settings: IOBrokerDeviceSettings): settings is IOBrokerMinerSettings {\n    return settings.category === 'miner';\n}"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AA+BO,SAAS,QAAQ,UAAqE;AACzF,SAAO,SAAS,aAAa;AACjC;",
+  "names": []
+}

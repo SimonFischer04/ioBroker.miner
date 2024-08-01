@@ -1,74 +1,99 @@
 import {Socket} from 'node:net';
 import {ClaymoreMinerSettings} from '../model/MinerSettings';
 import {PollingMiner} from './PollingMiner';
+import {Logger} from '../model/Logger';
 
+enum ClaymoreCommandMethod {
+    minerGetStat1 = 'miner_getstat1',
+    minerGetStat2 = 'miner_getstat2',
+
+    // TRM: default (like any 'non_existent' method): "CM API rpc method 'non_existent' is not supported."
+    minerFile = 'miner_file', // ATTENTION! RCE VULNERABILITY, DO NOT USE THIS METHOD (not supported by trm)
+
+    // TRM: "CM API miner restart rpc is not supported."
+    minerRestart = 'miner_restart',
+
+    // TRM: "CM API miner reboot rpc is not supported."
+    minerReboot = 'miner_reboot',
+
+    controlGpu = 'control_gpu',
+}
+
+// TODO: psw support
 export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
-    private client: Socket = new Socket();
+    private readonly logger: Logger;
+
+    constructor(settings: ClaymoreMinerSettings) {
+        super(settings);
+
+        this.logger = Logger.getLogger('ClaymoreMiner[${settings.host}:${settings.port}]');
+    }
 
     public async connect(): Promise<void> {
-        if (!this.client.pending) {
-            // TODO: change to (singleton) logger (file?)
-            console.warn('ClaymoreMiner/connect: called with already open socket')
-            return;
-        }
-
-        try {
-            this.client.on('data', (data) => {
-                console.log('Received: ', data.toString());
-                // client.destroy();
-            });
-
-            this.client.on('close', () => {
-                console.log('Connection closed');
-            });
-
-            this.client.on('error', (err) => {
-                console.error('Error:', err);
-            });
-
-            this.client.connect(this.settings.port, this.settings.host, () => {
-                console.log('Connected to server');
-                // this.start();
-                this.stop();
-                // TODO: set connection state? # ned here, cause des kumt in lib. simply resolve promise only when connected / reject otherwise?
-            });
-        } catch (e) {
-            console.error('ClaymoreMiner/connect: failed to connect to server', e);
-            return Promise.reject(e);
-        }
-
+        // claymore api does not support persistent connections (socket is closed after each command)
         return Promise.resolve();
     }
 
     public start(): Promise<void> {
-        this.client.write(JSON.stringify({
-            id: 0,
-            jsonrpc: '2.0',
-            method: 'control_gpu',
-            params: ['-1', '2']
-        }) + '\n');
-
-        // TODO
-        // promisify()
-        return Promise.resolve();
+        return this.sendCommand(ClaymoreCommandMethod.controlGpu, ['-1', '1']);
     }
 
     public fetchData(): Promise<void> {
         throw new Error('Method not implemented.');
     }
 
-    public stop(): Promise<void> {
-        this.client.write(JSON.stringify({
-            id: 0,
-            jsonrpc: '2.0',
-            method: 'control_gpu',
-            params: ['-1', '0']
-        }) + '\n');
-
-        return Promise.resolve();
+    public async stop(): Promise<void> {
+        await this.sendCommand(ClaymoreCommandMethod.controlGpu, ['-1', '0']);
     }
 
     public close(): Promise<void> {
         throw new Error('Method not implemented.');
+    }
+
+    private async sendCommand(method: ClaymoreCommandMethod, params: string[]): Promise<void> {
+        this.logger.debug(`sendCommand: ${method} ${params}`);
+
+        return new Promise((resolve, reject) => {
+            const socket: Socket = new Socket();
+
+            socket.on('connect', () => {
+                const cmd = JSON.stringify({
+                    id: 0,
+                    jsonrpc: '2.0',
+                    method: method,
+                    params
+                }) + '\n';
+                this.logger.log(`connected, sending cmd now ...: ${cmd}`);
+                socket.write(cmd);
+                socket.setTimeout(1000);
+            });
+
+            socket.on('timeout', () => {
+                socket.end();
+                socket.destroy();
+                this.logger.warn('socket timeout');
+                reject();
+            });
+
+            socket.on('data', (data) => {
+                const d = JSON.parse(data.toString());
+
+                this.logger.debug(`received: ${d}`);
+
+                resolve(d);
+            });
+
+            socket.on('close', () => {
+            }); // discard
+
+            socket.on('error', (err) => {
+                reject(`socket error: ${err.message}`);
+                this.logger.error(err.message);
+                socket.destroy();
+                resolve();
+            });
+
+            socket.connect(this.settings.port, this.settings.host);
+        });
     }
 }

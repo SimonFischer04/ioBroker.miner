@@ -37,6 +37,8 @@ var import_Category = require("./lib/miner/model/Category");
 var import_MinerManager = require("./lib/miner/miner/MinerManager");
 var import_IOBrokerMinerSettings = require("./miner/model/IOBrokerMinerSettings");
 var import_MinerObject = require("./miner/model/MinerObject");
+var import_Logger = require("./lib/miner/model/Logger");
+var import_Level = require("./lib/miner/model/Level");
 class MinerAdapter extends utils.Adapter {
   deviceManagement;
   minerManager = new import_MinerManager.MinerManager();
@@ -54,6 +56,7 @@ class MinerAdapter extends utils.Adapter {
    * Is called when databases are connected and adapter received configuration.
    */
   async onReady() {
+    this.setupMinerLib();
     await this.setState("info.connection", false, true);
     await this.createBasicObjectStructure();
     this.log.info("aconfig option1: " + this.config.option1);
@@ -249,6 +252,32 @@ class MinerAdapter extends utils.Adapter {
       return "TODO";
     }
     return `${settings.category}.${settings.mac.replace(/:/g, "")}`;
+  }
+  setupMinerLib() {
+    import_Logger.Logger.setLogger({
+      log: (level, message) => {
+        switch (level) {
+          case import_Level.Level.DEBUG:
+            this.log.debug(message);
+            break;
+          case import_Level.Level.INFO:
+            this.log.info(message);
+            break;
+          case import_Level.Level.NOTICE:
+            this.log.info(message);
+            break;
+          case import_Level.Level.WARN:
+            this.log.warn(message);
+            break;
+          case import_Level.Level.ERROR:
+            this.log.error(message);
+            break;
+          case import_Level.Level.FATAL:
+            this.log.error(message);
+            break;
+        }
+      }
+    });
   }
 }
 if (require.main !== module) {

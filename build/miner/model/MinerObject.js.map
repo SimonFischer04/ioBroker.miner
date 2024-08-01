@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../src/miner/model/MinerObject.ts"],
+  "sourcesContent": ["export enum MinerObject {\n    controls = 'control',\n    info = 'info',\n    running = `${MinerObject.controls}.running`\n}"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAO,IAAK,cAAL,kBAAKA,iBAAL;AACH,EAAAA,aAAA,cAAW;AACX,EAAAA,aAAA,UAAO;AACP,EAAAA,aAAA,aAAU;AAHF,SAAAA;AAAA,GAAA;",
+  "names": ["MinerObject"]
+}

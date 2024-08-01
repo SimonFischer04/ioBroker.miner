@@ -4,6 +4,8 @@ import {categoryKeys} from './lib/miner/model/Category';
 import {MinerManager} from './lib/miner/miner/MinerManager';
 import {IOBrokerDeviceSettings, isMiner} from './miner/model/IOBrokerMinerSettings';
 import {MinerObject} from './miner/model/MinerObject';
+import {Logger} from './lib/miner/model/Logger';
+import {Level} from './lib/miner/model/Level';
 
 export class MinerAdapter extends utils.Adapter {
     private readonly deviceManagement: MinerAdapterDeviceManagement;
@@ -27,6 +29,8 @@ export class MinerAdapter extends utils.Adapter {
      * Is called when databases are connected and adapter received configuration.
      */
     private async onReady(): Promise<void> {
+        this.setupMinerLib();
+
         // Reset the connection indicator during startup
         await this.setState('info.connection', false, true);
 
@@ -299,6 +303,33 @@ export class MinerAdapter extends utils.Adapter {
         }
 
         return `${settings.category}.${settings.mac.replace(/:/g, '')}`;
+    }
+
+    private setupMinerLib(): void {
+        Logger.setLogger({
+            log: (level, message) => {
+                switch (level) {
+                    case Level.DEBUG:
+                        this.log.debug(message);
+                        break;
+                    case Level.INFO:
+                        this.log.info(message);
+                        break;
+                    case Level.NOTICE:
+                        this.log.info(message);
+                        break;
+                    case Level.WARN:
+                        this.log.warn(message);
+                        break;
+                    case Level.ERROR:
+                        this.log.error(message);
+                        break;
+                    case Level.FATAL:
+                        this.log.error(message);
+                        break;
+                }
+            }
+        })
     }
 }
 

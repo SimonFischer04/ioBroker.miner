@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../src/lib/miner/model/MinerSettings.ts"],
+  "sourcesContent": ["export const minerTypeKeys = [\n    'teamRedMiner',\n    'claymoreMiner',\n    'sgMiner'\n]\n\nexport type MinerType = (typeof minerTypeKeys)[number];\n\nexport interface MinerSettings {\n    // id to uniquely identify this miner\n    id?: string;\n\n    minerType: MinerType;\n}\n\nexport interface PollingMinerSettings extends MinerSettings {\n    pollInterval: number;\n}\n\nexport interface TeamRedMinerSettings extends MinerSettings {\n    minerType: (typeof minerTypeKeys)[0];\n    claymore: ClaymoreMinerSettings;\n    sg: SGMinerSettings;\n}\n\nexport interface ClaymoreMinerSettings extends PollingMinerSettings {\n    minerType: (typeof minerTypeKeys)[1];\n    host: string;\n    port: number;\n    password: string;\n}\n\nexport interface SGMinerSettings extends PollingMinerSettings {\n    minerType: (typeof minerTypeKeys)[2];\n    host: string;\n    port: number;\n}"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAO,MAAM,gBAAgB;AAAA,EACzB;AAAA,EACA;AAAA,EACA;AACJ;",
+  "names": []
+}
