@@ -16,28 +16,22 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-var SGMiner_exports = {};
-__export(SGMiner_exports, {
-  SGMiner: () => SGMiner
+var Level_exports = {};
+__export(Level_exports, {
+  Level: () => Level
 });
-module.exports = __toCommonJS(SGMiner_exports);
-var import_PollingMiner = require("./PollingMiner");
-class SGMiner extends import_PollingMiner.PollingMiner {
-  init() {
-    throw new Error("Method not implemented.");
-  }
-  start() {
-    throw new Error("Method not implemented.");
-  }
-  fetchData() {
-    throw new Error("Method not implemented.");
-  }
-  stop() {
-    throw new Error("Method not implemented.");
-  }
-}
+module.exports = __toCommonJS(Level_exports);
+var Level = /* @__PURE__ */ ((Level2) => {
+  Level2[Level2["DEBUG"] = 0] = "DEBUG";
+  Level2[Level2["INFO"] = 1] = "INFO";
+  Level2[Level2["NOTICE"] = 2] = "NOTICE";
+  Level2[Level2["WARN"] = 3] = "WARN";
+  Level2[Level2["ERROR"] = 4] = "ERROR";
+  Level2[Level2["FATAL"] = 5] = "FATAL";
+  return Level2;
+})(Level || {});
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  SGMiner
+  Level
 });
-//# sourceMappingURL=SGMiner.js.map
+//# sourceMappingURL=Level.js.map

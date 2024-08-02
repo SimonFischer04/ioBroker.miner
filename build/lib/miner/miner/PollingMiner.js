@@ -22,7 +22,26 @@ __export(PollingMiner_exports, {
 });
 module.exports = __toCommonJS(PollingMiner_exports);
 var import_Miner = require("./Miner");
+var import_Logger = require("../model/Logger");
+var import_delay = require("../../utils/delay");
+const logger = import_Logger.Logger.getLogger("PollingMiner");
 class PollingMiner extends import_Miner.Miner {
+  pollInterval;
+  async init() {
+    logger.info(`initializing with interval ${this.settings.pollInterval}`);
+    if (!this.settings.pollInterval || this.settings.pollInterval < 100) {
+      logger.error(`pollInterval >= 100 required. got: ${this.settings.pollInterval}`);
+      return;
+    }
+    this.pollInterval = (0, import_delay.asyncInterval)(async () => {
+      logger.debug("next poll interval time reached. calling fetchData()");
+      await this.fetchData();
+    }, this.settings.pollInterval, true);
+  }
+  async close() {
+    var _a;
+    (_a = this.pollInterval) == null ? void 0 : _a.clear();
+  }
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

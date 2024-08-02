@@ -31,11 +31,14 @@ class TeamRedMiner extends import_PollingMiner.PollingMiner {
   sgMiner;
   constructor(settings) {
     super(settings);
+    if (settings.pollInterval !== settings.sg.pollInterval || settings.pollInterval !== settings.claymore.pollInterval) {
+      throw new Error("pollInterval must be the same for all miners");
+    }
     this.claymoreMiner = new import_ClaymoreMiner.ClaymoreMiner(settings.claymore);
     this.sgMiner = new import_SGMiner.SGMiner(settings.sg);
   }
-  async connect() {
-    await this.claymoreMiner.connect();
+  async init() {
+    await super.init();
   }
   async start() {
     await this.claymoreMiner.start();

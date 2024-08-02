@@ -2,23 +2,19 @@ import {SGMinerSettings} from '../model/MinerSettings';
 import {PollingMiner} from './PollingMiner';
 
 export class SGMiner extends PollingMiner<SGMinerSettings> {
-    public connect(): Promise<void> {
+    public override init(): Promise<void> {
         throw new Error('Method not implemented.');
     }
 
-    public start(): Promise<void> {
+    public override start(): Promise<void> {
         throw new Error('Method not implemented.');
     }
 
-    public fetchData(): Promise<void> {
+    public override fetchData(): Promise<void> {
         throw new Error('Method not implemented.');
     }
 
-    public stop(): Promise<void> {
-        throw new Error('Method not implemented.');
-    }
-
-    public close(): Promise<void> {
+    public override stop(): Promise<void> {
         throw new Error('Method not implemented.');
     }
 }

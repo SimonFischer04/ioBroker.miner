@@ -280,6 +280,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
       case "teamRedMiner": {
         const pollInterval = (_a = result.pollInterval) != null ? _a : this.adapter.config.pollInterval;
         const trmSettings = {
+          pollInterval,
           claymore: {
             minerType: "claymoreMiner",
             pollInterval,

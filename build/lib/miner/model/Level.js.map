@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../src/lib/miner/model/Level.ts"],
+  "sourcesContent": ["export enum Level {\n    DEBUG = 0,\n    INFO = 1,\n    NOTICE = 2,\n    WARN = 3,\n    ERROR = 4,\n    FATAL = 5\n}"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAO,IAAK,QAAL,kBAAKA,WAAL;AACH,EAAAA,cAAA,WAAQ,KAAR;AACA,EAAAA,cAAA,UAAO,KAAP;AACA,EAAAA,cAAA,YAAS,KAAT;AACA,EAAAA,cAAA,UAAO,KAAP;AACA,EAAAA,cAAA,WAAQ,KAAR;AACA,EAAAA,cAAA,WAAQ,KAAR;AANQ,SAAAA;AAAA,GAAA;",
+  "names": ["Level"]
+}

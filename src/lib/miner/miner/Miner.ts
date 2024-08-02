@@ -3,7 +3,7 @@ import {MinerSettings} from '../model/MinerSettings';
 import * as crypto from 'node:crypto';
 
 export abstract class Miner<S extends MinerSettings> {
-    public abstract connect(): Promise<void>;
+    // TODO: protected base logger
 
     constructor(
         public readonly settings: S
@@ -13,6 +13,14 @@ export abstract class Miner<S extends MinerSettings> {
         }
     }
 
+    /**
+     * Initialize the miner: connect, start polling (for polling miners, ...), ...
+     */
+    public abstract init(): Promise<void>;
+
+    /**
+     * Start mining
+     */
     public abstract start(): Promise<void>;
 
     /**

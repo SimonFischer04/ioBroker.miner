@@ -33,6 +33,7 @@ __export(Miner_exports, {
 module.exports = __toCommonJS(Miner_exports);
 var crypto = __toESM(require("node:crypto"));
 class Miner {
+  // TODO: protected base logger
   constructor(settings) {
     this.settings = settings;
     if (!settings.id) {

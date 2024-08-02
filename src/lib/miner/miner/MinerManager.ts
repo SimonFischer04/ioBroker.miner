@@ -8,7 +8,7 @@ export class MinerManager {
     public async init(settings: MinerSettings): Promise<Miner<MinerSettings>> {
         const miner: Miner<MinerSettings> = createMiner(settings);
         this.miners.push(miner);
-        await miner.connect();
+        await miner.init();
         return miner;
     }
 

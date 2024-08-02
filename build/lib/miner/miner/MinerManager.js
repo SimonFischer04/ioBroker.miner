@@ -27,7 +27,7 @@ class MinerManager {
   async init(settings) {
     const miner = (0, import_MinerFactory.createMiner)(settings);
     this.miners.push(miner);
-    await miner.connect();
+    await miner.init();
     return miner;
   }
   async close() {

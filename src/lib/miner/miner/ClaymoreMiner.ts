@@ -7,6 +7,7 @@ enum ClaymoreCommandMethod {
     minerGetStat1 = 'miner_getstat1',
     minerGetStat2 = 'miner_getstat2',
 
+    minerGetFile = 'miner_getfile',
     // TRM: default (like any 'non_existent' method): "CM API rpc method 'non_existent' is not supported."
     minerFile = 'miner_file', // ATTENTION! RCE VULNERABILITY, DO NOT USE THIS METHOD (not supported by trm)
 
@@ -26,31 +27,28 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
     constructor(settings: ClaymoreMinerSettings) {
         super(settings);
 
-        this.logger = Logger.getLogger('ClaymoreMiner[${settings.host}:${settings.port}]');
+        this.logger = Logger.getLogger(`ClaymoreMiner[${settings.host}:${settings.port}]`);
     }
 
-    public async connect(): Promise<void> {
-        // claymore api does not support persistent connections (socket is closed after each command)
+    public override async init(): Promise<void> {
+        await super.init();
+        // claymore api does not support persistent connections (socket is closed after each command), so don't need to init any connection here
         return Promise.resolve();
     }
 
-    public start(): Promise<void> {
+    public override start(): Promise<void> {
         return this.sendCommand(ClaymoreCommandMethod.controlGpu, ['-1', '1']);
     }
 
-    public fetchData(): Promise<void> {
-        throw new Error('Method not implemented.');
+    public override async fetchData(): Promise<void> {
+        await this.sendCommand(ClaymoreCommandMethod.minerGetStat2)
     }
 
-    public async stop(): Promise<void> {
+    public override async stop(): Promise<void> {
         await this.sendCommand(ClaymoreCommandMethod.controlGpu, ['-1', '0']);
     }
 
-    public close(): Promise<void> {
-        throw new Error('Method not implemented.');
-    }
-
-    private async sendCommand(method: ClaymoreCommandMethod, params: string[]): Promise<void> {
+    private async sendCommand(method: ClaymoreCommandMethod, params?: string[]): Promise<void> {
         this.logger.debug(`sendCommand: ${method} ${params}`);
 
         return new Promise((resolve, reject) => {
@@ -63,7 +61,7 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
                     method: method,
                     params
                 }) + '\n';
-                this.logger.log(`connected, sending cmd now ...: ${cmd}`);
+                this.logger.debug(`connected, sending cmd now ...: ${cmd}`);
                 socket.write(cmd);
                 socket.setTimeout(1000);
             });
@@ -78,7 +76,7 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
             socket.on('data', (data) => {
                 const d = JSON.parse(data.toString());
 
-                this.logger.debug(`received: ${d}`);
+                this.logger.debug(`received: ${data.toString()}`);
 
                 resolve(d);
             });

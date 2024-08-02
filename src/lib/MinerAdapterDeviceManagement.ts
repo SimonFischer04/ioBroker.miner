@@ -316,6 +316,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 const pollInterval = result.pollInterval ?? this.adapter.config.pollInterval;
 
                 const trmSettings: Omit<TeamRedMinerSettings, 'minerType'> = {
+                    pollInterval: pollInterval,
                     claymore: {
                         minerType: 'claymoreMiner',
                         pollInterval,
@@ -338,6 +339,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             }
 
             default: {
+                // TODO: same for category dropdown
+                // TODO: hide in dropdown to not create confusion something like "visibleMinerTypes" filter array?
                 this.adapter.log.error(`MinerAdapterDeviceManagement/handleNewDevice minerType ${minerSettings.minerType} not yet supported`);
                 return {refresh: false};
             }

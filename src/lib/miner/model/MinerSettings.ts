@@ -17,7 +17,7 @@ export interface PollingMinerSettings extends MinerSettings {
     pollInterval: number;
 }
 
-export interface TeamRedMinerSettings extends MinerSettings {
+export interface TeamRedMinerSettings extends PollingMinerSettings {
     minerType: (typeof minerTypeKeys)[0];
     claymore: ClaymoreMinerSettings;
     sg: SGMinerSettings;

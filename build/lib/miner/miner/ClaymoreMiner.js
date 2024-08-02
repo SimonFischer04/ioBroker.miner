@@ -27,6 +27,7 @@ var import_Logger = require("../model/Logger");
 var ClaymoreCommandMethod = /* @__PURE__ */ ((ClaymoreCommandMethod2) => {
   ClaymoreCommandMethod2["minerGetStat1"] = "miner_getstat1";
   ClaymoreCommandMethod2["minerGetStat2"] = "miner_getstat2";
+  ClaymoreCommandMethod2["minerGetFile"] = "miner_getfile";
   ClaymoreCommandMethod2["minerFile"] = "miner_file";
   ClaymoreCommandMethod2["minerRestart"] = "miner_restart";
   ClaymoreCommandMethod2["minerReboot"] = "miner_reboot";
@@ -37,22 +38,20 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
   logger;
   constructor(settings) {
     super(settings);
-    this.logger = import_Logger.Logger.getLogger("ClaymoreMiner[${settings.host}:${settings.port}]");
+    this.logger = import_Logger.Logger.getLogger(`ClaymoreMiner[${settings.host}:${settings.port}]`);
   }
-  async connect() {
+  async init() {
+    await super.init();
     return Promise.resolve();
   }
   start() {
     return this.sendCommand("control_gpu" /* controlGpu */, ["-1", "1"]);
   }
-  fetchData() {
-    throw new Error("Method not implemented.");
+  async fetchData() {
+    await this.sendCommand("miner_getstat2" /* minerGetStat2 */);
   }
   async stop() {
     await this.sendCommand("control_gpu" /* controlGpu */, ["-1", "0"]);
-  }
-  close() {
-    throw new Error("Method not implemented.");
   }
   async sendCommand(method, params) {
     this.logger.debug(`sendCommand: ${method} ${params}`);
@@ -65,7 +64,7 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
           method,
           params
         }) + "\n";
-        this.logger.log(`connected, sending cmd now ...: ${cmd}`);
+        this.logger.debug(`connected, sending cmd now ...: ${cmd}`);
         socket.write(cmd);
         socket.setTimeout(1e3);
       });
@@ -77,7 +76,7 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
       });
       socket.on("data", (data) => {
         const d = JSON.parse(data.toString());
-        this.logger.debug(`received: ${d}`);
+        this.logger.debug(`received: ${data.toString()}`);
         resolve(d);
       });
       socket.on("close", () => {
