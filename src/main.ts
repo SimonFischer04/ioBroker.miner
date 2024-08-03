@@ -3,9 +3,18 @@ import MinerAdapterDeviceManagement from './lib/MinerAdapterDeviceManagement';
 import {categoryKeys} from './lib/miner/model/Category';
 import {MinerManager} from './lib/miner/miner/MinerManager';
 import {IOBrokerDeviceSettings, isMiner} from './miner/model/IOBrokerMinerSettings';
-import {MinerObject} from './miner/model/MinerObject';
-import {Logger} from './lib/miner/model/Logger';
 import {Level} from './lib/miner/model/Level';
+import {
+    getMinerFeatureFullId,
+    MinerFeatureCategory,
+    MinerFeatureKey,
+    minerFeatures
+} from './lib/miner/model/MinerFeature';
+import {createMiner} from './lib/miner/miner/MinerFactory';
+import {Logger} from './lib/miner/model/Logger';
+import {Miner} from './lib/miner/miner/Miner';
+import {MinerSettings} from './lib/miner/model/MinerSettings';
+import {MinerStats} from './lib/miner/model/MinerStats';
 
 export class MinerAdapter extends utils.Adapter {
     private readonly deviceManagement: MinerAdapterDeviceManagement;
@@ -154,10 +163,11 @@ export class MinerAdapter extends utils.Adapter {
                 return;
             }
 
-            const minerObjectId: MinerObject = parts.slice(4).join('.') as MinerObject;
+            // example: control.running
+            const minerObjectId: string = parts.slice(4).join('.');
 
             switch (minerObjectId) {
-                case MinerObject.running: {
+                case getMinerFeatureFullId(MinerFeatureKey.running): {
                     this.log.debug(`running state changed to ${state.val}`);
 
                     if (deviceSettings.settings.id === undefined) {
@@ -170,6 +180,7 @@ export class MinerAdapter extends utils.Adapter {
                     } else {
                         await this.minerManager.stopMiner(deviceSettings.settings.id);
                     }
+                    await this.setState(id, {val: state.val, ack: true});
                     break;
                 }
 
@@ -260,7 +271,29 @@ export class MinerAdapter extends utils.Adapter {
             return;
         }
 
-        await this.minerManager.init(settings.settings);
+        const miner = await this.minerManager.init(settings.settings);
+
+        miner.subscribeToStats(async (stats: MinerStats) => {
+            this.log.debug(`received stats: ${JSON.stringify(stats)}`);
+            await this.processNewStats(miner, settings, stats);
+        });
+    }
+
+    private async processNewStats(miner: Miner<MinerSettings>,settings: IOBrokerDeviceSettings, stats: MinerStats): Promise<void> {
+        for (const feature of miner.getSupportedFeatures()) {
+            // TODO: cleanup, just filter for info features and then directly infer object id from there somehow
+            // change MinerStates to Record<MinerFeatureKey, val>?
+            switch (feature) {
+                case MinerFeatureKey.version: {
+                    await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.version), {val: stats.version, ack: true});
+                    break;
+                }
+                case MinerFeatureKey.totalHashrate: {
+                    await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.totalHashrate), {val: stats.totalHashrate, ack: true});
+                    break;
+                }
+            }
+        }
     }
 
     private async createDeviceStateObjects(settings: IOBrokerDeviceSettings): Promise<void> {
@@ -269,31 +302,33 @@ export class MinerAdapter extends utils.Adapter {
             return;
         }
 
-        await this.extendObject(`${this.getDeviceObjectId(settings)}.${MinerObject.controls}`, {
+        await this.extendObject(`${this.getDeviceObjectId(settings)}.${MinerFeatureCategory.control}`, {
             type: 'channel',
             common: {
                 name: 'device controls'
             },
         });
 
-        await this.extendObject(`${this.getDeviceObjectId(settings)}.${MinerObject.info}`, {
+        await this.extendObject(`${this.getDeviceObjectId(settings)}.${MinerFeatureCategory.info}`, {
             type: 'channel',
             common: {
                 name: 'device information'
             },
         });
 
-        await this.extendObject(`${this.getDeviceObjectId(settings)}.${MinerObject.running}`, {
-            type: 'state',
-            common: {
-                name: 'mining running',
-                type: 'boolean',
-                read: true,
-                write: true
-            },
-        });
-
-        // todo: create more states
+        const dummyMiner = createMiner(settings.settings);
+        for (const featureKey of dummyMiner.getSupportedFeatures()) {
+            const feature = minerFeatures[featureKey];
+            await this.extendObject(`${this.getStateFullObjectId(settings, featureKey)}`, {
+                type: 'state',
+                common: {
+                    name: feature.label,
+                    type: feature.type as ioBroker.CommonType,
+                    read: feature.readable,
+                    write: feature.writable
+                }
+            });
+        }
     }
 
     private getDeviceObjectId(settings: IOBrokerDeviceSettings): string {
@@ -303,6 +338,10 @@ export class MinerAdapter extends utils.Adapter {
         }
 
         return `${settings.category}.${settings.mac.replace(/:/g, '')}`;
+    }
+
+    private getStateFullObjectId(settings: IOBrokerDeviceSettings, featureKey: MinerFeatureKey): string {
+        return `${this.getDeviceObjectId(settings)}.${getMinerFeatureFullId(featureKey)}`;
     }
 
     private setupMinerLib(): void {

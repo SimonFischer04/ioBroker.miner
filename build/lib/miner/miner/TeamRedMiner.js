@@ -43,14 +43,20 @@ class TeamRedMiner extends import_PollingMiner.PollingMiner {
   async start() {
     await this.claymoreMiner.start();
   }
-  async fetchData() {
-    await this.claymoreMiner.fetchData();
+  async fetchStats() {
+    const claymoreStats = await this.claymoreMiner.fetchStats();
+    return claymoreStats;
   }
   async stop() {
     await this.claymoreMiner.stop();
   }
   async close() {
     await this.claymoreMiner.close();
+  }
+  getSupportedFeatures() {
+    return [
+      ...this.claymoreMiner.getSupportedFeatures()
+    ];
   }
 }
 // Annotate the CommonJS export names for ESM import in node:

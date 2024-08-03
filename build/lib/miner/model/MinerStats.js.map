@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../src/lib/miner/model/MinerStats.ts"],
+  "sourcesContent": ["export interface MinerStats {\n    version: string;\n    totalHashrate: number;\n}"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

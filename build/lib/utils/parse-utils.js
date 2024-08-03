@@ -16,31 +16,17 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-var SGMiner_exports = {};
-__export(SGMiner_exports, {
-  SGMiner: () => SGMiner
+var parse_utils_exports = {};
+__export(parse_utils_exports, {
+  safeParseInt: () => safeParseInt
 });
-module.exports = __toCommonJS(SGMiner_exports);
-var import_PollingMiner = require("./PollingMiner");
-class SGMiner extends import_PollingMiner.PollingMiner {
-  init() {
-    throw new Error("Method not implemented.");
-  }
-  start() {
-    throw new Error("Method not implemented.");
-  }
-  fetchStats() {
-    throw new Error("Method not implemented.");
-  }
-  stop() {
-    throw new Error("Method not implemented.");
-  }
-  getSupportedFeatures() {
-    throw new Error("Method not implemented.");
-  }
+module.exports = __toCommonJS(parse_utils_exports);
+function safeParseInt(value) {
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? 0 : parsed;
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  SGMiner
+  safeParseInt
 });
-//# sourceMappingURL=SGMiner.js.map
+//# sourceMappingURL=parse-utils.js.map

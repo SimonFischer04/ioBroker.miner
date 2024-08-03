@@ -1,9 +1,12 @@
-// TODO:  ?
 import {MinerSettings} from '../model/MinerSettings';
 import * as crypto from 'node:crypto';
+import {MinerFeatureKey} from '../model/MinerFeature';
+import {Logger} from '../model/Logger';
+import {MinerStats} from '../model/MinerStats';
 
 export abstract class Miner<S extends MinerSettings> {
-    // TODO: protected base logger
+    protected logger: Logger;
+    private statSubscriptions: ((stats: MinerStats) => Promise<void>)[] = [];
 
     constructor(
         public readonly settings: S
@@ -11,7 +14,13 @@ export abstract class Miner<S extends MinerSettings> {
         if(!settings.id) {
             this.settings.id = crypto.randomUUID();
         }
+        this.logger = Logger.getLogger(this.getLoggerName());
     }
+
+    /**
+     * Get the features supported by this miner
+     */
+    public abstract getSupportedFeatures(): MinerFeatureKey[];
 
     /**
      * Initialize the miner: connect, start polling (for polling miners, ...), ...
@@ -31,5 +40,36 @@ export abstract class Miner<S extends MinerSettings> {
     /**
      * Close / cleanup any open resources
      */
-    public abstract close(): Promise<void>;
+    public async close(): Promise<void> {
+        this.statSubscriptions = [];
+    };
+
+    /**
+     * Get name to use for the logger
+     */
+    protected getLoggerName(): string {
+        return `Miner[${this.settings.id}, ${this.settings.minerType}]`;
+    };
+
+    /**
+     * Subscribe to miner stats
+     *
+     * @param callback - callback that gets called when new stats are available
+     */
+    public subscribeToStats(callback: (stats: MinerStats) => Promise<void>): void {
+        this.statSubscriptions.push(callback);
+    }
+
+    /**
+     * Called by the miner when new stats are available.
+     * Subscribers will be notified.
+     *
+     * @param stats
+     */
+    public async onStats(stats: MinerStats): Promise<void> {
+        this.logger.debug(`publishing new stats to subscribers: ${JSON.stringify(stats)}`);
+        for (const sub of this.statSubscriptions) {
+            await sub(stats);
+        }
+    }
 }

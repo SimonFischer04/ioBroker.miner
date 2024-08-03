@@ -36,9 +36,10 @@ var import_MinerAdapterDeviceManagement = __toESM(require("./lib/MinerAdapterDev
 var import_Category = require("./lib/miner/model/Category");
 var import_MinerManager = require("./lib/miner/miner/MinerManager");
 var import_IOBrokerMinerSettings = require("./miner/model/IOBrokerMinerSettings");
-var import_MinerObject = require("./miner/model/MinerObject");
-var import_Logger = require("./lib/miner/model/Logger");
 var import_Level = require("./lib/miner/model/Level");
+var import_MinerFeature = require("./lib/miner/model/MinerFeature");
+var import_MinerFactory = require("./lib/miner/miner/MinerFactory");
+var import_Logger = require("./lib/miner/model/Logger");
 class MinerAdapter extends utils.Adapter {
   deviceManagement;
   minerManager = new import_MinerManager.MinerManager();
@@ -134,7 +135,7 @@ class MinerAdapter extends utils.Adapter {
       }
       const minerObjectId = parts.slice(4).join(".");
       switch (minerObjectId) {
-        case import_MinerObject.MinerObject.running: {
+        case (0, import_MinerFeature.getMinerFeatureFullId)(import_MinerFeature.MinerFeatureKey.running): {
           this.log.debug(`running state changed to ${state.val}`);
           if (deviceSettings.settings.id === void 0) {
             this.log.error(`device ${deviceSettings.name} has no id`);
@@ -145,6 +146,7 @@ class MinerAdapter extends utils.Adapter {
           } else {
             await this.minerManager.stopMiner(deviceSettings.settings.id);
           }
+          await this.setState(id, { val: state.val, ack: true });
           break;
         }
         default: {
@@ -217,34 +219,56 @@ class MinerAdapter extends utils.Adapter {
       this.log.info(`device ${settings.name} is disabled`);
       return;
     }
-    await this.minerManager.init(settings.settings);
+    const miner = await this.minerManager.init(settings.settings);
+    miner.subscribeToStats(async (stats) => {
+      this.log.debug(`received stats: ${JSON.stringify(stats)}`);
+      await this.processNewStats(miner, settings, stats);
+    });
+  }
+  async processNewStats(miner, settings, stats) {
+    for (const feature of miner.getSupportedFeatures()) {
+      switch (feature) {
+        case import_MinerFeature.MinerFeatureKey.version: {
+          await this.setState(this.getStateFullObjectId(settings, import_MinerFeature.MinerFeatureKey.version), { val: stats.version, ack: true });
+          break;
+        }
+        case import_MinerFeature.MinerFeatureKey.totalHashrate: {
+          await this.setState(this.getStateFullObjectId(settings, import_MinerFeature.MinerFeatureKey.totalHashrate), { val: stats.totalHashrate, ack: true });
+          break;
+        }
+      }
+    }
   }
   async createDeviceStateObjects(settings) {
     if (!(0, import_IOBrokerMinerSettings.isMiner)(settings)) {
       this.log.error(`createDeviceStateObjects category ${settings.category} not yet supported`);
       return;
     }
-    await this.extendObject(`${this.getDeviceObjectId(settings)}.${import_MinerObject.MinerObject.controls}`, {
+    await this.extendObject(`${this.getDeviceObjectId(settings)}.${import_MinerFeature.MinerFeatureCategory.control}`, {
       type: "channel",
       common: {
         name: "device controls"
       }
     });
-    await this.extendObject(`${this.getDeviceObjectId(settings)}.${import_MinerObject.MinerObject.info}`, {
+    await this.extendObject(`${this.getDeviceObjectId(settings)}.${import_MinerFeature.MinerFeatureCategory.info}`, {
       type: "channel",
       common: {
         name: "device information"
       }
     });
-    await this.extendObject(`${this.getDeviceObjectId(settings)}.${import_MinerObject.MinerObject.running}`, {
-      type: "state",
-      common: {
-        name: "mining running",
-        type: "boolean",
-        read: true,
-        write: true
-      }
-    });
+    const dummyMiner = (0, import_MinerFactory.createMiner)(settings.settings);
+    for (const featureKey of dummyMiner.getSupportedFeatures()) {
+      const feature = import_MinerFeature.minerFeatures[featureKey];
+      await this.extendObject(`${this.getStateFullObjectId(settings, featureKey)}`, {
+        type: "state",
+        common: {
+          name: feature.label,
+          type: feature.type,
+          read: feature.readable,
+          write: feature.writable
+        }
+      });
+    }
   }
   getDeviceObjectId(settings) {
     if (!(0, import_IOBrokerMinerSettings.isMiner)(settings)) {
@@ -252,6 +276,9 @@ class MinerAdapter extends utils.Adapter {
       return "TODO";
     }
     return `${settings.category}.${settings.mac.replace(/:/g, "")}`;
+  }
+  getStateFullObjectId(settings, featureKey) {
+    return `${this.getDeviceObjectId(settings)}.${(0, import_MinerFeature.getMinerFeatureFullId)(featureKey)}`;
   }
   setupMinerLib() {
     import_Logger.Logger.setLogger({

@@ -32,12 +32,47 @@ __export(Miner_exports, {
 });
 module.exports = __toCommonJS(Miner_exports);
 var crypto = __toESM(require("node:crypto"));
+var import_Logger = require("../model/Logger");
 class Miner {
-  // TODO: protected base logger
   constructor(settings) {
     this.settings = settings;
     if (!settings.id) {
       this.settings.id = crypto.randomUUID();
+    }
+    this.logger = import_Logger.Logger.getLogger(this.getLoggerName());
+  }
+  logger;
+  statSubscriptions = [];
+  /**
+   * Close / cleanup any open resources
+   */
+  async close() {
+    this.statSubscriptions = [];
+  }
+  /**
+   * Get name to use for the logger
+   */
+  getLoggerName() {
+    return `Miner[${this.settings.id}, ${this.settings.minerType}]`;
+  }
+  /**
+   * Subscribe to miner stats
+   *
+   * @param callback - callback that gets called when new stats are available
+   */
+  subscribeToStats(callback) {
+    this.statSubscriptions.push(callback);
+  }
+  /**
+   * Called by the miner when new stats are available.
+   * Subscribers will be notified.
+   *
+   * @param stats
+   */
+  async onStats(stats) {
+    this.logger.debug(`publishing new stats to subscribers: ${JSON.stringify(stats)}`);
+    for (const sub of this.statSubscriptions) {
+      await sub(stats);
     }
   }
 }

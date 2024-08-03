@@ -2,6 +2,8 @@ import {PollingMiner} from './PollingMiner';
 import {TeamRedMinerSettings} from '../model/MinerSettings';
 import {ClaymoreMiner} from './ClaymoreMiner';
 import {SGMiner} from './SGMiner';
+import {MinerStats} from '../model/MinerStats';
+import { MinerFeatureKey } from '../model/MinerFeature';
 
 export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
     // TODO: actually does not support full claymore api
@@ -32,9 +34,10 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
         await this.claymoreMiner.start();
     }
 
-    public override async fetchData(): Promise<void> {
-        await this.claymoreMiner.fetchData();
+    public override async fetchStats(): Promise<MinerStats> {
+        const claymoreStats: MinerStats = await this.claymoreMiner.fetchStats();
         // await this.sgMiner.fetchData()
+        return claymoreStats;
     }
 
     public override async stop(): Promise<void> {
@@ -43,5 +46,11 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
 
     public override async close(): Promise<void> {
         await this.claymoreMiner.close();
+    }
+
+    public getSupportedFeatures(): MinerFeatureKey[] {
+        return [
+            ...this.claymoreMiner.getSupportedFeatures()
+        ]
     }
 }
