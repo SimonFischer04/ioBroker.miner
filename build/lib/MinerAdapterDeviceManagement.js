@@ -357,15 +357,6 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     }
     return arrDevices;
   }
-  async debugging() {
-    const devices = await this.adapter.getDevicesAsync();
-    const arrDevices = [];
-    console.error("listDevices");
-    debugger;
-    for (const i of devices) {
-      console.error("bTF2", i);
-    }
-  }
   async close() {
   }
 }

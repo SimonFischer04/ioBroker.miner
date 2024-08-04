@@ -64,7 +64,7 @@ export abstract class Miner<S extends MinerSettings> {
      * Called by the miner when new stats are available.
      * Subscribers will be notified.
      *
-     * @param stats
+     * @param stats - the new stats
      */
     public async onStats(stats: MinerStats): Promise<void> {
         this.logger.debug(`publishing new stats to subscribers: ${JSON.stringify(stats)}`);

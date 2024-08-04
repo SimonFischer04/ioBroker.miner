@@ -63,21 +63,6 @@ class MinerAdapter extends utils.Adapter {
     this.log.info("aconfig option1: " + this.config.option1);
     this.log.info("config option2: " + this.config.option2);
     console.log("testABC");
-    await this.setObjectNotExistsAsync("testVariable", {
-      type: "state",
-      common: {
-        name: "testVariable",
-        type: "boolean",
-        role: "indicator",
-        read: true,
-        write: true
-      },
-      native: {}
-    });
-    this.subscribeStates("testVariable");
-    await this.setStateAsync("testVariable", true);
-    await this.setStateAsync("testVariable", { val: true, ack: true });
-    await this.setStateAsync("testVariable", { val: true, ack: true, expire: 30 });
     await this.tryKnownDevices();
     this.subscribeStates("miner.*.control.*");
   }
@@ -274,7 +259,7 @@ class MinerAdapter extends utils.Adapter {
   getDeviceObjectId(settings) {
     if (!(0, import_IOBrokerMinerSettings.isMiner)(settings)) {
       this.log.error(`category ${settings.category} is not yet supported.`);
-      return "TODO";
+      return "<unsupported>";
     }
     return `${settings.category}.${settings.mac.replace(/:/g, "")}`;
   }

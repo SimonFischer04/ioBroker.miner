@@ -5,8 +5,7 @@
 - remaining code todos
 
 ## Current
+- dm improvements: edit, ...
+- getcliargs
 - 'Method not implemented.' ...
-- models / iob object structure for data/control
-- feature support map per miner => create states accordingly
 - logs everywhere
-- (claymore) api pw ...

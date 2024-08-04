@@ -403,19 +403,6 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         return arrDevices;
     }
 
-    async debugging(): Promise<void> {
-        const devices = await this.adapter.getDevicesAsync();
-        const arrDevices: DeviceInfo[] = [];
-        console.error('listDevices')
-
-        debugger
-
-        // for (const i in devices) {
-        for (const i of devices) {
-            console.error('bTF2', i);
-        }
-    }
-
     async close(): Promise<void> {
         // do nothing
     }
