@@ -18,14 +18,64 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var IOBrokerMinerSettings_exports = {};
 __export(IOBrokerMinerSettings_exports, {
+  decryptDeviceSettings: () => decryptDeviceSettings,
+  encryptDeviceSettings: () => encryptDeviceSettings,
   isMiner: () => isMiner
 });
 module.exports = __toCommonJS(IOBrokerMinerSettings_exports);
+var import_Logger = require("../../lib/miner/model/Logger");
+const logger = import_Logger.Logger.getLogger("IOBrokerMinerSettings");
 function isMiner(settings) {
   return settings.category === "miner";
 }
+function encryptDeviceSettings(settings, encryptFunction) {
+  if (!isMiner(settings)) {
+    logger.error(`category ${settings.category} is not yet supported.`);
+    return settings;
+  }
+  switch (settings.settings.minerType) {
+    case "teamRedMiner": {
+      const trmSettings = settings.settings;
+      trmSettings.claymore.password = encryptFunction(trmSettings.claymore.password);
+      break;
+    }
+    case "claymoreMiner": {
+      const claymoreSettings = settings.settings;
+      claymoreSettings.password = encryptFunction(claymoreSettings.password);
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+  return settings;
+}
+function decryptDeviceSettings(settings, decryptFunction) {
+  if (!isMiner(settings)) {
+    logger.error(`category ${settings.category} is not yet supported.`);
+    return settings;
+  }
+  switch (settings.settings.minerType) {
+    case "teamRedMiner": {
+      const trmSettings = settings.settings;
+      trmSettings.claymore.password = decryptFunction(trmSettings.claymore.password);
+      break;
+    }
+    case "claymoreMiner": {
+      const claymoreSettings = settings.settings;
+      claymoreSettings.password = decryptFunction(claymoreSettings.password);
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+  return settings;
+}
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  decryptDeviceSettings,
+  encryptDeviceSettings,
   isMiner
 });
 //# sourceMappingURL=IOBrokerMinerSettings.js.map

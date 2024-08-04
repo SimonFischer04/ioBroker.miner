@@ -1,11 +1,11 @@
-import {ActionContext, DeviceInfo, DeviceManagement, JsonFormData} from '@iobroker/dm-utils';
+import {ActionContext, DeviceInfo, DeviceManagement, InstanceDetails, JsonFormData} from '@iobroker/dm-utils';
 import {MinerAdapter} from '../main';
 import {categoryKeys} from './miner/model/Category';
 import {MinerSettings, minerTypeKeys, TeamRedMinerSettings} from './miner/model/MinerSettings';
 import {IOBrokerMinerSettings, isMiner} from '../miner/model/IOBrokerMinerSettings';
 
 class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
-    async getInstanceInfo() {
+    async getInstanceInfo(): Promise<InstanceDetails> {
         const data = {
             ...super.getInstanceInfo(),
             actions: [
@@ -53,7 +53,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         return data;
     }
 
-    async handleNewDevice(context: ActionContext) {
+    async handleNewDevice(context: ActionContext): Promise<{ refresh: boolean }> {
         this.adapter.log.info('handleNewDevice');
 
         const result: JsonFormData | undefined = await context.showForm({
@@ -178,6 +178,29 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         'zh-cn': '民意调查间隔'
                     }
                 },
+                password: {
+                    type: 'text',
+                    // type password does not allow to show the password generated as default value
+                    // type: 'password',
+                    newLine: true,
+                    // TODO: FixMeLater
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    // visible: true,
+                    label: {
+                        'en': 'password',
+                        'de': 'passwort',
+                        'ru': 'пароль',
+                        'pt': 'senha',
+                        'nl': 'wachtwoord',
+                        'fr': 'mot de passe',
+                        'it': 'password',
+                        'es': 'contraseña',
+                        'pl': 'hasło',
+                        'uk': 'увійти',
+                        'zh-cn': '密码'
+                    }
+                },
                 enabled: {
                     type: 'checkbox',
                     newLine: true,
@@ -205,6 +228,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 host: '',
                 mac: '',
                 pollInterval: this.adapter.config.pollInterval,
+                password: crypto.randomUUID(),
                 enabled: true
             },
             title: {
@@ -308,6 +332,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         }
 
         let minerSettings: MinerSettings = {
+            id: crypto.randomUUID(),
             minerType: result.minerType
         }
 
@@ -321,7 +346,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         minerType: 'claymoreMiner',
                         pollInterval,
                         host: result.host,
-                        password: 'TODO', // TODO
+                        password: result.password,
                         port: 3333 // TODO: make configurable
                     },
                     sg: {

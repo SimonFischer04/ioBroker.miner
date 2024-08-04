@@ -202,14 +202,15 @@ class MinerAdapter extends utils.Adapter {
       common: {
         name: settings.name || settings.host
       },
-      native: settings
+      native: (0, import_IOBrokerMinerSettings.encryptDeviceSettings)(settings, (value) => this.encrypt(value))
     });
     const obj = await this.getObjectAsync(id);
     this.log.debug(`created new device obj: ${JSON.stringify(obj)}`);
     await this.initDevice(obj);
   }
   async initDevice(device) {
-    const settings = device.native;
+    const settings = (0, import_IOBrokerMinerSettings.decryptDeviceSettings)(device.native, (value) => this.decrypt(value));
+    this.log.info(`initialising device ${JSON.stringify(settings)}`);
     if (!(0, import_IOBrokerMinerSettings.isMiner)(settings)) {
       this.log.error(`tryKnownDevices category ${settings.category} not yet supported`);
       return;

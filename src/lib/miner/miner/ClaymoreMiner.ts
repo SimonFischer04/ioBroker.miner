@@ -73,13 +73,15 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
     private async sendCommand<T = void>(method: ClaymoreCommandMethod, params?: string[], expectResponse: boolean = true): Promise<T> {
         this.logger.debug(`sendCommand: ${method} ${params}`);
 
-        return new Promise<T>((resolve, reject) => {
-            const socket: Socket = new Socket();
+        let handled = false;
+        const socket: Socket = new Socket();
 
+        return new Promise<T>((resolve, reject) => {
             socket.on('connect', () => {
                 const cmd = JSON.stringify({
                     id: 0,
                     jsonrpc: '2.0',
+                    psw: this.settings.password,
                     method: method,
                     params
                 }) + '\n';
@@ -87,7 +89,6 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
                 socket.write(cmd, (err) => {
                     if (err) {
                         this.logger.error(err.message);
-                        socket.destroy();
                         reject(err.message);
                     } else {
                         if (!expectResponse) {
@@ -95,12 +96,10 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
                         }
                     }
                 });
-                socket.setTimeout(1000);
             });
 
             socket.on('timeout', () => {
-                socket.end();
-                socket.destroy();
+
                 this.logger.warn('socket timeout');
                 reject('socket timeout');
             });
@@ -118,11 +117,24 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
 
             socket.on('error', (err) => {
                 this.logger.error(err.message);
-                socket.destroy();
                 reject(`socket error: ${err.message}`);
             });
 
+            socket.setTimeout(3000);
             socket.connect(this.settings.port, this.settings.host);
+
+            // socket timeout alone does is not enough
+            setTimeout(() => {
+                if(!handled) {
+                    const msg = `timeout handling socket command: ${method} ${params}. maybe the password is wrong?`;
+                    this.logger.warn(msg);
+                    reject(msg);
+                }
+            }, 3000)
+        }).finally(() => {
+            handled = true;
+            socket.end();
+            socket.destroy();
         });
     }
 

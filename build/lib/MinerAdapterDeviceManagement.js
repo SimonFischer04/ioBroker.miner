@@ -202,6 +202,29 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
               "zh-cn": "\u6C11\u610F\u8C03\u67E5\u95F4\u9694"
             }
           },
+          password: {
+            type: "text",
+            // type password does not allow to show the password generated as default value
+            // type: 'password',
+            newLine: true,
+            // TODO: FixMeLater
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            // visible: true,
+            label: {
+              "en": "password",
+              "de": "passwort",
+              "ru": "\u043F\u0430\u0440\u043E\u043B\u044C",
+              "pt": "senha",
+              "nl": "wachtwoord",
+              "fr": "mot de passe",
+              "it": "password",
+              "es": "contrase\xF1a",
+              "pl": "has\u0142o",
+              "uk": "\u0443\u0432\u0456\u0439\u0442\u0438",
+              "zh-cn": "\u5BC6\u7801"
+            }
+          },
           enabled: {
             type: "checkbox",
             newLine: true,
@@ -229,6 +252,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
           host: "",
           mac: "",
           pollInterval: this.adapter.config.pollInterval,
+          password: crypto.randomUUID(),
           enabled: true
         },
         title: {
@@ -274,6 +298,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
       return { refresh: false };
     }
     let minerSettings = {
+      id: crypto.randomUUID(),
       minerType: result.minerType
     };
     switch (minerSettings.minerType) {
@@ -285,8 +310,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             minerType: "claymoreMiner",
             pollInterval,
             host: result.host,
-            password: "TODO",
-            // TODO
+            password: result.password,
             port: 3333
             // TODO: make configurable
           },

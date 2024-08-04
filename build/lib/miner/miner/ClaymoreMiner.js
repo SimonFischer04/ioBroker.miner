@@ -75,12 +75,14 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
   }
   async sendCommand(method, params, expectResponse = true) {
     this.logger.debug(`sendCommand: ${method} ${params}`);
+    let handled = false;
+    const socket = new import_node_net.Socket();
     return new Promise((resolve, reject) => {
-      const socket = new import_node_net.Socket();
       socket.on("connect", () => {
         const cmd = JSON.stringify({
           id: 0,
           jsonrpc: "2.0",
+          psw: this.settings.password,
           method,
           params
         }) + "\n";
@@ -88,7 +90,6 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
         socket.write(cmd, (err) => {
           if (err) {
             this.logger.error(err.message);
-            socket.destroy();
             reject(err.message);
           } else {
             if (!expectResponse) {
@@ -96,11 +97,8 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
             }
           }
         });
-        socket.setTimeout(1e3);
       });
       socket.on("timeout", () => {
-        socket.end();
-        socket.destroy();
         this.logger.warn("socket timeout");
         reject("socket timeout");
       });
@@ -113,10 +111,21 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
       });
       socket.on("error", (err) => {
         this.logger.error(err.message);
-        socket.destroy();
         reject(`socket error: ${err.message}`);
       });
+      socket.setTimeout(3e3);
       socket.connect(this.settings.port, this.settings.host);
+      setTimeout(() => {
+        if (!handled) {
+          const msg = `timeout handling socket command: ${method} ${params}. maybe the password is wrong?`;
+          this.logger.warn(msg);
+          reject(msg);
+        }
+      }, 3e3);
+    }).finally(() => {
+      handled = true;
+      socket.end();
+      socket.destroy();
     });
   }
   // public to allow unit tests

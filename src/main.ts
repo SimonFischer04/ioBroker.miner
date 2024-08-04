@@ -2,7 +2,12 @@ import * as utils from '@iobroker/adapter-core';
 import MinerAdapterDeviceManagement from './lib/MinerAdapterDeviceManagement';
 import {categoryKeys} from './lib/miner/model/Category';
 import {MinerManager} from './lib/miner/miner/MinerManager';
-import {IOBrokerDeviceSettings, isMiner} from './miner/model/IOBrokerMinerSettings';
+import {
+    decryptDeviceSettings,
+    encryptDeviceSettings,
+    IOBrokerDeviceSettings,
+    isMiner
+} from './miner/model/IOBrokerMinerSettings';
 import {Level} from './lib/miner/model/Level';
 import {
     getMinerFeatureFullId,
@@ -247,7 +252,7 @@ export class MinerAdapter extends utils.Adapter {
             common: {
                 name: settings.name || settings.host
             },
-            native: settings
+            native: encryptDeviceSettings(settings, (value) => this.encrypt(value))
         });
 
         const obj: ioBroker.DeviceObject = await this.getObjectAsync(id) as ioBroker.DeviceObject;
@@ -257,7 +262,8 @@ export class MinerAdapter extends utils.Adapter {
     }
 
     private async initDevice(device: ioBroker.DeviceObject): Promise<void> {
-        const settings: IOBrokerDeviceSettings = device.native as IOBrokerDeviceSettings;
+        const settings: IOBrokerDeviceSettings = decryptDeviceSettings(device.native as IOBrokerDeviceSettings, (value) => this.decrypt(value));
+        this.log.info(`initialising device ${JSON.stringify(settings)}`);
 
         if (!isMiner(settings)) {
             this.log.error(`tryKnownDevices category ${settings.category} not yet supported`);

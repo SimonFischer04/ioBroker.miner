@@ -1,5 +1,8 @@
-import {MinerSettings} from '../../lib/miner/model/MinerSettings';
+import {ClaymoreMinerSettings, MinerSettings, TeamRedMinerSettings} from '../../lib/miner/model/MinerSettings';
 import {Category, categoryKeys} from '../../lib/miner/model/Category';
+import {Logger} from '../../lib/miner/model/Logger';
+
+const logger = Logger.getLogger('IOBrokerMinerSettings');
 
 /*
     this adapter needs/stores more info per miner than is strictly required if just using the lib, so create su-types
@@ -31,4 +34,66 @@ export interface IOBrokerPoolSettings extends IOBrokerDeviceSettings {
 // TODO: check everywhere this is used
 export function isMiner(settings: IOBrokerDeviceSettings): settings is IOBrokerMinerSettings {
     return settings.category === 'miner';
+}
+
+/**
+ * Encrypt sensitive data in the settings
+ * @param settings - the settings to encrypt
+ * @param encryptFunction - the function to encrypt a value
+ */
+export function encryptDeviceSettings(settings: IOBrokerDeviceSettings, encryptFunction: (value: string) => string): IOBrokerDeviceSettings {
+    if (!isMiner(settings)) { // TODO: pool support
+        logger.error(`category ${settings.category} is not yet supported.`);
+        return settings;
+    }
+
+    // TODO: cleaner way to do this?
+    switch (settings.settings.minerType) {
+        case 'teamRedMiner': {
+            const trmSettings = settings.settings as TeamRedMinerSettings;
+            trmSettings.claymore.password = encryptFunction(trmSettings.claymore.password);
+            break;
+        }
+        case 'claymoreMiner': {
+            const claymoreSettings = settings.settings as ClaymoreMinerSettings;
+            claymoreSettings.password = encryptFunction(claymoreSettings.password);
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    return settings;
+}
+
+/**
+ * Decrypt sensitive data in the settings
+ * @param settings - the settings to decrypt
+ * @param decryptFunction - the function to decrypt a value
+ */
+export function decryptDeviceSettings(settings: IOBrokerDeviceSettings, decryptFunction: (value: string) => string): IOBrokerDeviceSettings {
+    if (!isMiner(settings)) { // TODO: pool support
+        logger.error(`category ${settings.category} is not yet supported.`);
+        return settings;
+    }
+
+    // TODO: cleaner way to do this?
+    switch (settings.settings.minerType) {
+        case 'teamRedMiner': {
+            const trmSettings = settings.settings as TeamRedMinerSettings;
+            trmSettings.claymore.password = decryptFunction(trmSettings.claymore.password);
+            break;
+        }
+        case 'claymoreMiner': {
+            const claymoreSettings = settings.settings as ClaymoreMinerSettings;
+            claymoreSettings.password = decryptFunction(claymoreSettings.password);
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    return settings;
 }
