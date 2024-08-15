@@ -9,7 +9,8 @@ describe('Miner', () => {
     beforeEach(() => {
         // Arrange
         const settings = {
-            minerType: ''
+            minerType: '',
+            host: ''
         };
 
         miner = new class AnyMiner extends Miner<MinerSettings> {

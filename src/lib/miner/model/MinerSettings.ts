@@ -7,10 +7,12 @@ export const minerTypeKeys = [
 export type MinerType = (typeof minerTypeKeys)[number];
 
 export interface MinerSettings {
+    minerType: MinerType;
+
     // id to uniquely identify this miner
     id?: string;
 
-    minerType: MinerType;
+    host: string;
 }
 
 export interface PollingMinerSettings extends MinerSettings {
@@ -25,13 +27,11 @@ export interface TeamRedMinerSettings extends PollingMinerSettings {
 
 export interface ClaymoreMinerSettings extends PollingMinerSettings {
     minerType: (typeof minerTypeKeys)[1];
-    host: string;
     port: number;
     password: string;
 }
 
 export interface SGMinerSettings extends PollingMinerSettings {
     minerType: (typeof minerTypeKeys)[2];
-    host: string;
     port: number;
 }

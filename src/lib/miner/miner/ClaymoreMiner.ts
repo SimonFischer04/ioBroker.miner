@@ -23,7 +23,6 @@ enum ClaymoreCommandMethod {
     controlGpu = 'control_gpu',
 }
 
-// TODO: psw support
 export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
     constructor(settings: ClaymoreMinerSettings) {
         super(settings);

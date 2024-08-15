@@ -71,7 +71,7 @@ class MinerAdapter extends utils.Adapter {
    */
   async onUnload(callback) {
     try {
-      await this.minerManager.close();
+      await this.minerManager.closeAll();
       if (this.deviceManagement) {
         await this.deviceManagement.close();
       }
@@ -176,22 +176,83 @@ class MinerAdapter extends utils.Adapter {
       await this.initDevice(device);
     }
   }
-  async addDevice(settings) {
+  async configureDeviceObject(settings) {
     if (!(0, import_IOBrokerMinerSettings.isMiner)(settings)) {
       this.log.error(`category ${settings.category} is not yet supported.`);
       return;
     }
     const id = this.getDeviceObjectId(settings);
+    this.log.debug(`extended object ${id} with: ${JSON.stringify(settings)}`);
     await this.extendObject(id, {
       type: "device",
       common: {
-        name: settings.name || settings.host
+        name: settings.name || settings.settings.host
       },
       native: (0, import_IOBrokerMinerSettings.encryptDeviceSettings)(settings, (value) => this.encrypt(value))
     });
     const obj = await this.getObjectAsync(id);
-    this.log.debug(`created new device obj: ${JSON.stringify(obj)}`);
+    this.log.debug(`configureDeviceObject: ${JSON.stringify(obj)}`);
+    return obj;
+  }
+  async addDevice(settings) {
+    const obj = await this.configureDeviceObject(settings);
+    if (obj == null) {
+      this.log.error(`could not create device object for ${JSON.stringify(settings)}`);
+      return;
+    }
     await this.initDevice(obj);
+  }
+  async updateDevice(settings) {
+    if (!(0, import_IOBrokerMinerSettings.isMiner)(settings)) {
+      this.log.error(`category ${settings.category} is not yet supported.`);
+      return;
+    }
+    if (!await this.tryCloseMiner(settings)) {
+      this.log.error(`updateDevice could not close miner ${settings.settings.id}`);
+      return;
+    }
+    await this.addDevice(settings);
+  }
+  /**
+   * Deletes a device
+   *
+   * @param deviceId - The ioBroker-object-id of the device to delete
+   */
+  async delDevice(deviceId) {
+    this.log.info(`deleteDevice device ${deviceId}`);
+    const obj = await this.getObjectAsync(deviceId);
+    if (obj == null) {
+      this.log.error(`deleteDevice device ${deviceId} not found`);
+      return false;
+    }
+    const settings = (0, import_IOBrokerMinerSettings.decryptDeviceSettings)(obj.native, (value) => this.decrypt(value));
+    if (!(0, import_IOBrokerMinerSettings.isMiner)(settings)) {
+      this.log.error(`deleteDevice category ${obj.native.category} not yet supported`);
+      return false;
+    }
+    if (!await this.tryCloseMiner(settings)) {
+      this.log.error(`delDevice could not close miner ${settings.settings.id}`);
+      return false;
+    }
+    await this.delObjectAsync(deviceId, { recursive: true });
+    this.log.info(`${deviceId} deleted`);
+    return true;
+  }
+  async tryCloseMiner(settings) {
+    if (settings.settings.id === void 0) {
+      this.log.error("tryCloseMiner: minerId is undefined");
+      return false;
+    }
+    if (!settings.enabled) {
+      this.log.debug(`tryCloseMiner: skipped miner close, because ${settings.settings.id} is disabled`);
+      if (this.minerManager.hasMiner(settings.settings.id)) {
+        this.log.error(`tryCloseMiner: this should not happen, miner ${settings.settings.id} is disabled but still in minerManager`);
+        await this.minerManager.close(settings.settings.id);
+      }
+      return true;
+    }
+    await this.minerManager.close(settings.settings.id);
+    return true;
   }
   async initDevice(device) {
     const settings = (0, import_IOBrokerMinerSettings.decryptDeviceSettings)(device.native, (value) => this.decrypt(value));
@@ -215,11 +276,17 @@ class MinerAdapter extends utils.Adapter {
     for (const feature of miner.getSupportedFeatures()) {
       switch (feature) {
         case import_MinerFeature.MinerFeatureKey.version: {
-          await this.setState(this.getStateFullObjectId(settings, import_MinerFeature.MinerFeatureKey.version), { val: stats.version, ack: true });
+          await this.setState(this.getStateFullObjectId(settings, import_MinerFeature.MinerFeatureKey.version), {
+            val: stats.version,
+            ack: true
+          });
           break;
         }
         case import_MinerFeature.MinerFeatureKey.totalHashrate: {
-          await this.setState(this.getStateFullObjectId(settings, import_MinerFeature.MinerFeatureKey.totalHashrate), { val: stats.totalHashrate, ack: true });
+          await this.setState(this.getStateFullObjectId(settings, import_MinerFeature.MinerFeatureKey.totalHashrate), {
+            val: stats.totalHashrate,
+            ack: true
+          });
           break;
         }
       }

@@ -24,7 +24,8 @@
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.1.6",
-    "@iobroker/dm-utils": "^0.2.2"
+    "@iobroker/dm-utils": "^0.2.2",
+    "type-fest": "^4.24.0"
   },
   "devDependencies": {
     "@alcalzone/release-script": "^3.7.3",

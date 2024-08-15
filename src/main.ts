@@ -5,7 +5,7 @@ import {MinerManager} from './lib/miner/miner/MinerManager';
 import {
     decryptDeviceSettings,
     encryptDeviceSettings,
-    IOBrokerDeviceSettings,
+    IOBrokerDeviceSettings, IOBrokerMinerSettings,
     isMiner
 } from './miner/model/IOBrokerMinerSettings';
 import {Level} from './lib/miner/model/Level';
@@ -68,7 +68,7 @@ export class MinerAdapter extends utils.Adapter {
      */
     private async onUnload(callback: () => void): Promise<void> {
         try {
-            await this.minerManager.close();
+            await this.minerManager.closeAll();
 
             if (this.deviceManagement) {
                 await this.deviceManagement.close();
@@ -196,7 +196,7 @@ export class MinerAdapter extends utils.Adapter {
         }
     }
 
-    public async addDevice(settings: IOBrokerDeviceSettings): Promise<void> {
+    private async configureDeviceObject(settings: IOBrokerDeviceSettings): Promise<ioBroker.DeviceObject | undefined> {
         if (!isMiner(settings)) { // TODO: pool support
             this.log.error(`category ${settings.category} is not yet supported.`);
             return;
@@ -205,18 +205,100 @@ export class MinerAdapter extends utils.Adapter {
         // TODO: fill settings.mac using arp request
         const id = this.getDeviceObjectId(settings);
 
+        this.log.debug(`extended object ${id} with: ${JSON.stringify(settings)}`);
         await this.extendObject(id, {
             type: 'device',
             common: {
-                name: settings.name || settings.host
+                name: settings.name || settings.settings.host
             },
             native: encryptDeviceSettings(settings, (value) => this.encrypt(value))
         });
 
         const obj: ioBroker.DeviceObject = await this.getObjectAsync(id) as ioBroker.DeviceObject;
-        this.log.debug(`created new device obj: ${JSON.stringify(obj)}`);
+        this.log.debug(`configureDeviceObject: ${JSON.stringify(obj)}`);
+
+        return obj;
+    }
+
+    public async addDevice(settings: IOBrokerDeviceSettings): Promise<void> {
+        const obj = await this.configureDeviceObject(settings);
+
+        if (obj == null) {
+            this.log.error(`could not create device object for ${JSON.stringify(settings)}`);
+            return;
+        }
 
         await this.initDevice(obj);
+    }
+
+
+    public async updateDevice(settings: IOBrokerDeviceSettings): Promise<void> {
+        // PS: don't just delDevice and addDevice, as this would lose all state history, ...
+
+        if (!isMiner(settings)) { // TODO: pool support
+            this.log.error(`category ${settings.category} is not yet supported.`);
+            return;
+        }
+
+        if (!(await this.tryCloseMiner(settings))) {
+            this.log.error(`updateDevice could not close miner ${settings.settings.id}`);
+            return;
+        }
+
+        await this.addDevice(settings);
+    }
+
+    /**
+     * Deletes a device
+     *
+     * @param deviceId - The ioBroker-object-id of the device to delete
+     */
+    public async delDevice(deviceId: string): Promise<boolean> {
+        this.log.info(`deleteDevice device ${deviceId}`);
+        const obj = await this.getObjectAsync(deviceId);
+
+        if (obj == null) {
+            this.log.error(`deleteDevice device ${deviceId} not found`);
+            return false;
+        }
+
+        const settings: IOBrokerDeviceSettings = decryptDeviceSettings(obj.native as IOBrokerDeviceSettings, (value) => this.decrypt(value));
+
+        if (!isMiner(settings)) { // TODO: pool support
+            this.log.error(`deleteDevice category ${obj.native.category} not yet supported`);
+            return false;
+        }
+
+        if (!(await this.tryCloseMiner(settings))) {
+            this.log.error(`delDevice could not close miner ${settings.settings.id}`);
+            return false;
+        }
+
+        await this.delObjectAsync(deviceId, {recursive: true});
+
+        this.log.info(`${deviceId} deleted`);
+        return true;
+    }
+
+    private async tryCloseMiner(settings: IOBrokerMinerSettings): Promise<boolean> {
+        if (settings.settings.id === undefined) {
+            this.log.error('tryCloseMiner: minerId is undefined');
+            return false;
+        }
+
+        if(!settings.enabled){
+            this.log.debug(`tryCloseMiner: skipped miner close, because ${settings.settings.id} is disabled`);
+
+            if(this.minerManager.hasMiner(settings.settings.id)){
+                this.log.error(`tryCloseMiner: this should not happen, miner ${settings.settings.id} is disabled but still in minerManager`);
+                await this.minerManager.close(settings.settings.id);
+            }
+
+            return true;
+        }
+
+        await this.minerManager.close(settings.settings.id);
+        return true;
     }
 
     private async initDevice(device: ioBroker.DeviceObject): Promise<void> {
@@ -243,17 +325,23 @@ export class MinerAdapter extends utils.Adapter {
         });
     }
 
-    private async processNewStats(miner: Miner<MinerSettings>,settings: IOBrokerDeviceSettings, stats: MinerStats): Promise<void> {
+    private async processNewStats(miner: Miner<MinerSettings>, settings: IOBrokerDeviceSettings, stats: MinerStats): Promise<void> {
         for (const feature of miner.getSupportedFeatures()) {
             // TODO: cleanup, just filter for info features and then directly infer object id from there somehow
             // change MinerStates to Record<MinerFeatureKey, val>?
             switch (feature) {
                 case MinerFeatureKey.version: {
-                    await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.version), {val: stats.version, ack: true});
+                    await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.version), {
+                        val: stats.version,
+                        ack: true
+                    });
                     break;
                 }
                 case MinerFeatureKey.totalHashrate: {
-                    await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.totalHashrate), {val: stats.totalHashrate, ack: true});
+                    await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.totalHashrate), {
+                        val: stats.totalHashrate,
+                        ack: true
+                    });
                     break;
                 }
             }

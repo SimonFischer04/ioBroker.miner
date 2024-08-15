@@ -16,11 +16,10 @@ export interface IOBrokerDeviceSettings {
 export interface IOBrokerMinerSettings extends IOBrokerDeviceSettings {
     category: (typeof categoryKeys)[0];
     name: string;
-    host: string;
-    mac: string;
+    mac: string; // used as object id
 
     // adapter allows to temporarily disable handling a device (no connection created to the device, controls do nothing, ...)
-    // does not really make sense in a lib context, as then it also just not initialise the device
+    // does not really make sense in a lib context, as then it is also possible to just not initialise the device
     enabled: boolean;
 
     settings: MinerSettings;
@@ -32,8 +31,8 @@ export interface IOBrokerPoolSettings extends IOBrokerDeviceSettings {
 }
 
 // TODO: check everywhere this is used
-export function isMiner(settings: IOBrokerDeviceSettings): settings is IOBrokerMinerSettings {
-    return settings.category === 'miner';
+export function isMiner(settings?: Partial<IOBrokerDeviceSettings>): settings is IOBrokerMinerSettings {
+    return settings?.category === 'miner';
 }
 
 /**

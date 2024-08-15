@@ -74,8 +74,57 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     return data;
   }
   async handleNewDevice(context) {
-    var _a;
     this.adapter.log.info("handleNewDevice");
+    const settings = await this.showDeviceConfigurationForm(context, {
+      category: "miner",
+      settings: {
+        minerType: void 0,
+        id: crypto.randomUUID(),
+        host: "",
+        pollInterval: this.adapter.config.pollInterval,
+        claymore: {
+          minerType: "claymoreMiner",
+          host: "",
+          password: crypto.randomUUID(),
+          port: 3333
+        },
+        sg: {
+          minerType: "sgMiner",
+          host: "",
+          port: 4028
+        }
+      },
+      name: "",
+      mac: "",
+      enabled: true
+    }, {
+      // TODO: improve this (by making IOBrokerMinerSettings generic?, ...)
+      en: "Add new device",
+      de: "Neues Ger\xE4t hinzuf\xFCgen",
+      ru: "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043D\u043E\u0432\u043E\u0435 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E",
+      pt: "Adicionar novo dispositivo",
+      nl: "Voeg nieuw apparaat toe",
+      fr: "Ajouter un nouvel appareil",
+      it: "Aggiungi nuovo dispositivo",
+      es: "Agregar nuevo dispositivo",
+      pl: "Dodaj nowe urz\u0105dzenie",
+      "zh-cn": "\u6DFB\u52A0\u65B0\u8BBE\u5907",
+      uk: "\u0414\u043E\u0434\u0430\u0442\u0438 \u043D\u043E\u0432\u0438\u0439 \u043F\u0440\u0438\u0441\u0442\u0440\u0456\u0439"
+    });
+    this.adapter.log.debug(`handleNewDevice settings: ${JSON.stringify(settings)}`);
+    if (settings === void 0) {
+      return { refresh: false };
+    }
+    await this.adapter.addDevice(settings);
+    return { refresh: true };
+  }
+  async showDeviceConfigurationForm(context, existingSettings, title) {
+    var _a, _b, _c;
+    this.adapter.log.debug(`showDeviceConfigurationForm existingSettings: ${JSON.stringify(existingSettings)}`);
+    if (!(0, import_IOBrokerMinerSettings.isMiner)(existingSettings)) {
+      this.adapter.log.error(`MinerAdapterDeviceManagement/showDeviceConfigurationForm existingSettings ${existingSettings} is not a miner.`);
+      return void 0;
+    }
     const result = await context.showForm(
       {
         type: "panel",
@@ -111,6 +160,16 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
                 label: key
               };
             })
+          },
+          id: {
+            type: "text",
+            newLine: true,
+            label: "id",
+            // TODO: translate
+            // TODO: FixMeLater
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            readOnly: true
           },
           name: {
             type: "text",
@@ -185,7 +244,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             // TODO: FixMeLater
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            min: 1e4,
+            min: 100,
             unit: "ms",
             label: {
               "en": "poll interval",
@@ -246,70 +305,54 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
       },
       {
         data: {
-          category: "miner",
-          minerType: void 0,
-          name: "",
-          host: "",
-          mac: "",
-          pollInterval: this.adapter.config.pollInterval,
-          password: crypto.randomUUID(),
-          enabled: true
+          category: existingSettings.category,
+          id: existingSettings.settings.id,
+          minerType: existingSettings.settings.minerType,
+          name: existingSettings.name,
+          host: existingSettings.settings.host,
+          mac: existingSettings.mac,
+          pollInterval: existingSettings.settings.pollInterval,
+          // TODO: implement this properly
+          password: (_b = (_a = existingSettings.settings.claymore) == null ? void 0 : _a.password) != null ? _b : "",
+          // TODO: implement this properly
+          enabled: existingSettings.enabled
         },
-        title: {
-          en: "Add new device",
-          de: "Neues Ger\xE4t hinzuf\xFCgen",
-          ru: "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043D\u043E\u0432\u043E\u0435 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E",
-          pt: "Adicionar novo dispositivo",
-          nl: "Voeg nieuw apparaat toe",
-          fr: "Ajouter un nouvel appareil",
-          it: "Aggiungi nuovo dispositivo",
-          es: "Agregar nuevo dispositivo",
-          pl: "Dodaj nowe urz\u0105dzenie",
-          "zh-cn": "\u6DFB\u52A0\u65B0\u8BBE\u5907",
-          uk: "\u0414\u043E\u0434\u0430\u0442\u0438 \u043D\u043E\u0432\u0438\u0439 \u043F\u0440\u0438\u0441\u0442\u0440\u0456\u0439"
-        }
+        title
       }
     );
     console.log("add device result: ", result);
     if (result === null || result === void 0) {
-      return { refresh: false };
+      return void 0;
     }
     if (result.mac === "") {
       await context.showMessage(`MAC address required`);
     }
     if (result.mac !== "") {
-      if (!result.mac.match(/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/)) {
-        await context.showMessage(`MAC address ${result.mac} is not valid`);
-        return { refresh: false };
-      }
     }
     if (result.host === "") {
       await context.showMessage(`Please enter an IP address`);
-      return { refresh: false };
+      return void 0;
     }
     if (result.host !== "") {
-      if (!result.host.match(/^(\d{1,3}\.){3}\d{1,3}$/) && false) {
-        await context.showMessage(`IP address ${result == null ? void 0 : result.ip} is not valid`);
-        return { refresh: false };
-      }
     }
     if (!(0, import_IOBrokerMinerSettings.isMiner)({ category: result.category })) {
       this.log.error(`MinerAdapterDeviceManagement/handleNewDevice category ${result.category} is not yet supported.`);
-      return { refresh: false };
+      return void 0;
     }
     let minerSettings = {
       id: crypto.randomUUID(),
-      minerType: result.minerType
+      minerType: result.minerType,
+      host: result.host
     };
     switch (minerSettings.minerType) {
       case "teamRedMiner": {
-        const pollInterval = (_a = result.pollInterval) != null ? _a : this.adapter.config.pollInterval;
+        const pollInterval = (_c = result.pollInterval) != null ? _c : this.adapter.config.pollInterval;
         const trmSettings = {
           pollInterval,
           claymore: {
             minerType: "claymoreMiner",
             pollInterval,
-            host: result.host,
+            host: minerSettings.host,
             password: result.password,
             port: 3333
             // TODO: make configurable
@@ -317,7 +360,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
           sg: {
             minerType: "sgMiner",
             pollInterval,
-            host: result.host,
+            host: minerSettings.host,
             port: 4028
             // TODO: make configurable
           }
@@ -330,19 +373,17 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
       }
       default: {
         this.adapter.log.error(`MinerAdapterDeviceManagement/handleNewDevice minerType ${minerSettings.minerType} not yet supported`);
-        return { refresh: false };
+        return void 0;
       }
     }
     const settings = {
       category: result.category,
       name: result.name,
-      host: result.host,
       mac: result.mac,
       enabled: result.enabled,
       settings: minerSettings
     };
-    await this.adapter.addDevice(settings);
-    return { refresh: true };
+    return settings;
   }
   async listDevices() {
     const devices = await this.adapter.getDevicesAsync();
@@ -352,10 +393,113 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     for (const device of devices) {
       arrDevices.push({
         id: device._id,
-        name: device.common.name
+        name: device.common.name,
+        hasDetails: true,
+        actions: [
+          {
+            id: "delete",
+            icon: "fa-solid fa-trash-can",
+            description: {
+              en: "Delete this device",
+              de: "Ger\xE4t l\xF6schen",
+              ru: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u044D\u0442\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E",
+              pt: "Excluir este dispositivo",
+              nl: "Verwijder dit apparaat",
+              fr: "Supprimer cet appareil",
+              it: "Elimina questo dispositivo",
+              es: "Eliminar este dispositivo",
+              pl: "Usu\u0144 to urz\u0105dzenie",
+              "zh-cn": "\u5220\u9664\u6B64\u8BBE\u5907",
+              uk: "\u0412\u0438\u0434\u0430\u043B\u0438\u0442\u0438 \u0446\u0435\u0439 \u043F\u0440\u0438\u0441\u0442\u0440\u0456\u0439"
+            },
+            handler: this.handleDeleteDevice.bind(this)
+          },
+          {
+            id: "settings",
+            icon: "fa-solid fa-gear",
+            description: {
+              en: "Settings",
+              de: "Einstellungen",
+              ru: "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
+              pt: "Configura\xE7\xF5es",
+              nl: "Instellingen",
+              fr: "Param\xE8tres",
+              it: "Impostazioni",
+              es: "Configuraciones",
+              pl: "Ustawienia",
+              "zh-cn": "\u8BBE\u5B9A\u503C",
+              uk: "\u041D\u0430\u043B\u0430\u0448\u0442\u0443\u0432\u0430\u043D\u043D\u044F"
+            },
+            handler: this.handleSettingsDevice.bind(this)
+          }
+        ]
       });
     }
     return arrDevices;
+  }
+  async handleDeleteDevice(id, context) {
+    const response = await context.showConfirmation({
+      en: `Do you really want to delete the device ${id}?`,
+      de: `M\xF6chten Sie das Ger\xE4t ${id} wirklich l\xF6schen?`,
+      ru: `\u0412\u044B \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u044C\u043D\u043E \u0445\u043E\u0442\u0438\u0442\u0435 \u0443\u0434\u0430\u043B\u0438\u0442\u044C \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E ${id}?`,
+      pt: `Voc\xEA realmente deseja excluir o dispositivo ${id}?`,
+      nl: `Weet u zeker dat u het apparaat ${id} wilt verwijderen?`,
+      fr: `Voulez-vous vraiment supprimer l'appareil ${id} ?`,
+      it: `Vuoi davvero eliminare il dispositivo ${id}?`,
+      es: `\xBFRealmente desea eliminar el dispositivo ${id}?`,
+      pl: `Czy na pewno chcesz usun\u0105\u0107 urz\u0105dzenie ${id}?`,
+      "zh-cn": `\u60A8\u771F\u7684\u8981\u5220\u9664\u8BBE\u5907 ${id} \u5417\uFF1F`,
+      uk: `\u0412\u0438 \u0434\u0456\u0439\u0441\u043D\u043E \u0431\u0430\u0436\u0430\u0454\u0442\u0435 \u0432\u0438\u0434\u0430\u043B\u0438\u0442\u0438 \u043F\u0440\u0438\u0441\u0442\u0440\u0456\u0439 ${id}?`
+    });
+    if (!response) {
+      return { refresh: false };
+    }
+    const success = await this.adapter.delDevice(id);
+    if (!success) {
+      await context.showMessage({
+        en: `Can not delete device ${id}`,
+        de: `Ger\xE4t ${id} kann nicht gel\xF6scht werden`,
+        ru: `\u041D\u0435\u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E \u0443\u0434\u0430\u043B\u0438\u0442\u044C \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E ${id}`,
+        pt: `N\xE3o \xE9 poss\xEDvel excluir o dispositivo ${id}`,
+        nl: `Kan apparaat ${id} niet verwijderen`,
+        fr: `Impossible de supprimer l'appareil ${id}`,
+        it: `Impossibile eliminare il dispositivo ${id}`,
+        es: `No se puede eliminar el dispositivo ${id}`,
+        pl: `Nie mo\u017Cna usun\u0105\u0107 urz\u0105dzenia ${id}`,
+        "zh-cn": `\u65E0\u6CD5\u5220\u9664\u8BBE\u5907 ${id}`,
+        uk: `\u041D\u0435 \u0432\u0434\u0430\u043B\u043E\u0441\u044F \u0432\u0438\u0434\u0430\u043B\u0438\u0442\u0438 \u043F\u0440\u0438\u0441\u0442\u0440\u0456\u0439 ${id}`
+      });
+      return { refresh: false };
+    } else {
+      return { refresh: true };
+    }
+  }
+  async handleSettingsDevice(id, context) {
+    const obj = await this.adapter.getObjectAsync(id);
+    if (obj == null) {
+      this.adapter.log.error(`MinerAdapterDeviceManagement/handleSettingsDevice object ${id} not found`);
+      return { refresh: false };
+    }
+    const currentSettings = (0, import_IOBrokerMinerSettings.decryptDeviceSettings)(obj.native, (value) => this.adapter.decrypt(value));
+    const newSettings = await this.showDeviceConfigurationForm(context, currentSettings, {
+      en: "Settings",
+      de: "Einstellungen",
+      ru: "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
+      pt: "Configura\xE7\xF5es",
+      nl: "Instellingen",
+      fr: "Param\xE8tres",
+      it: "Impostazioni",
+      es: "Configuraciones",
+      pl: "Ustawienia",
+      "zh-cn": "\u8BBE\u5B9A\u503C",
+      uk: "\u041D\u0430\u043B\u0430\u0448\u0442\u0443\u0432\u0430\u043D\u043D\u044F"
+    });
+    this.adapter.log.debug(`handleSettingsDevice newSettings: ${JSON.stringify(newSettings)}`);
+    if (newSettings === void 0) {
+      return { refresh: false };
+    }
+    await this.adapter.updateDevice(newSettings);
+    return { refresh: "device" };
   }
   async close() {
   }

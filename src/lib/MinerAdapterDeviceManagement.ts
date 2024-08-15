@@ -1,8 +1,21 @@
-import {ActionContext, DeviceInfo, DeviceManagement, InstanceDetails, JsonFormData} from '@iobroker/dm-utils';
+import {
+    ActionContext,
+    DeviceInfo,
+    DeviceManagement,
+    DeviceRefresh,
+    InstanceDetails,
+    JsonFormData
+} from '@iobroker/dm-utils';
 import {MinerAdapter} from '../main';
 import {categoryKeys} from './miner/model/Category';
-import {MinerSettings, minerTypeKeys, TeamRedMinerSettings} from './miner/model/MinerSettings';
-import {IOBrokerMinerSettings, isMiner} from '../miner/model/IOBrokerMinerSettings';
+import {MinerSettings, minerTypeKeys, PollingMinerSettings, TeamRedMinerSettings} from './miner/model/MinerSettings';
+import {
+    decryptDeviceSettings,
+    IOBrokerDeviceSettings,
+    IOBrokerMinerSettings,
+    isMiner
+} from '../miner/model/IOBrokerMinerSettings';
+import {PartialDeep} from 'type-fest';
 
 class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
     async getInstanceInfo(): Promise<InstanceDetails> {
@@ -56,6 +69,65 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
     async handleNewDevice(context: ActionContext): Promise<{ refresh: boolean }> {
         this.adapter.log.info('handleNewDevice');
 
+        const settings = await this.showDeviceConfigurationForm(context, {
+            category: 'miner',
+            settings: {
+                minerType: undefined,
+                id: crypto.randomUUID(),
+                host: '',
+                pollInterval: this.adapter.config.pollInterval,
+                claymore: {
+                    minerType: 'claymoreMiner',
+                    host: '',
+                    password: crypto.randomUUID(),
+                    port: 3333
+                },
+                sg: {
+                    minerType: 'sgMiner',
+                    host: '',
+                    port: 4028
+                }
+            },
+            name: '',
+            mac: '',
+            enabled: true
+        } as PartialDeep<IOBrokerMinerSettings>, { // TODO: improve this (by making IOBrokerMinerSettings generic?, ...)
+            en: 'Add new device',
+            de: 'Neues Gerät hinzufügen',
+            ru: 'Добавить новое устройство',
+            pt: 'Adicionar novo dispositivo',
+            nl: 'Voeg nieuw apparaat toe',
+            fr: 'Ajouter un nouvel appareil',
+            it: 'Aggiungi nuovo dispositivo',
+            es: 'Agregar nuevo dispositivo',
+            pl: 'Dodaj nowe urządzenie',
+            'zh-cn': '添加新设备',
+            uk: 'Додати новий пристрій'
+        });
+
+        this.adapter.log.debug(`handleNewDevice settings: ${JSON.stringify(settings)}`);
+
+        if (settings === undefined) {
+            return {refresh: false};
+        }
+
+        await this.adapter.addDevice(settings);
+
+        return {refresh: true};
+    }
+
+    private async showDeviceConfigurationForm(context: ActionContext, existingSettings: PartialDeep<IOBrokerDeviceSettings>, title: ioBroker.StringOrTranslated): Promise<IOBrokerMinerSettings | undefined> {
+        // TODO: re-open form with filled in values if something is missing after showing validation result
+        // basically recursive call with existingSettings = return value of this function
+
+        this.adapter.log.debug(`showDeviceConfigurationForm existingSettings: ${JSON.stringify(existingSettings)}`);
+
+        // TODO: implement pool support
+        if (!isMiner(existingSettings)) {
+            this.adapter.log.error(`MinerAdapterDeviceManagement/showDeviceConfigurationForm existingSettings ${existingSettings} is not a miner.`);
+            return undefined;
+        }
+
         const result: JsonFormData | undefined = await context.showForm({
             type: 'panel',
             items: {
@@ -88,6 +160,15 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                             label: key
                         }
                     })
+                },
+                id: {
+                    type: 'text',
+                    newLine: true,
+                    label: 'id', // TODO: translate
+                    // TODO: FixMeLater
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    readOnly: true
                 },
                 name: {
                     type: 'text',
@@ -162,7 +243,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     // TODO: FixMeLater
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
-                    min: 10_000,
+                    min: 100,
                     unit: 'ms',
                     label: {
                         'en': 'poll interval', // TODO: also fix translate in jsonConfig.json
@@ -222,35 +303,24 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         },
         {
             data: {
-                category: 'miner',
-                minerType: undefined,
-                name: '',
-                host: '',
-                mac: '',
-                pollInterval: this.adapter.config.pollInterval,
-                password: crypto.randomUUID(),
-                enabled: true
+                category: existingSettings.category,
+                id: existingSettings.settings.id,
+                minerType: existingSettings.settings.minerType,
+                name: existingSettings.name,
+                host: existingSettings.settings.host,
+                mac: existingSettings.mac,
+                pollInterval: (existingSettings.settings as PollingMinerSettings).pollInterval, // TODO: implement this properly
+                password: (existingSettings.settings as TeamRedMinerSettings).claymore?.password ?? '', // TODO: implement this properly
+                enabled: existingSettings.enabled
             },
-            title: {
-                en: 'Add new device',
-                de: 'Neues Gerät hinzufügen',
-                ru: 'Добавить новое устройство',
-                pt: 'Adicionar novo dispositivo',
-                nl: 'Voeg nieuw apparaat toe',
-                fr: 'Ajouter un nouvel appareil',
-                it: 'Aggiungi nuovo dispositivo',
-                es: 'Agregar nuevo dispositivo',
-                pl: 'Dodaj nowe urządzenie',
-                'zh-cn': '添加新设备',
-                uk: 'Додати новий пристрій'
-            }
+            title
         }
         );
 
         console.log('add device result: ', result);
 
         if (result === null || result === undefined) {
-            return {refresh: false};
+            return undefined;
         }
 
         // TODO: check category && minerType
@@ -264,7 +334,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         // Check if mac is valid
         if (result.mac !== '') {
             // Check mac has the right format
-            if (!result.mac.match(/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/)) {
+            /*if (!result.mac.match(/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/)) {
                 await context.showMessage(`MAC address ${result.mac} is not valid`);
                 // TODO: Objects are not valid as a React child (found: object with keys {en, de, ru, pt, nl, fr, it, es, pl, zh-cn, uk}). If you meant to render a collection of children, use an array instead.
                 // await context.showMessage({
@@ -280,8 +350,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 //     'zh-cn': `MAC地址 ${result.mac} 无效`,
                 //     uk: `MAC адреса ${result.mac} недійсна`
                 // });
-                return {refresh: false};
-            }
+                return undefined;
+            }*/
         }
         // Check if host/ip was entered
         if (result.host === '') {
@@ -300,13 +370,13 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             //     'zh-cn': `请输入IP地址`,
             //     uk: `Будь ласка, введіть IP адресу`
             // });
-            return {refresh: false};
+            return undefined;
         }
         // Check if ip is valid
         if (result.host !== '') {
             // Check ip has the right format
             // TODO: fix this check
-            if (!result.host.match(/^(\d{1,3}\.){3}\d{1,3}$/) && false) {
+            /*if (!result.host.match(/^(\d{1,3}\.){3}\d{1,3}$/)) {
                 // TODO: Objects are not valid as a React child (found: object with keys {en, de, ru, pt, nl, fr, it, es, pl, zh-cn, uk}). If you meant to render a collection of children, use an array instead.
                 await context.showMessage(`IP address ${result?.ip} is not valid`);
                 // await context.showMessage({
@@ -322,37 +392,38 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 //     'zh-cn': `IP地址 ${result.ip} 无效`,
                 //     uk: `IP адреса ${result.ip} недійсна`
                 // });
-                return {refresh: false};
-            }
+                return undefined;
+            }*/
         }
 
         if (!isMiner({category: result.category})) { // TODO: pool support
             this.log.error(`MinerAdapterDeviceManagement/handleNewDevice category ${result.category} is not yet supported.`);
-            return {refresh: false};
+            return undefined;
         }
 
         let minerSettings: MinerSettings = {
             id: crypto.randomUUID(),
-            minerType: result.minerType
+            minerType: result.minerType,
+            host: result.host
         }
 
         switch (minerSettings.minerType) {
             case 'teamRedMiner': {
                 const pollInterval = result.pollInterval ?? this.adapter.config.pollInterval;
 
-                const trmSettings: Omit<TeamRedMinerSettings, 'minerType'> = {
-                    pollInterval: pollInterval,
+                const trmSettings: Omit<TeamRedMinerSettings, keyof MinerSettings> = {
+                    pollInterval,
                     claymore: {
                         minerType: 'claymoreMiner',
                         pollInterval,
-                        host: result.host,
+                        host: minerSettings.host,
                         password: result.password,
                         port: 3333 // TODO: make configurable
                     },
                     sg: {
                         minerType: 'sgMiner',
                         pollInterval,
-                        host: result.host,
+                        host: minerSettings.host,
                         port: 4028 // TODO: make configurable
                     }
                 }
@@ -367,21 +438,19 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 // TODO: same for category dropdown
                 // TODO: hide in dropdown to not create confusion something like "visibleMinerTypes" filter array?
                 this.adapter.log.error(`MinerAdapterDeviceManagement/handleNewDevice minerType ${minerSettings.minerType} not yet supported`);
-                return {refresh: false};
+                return undefined;
             }
         }
 
         const settings: IOBrokerMinerSettings = {
             category: result.category,
             name: result.name,
-            host: result.host,
             mac: result.mac,
             enabled: result.enabled,
             settings: minerSettings
         }
-        await this.adapter.addDevice(settings);
 
-        return {refresh: true};
+        return settings;
     }
 
     protected async listDevices(): Promise<DeviceInfo[]> {
@@ -396,11 +465,125 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
 
             arrDevices.push({
                 id: device._id,
-                name: device.common.name
+                name: device.common.name,
+                hasDetails: true,
+                actions: [
+                    {
+                        id: 'delete',
+                        icon: 'fa-solid fa-trash-can',
+                        description: {
+                            en: 'Delete this device',
+                            de: 'Gerät löschen',
+                            ru: 'Удалить это устройство',
+                            pt: 'Excluir este dispositivo',
+                            nl: 'Verwijder dit apparaat',
+                            fr: 'Supprimer cet appareil',
+                            it: 'Elimina questo dispositivo',
+                            es: 'Eliminar este dispositivo',
+                            pl: 'Usuń to urządzenie',
+                            'zh-cn': '删除此设备',
+                            uk: 'Видалити цей пристрій'
+                        },
+                        handler: this.handleDeleteDevice.bind(this)
+                    },
+                    {
+                        id: 'settings',
+                        icon: 'fa-solid fa-gear',
+                        description: {
+                            en: 'Settings',
+                            de: 'Einstellungen',
+                            ru: 'Настройки',
+                            pt: 'Configurações',
+                            nl: 'Instellingen',
+                            fr: 'Paramètres',
+                            it: 'Impostazioni',
+                            es: 'Configuraciones',
+                            pl: 'Ustawienia',
+                            'zh-cn': '设定值',
+                            uk: 'Налаштування'
+                        },
+                        handler: this.handleSettingsDevice.bind(this)
+                    }
+                ]
             })
         }
 
         return arrDevices;
+    }
+
+    protected async handleDeleteDevice(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
+        const response = await context.showConfirmation({
+            en: `Do you really want to delete the device ${id}?`,
+            de: `Möchten Sie das Gerät ${id} wirklich löschen?`,
+            ru: `Вы действительно хотите удалить устройство ${id}?`,
+            pt: `Você realmente deseja excluir o dispositivo ${id}?`,
+            nl: `Weet u zeker dat u het apparaat ${id} wilt verwijderen?`,
+            fr: `Voulez-vous vraiment supprimer l'appareil ${id} ?`,
+            it: `Vuoi davvero eliminare il dispositivo ${id}?`,
+            es: `¿Realmente desea eliminar el dispositivo ${id}?`,
+            pl: `Czy na pewno chcesz usunąć urządzenie ${id}?`,
+            'zh-cn': `您真的要删除设备 ${id} 吗？`,
+            uk: `Ви дійсно бажаєте видалити пристрій ${id}?`
+        });
+
+        // delete device
+        if (!response) {
+            return {refresh: false};
+        }
+        const success = await this.adapter.delDevice(id);
+        if (!success) {
+            await context.showMessage({
+                en: `Can not delete device ${id}`,
+                de: `Gerät ${id} kann nicht gelöscht werden`,
+                ru: `Невозможно удалить устройство ${id}`,
+                pt: `Não é possível excluir o dispositivo ${id}`,
+                nl: `Kan apparaat ${id} niet verwijderen`,
+                fr: `Impossible de supprimer l'appareil ${id}`,
+                it: `Impossibile eliminare il dispositivo ${id}`,
+                es: `No se puede eliminar el dispositivo ${id}`,
+                pl: `Nie można usunąć urządzenia ${id}`,
+                'zh-cn': `无法删除设备 ${id}`,
+                uk: `Не вдалося видалити пристрій ${id}`
+            });
+            return {refresh: false};
+        } else {
+            return {refresh: true};
+        }
+    }
+
+    protected async handleSettingsDevice(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
+        const obj = await this.adapter.getObjectAsync(id);
+
+        if (obj == null) {
+            this.adapter.log.error(`MinerAdapterDeviceManagement/handleSettingsDevice object ${id} not found`);
+            return {refresh: false};
+        }
+
+        const currentSettings: IOBrokerDeviceSettings = decryptDeviceSettings(obj.native as IOBrokerDeviceSettings, (value) => this.adapter.decrypt(value));
+
+        const newSettings = await this.showDeviceConfigurationForm(context, currentSettings, {
+            en: 'Settings',
+            de: 'Einstellungen',
+            ru: 'Настройки',
+            pt: 'Configurações',
+            nl: 'Instellingen',
+            fr: 'Paramètres',
+            it: 'Impostazioni',
+            es: 'Configuraciones',
+            pl: 'Ustawienia',
+            'zh-cn': '设定值',
+            uk: 'Налаштування'
+        });
+
+        this.adapter.log.debug(`handleSettingsDevice newSettings: ${JSON.stringify(newSettings)}`);
+
+        if (newSettings === undefined) {
+            return {refresh: false};
+        }
+
+        await this.adapter.updateDevice(newSettings);
+
+        return {refresh: 'device'};
     }
 
     async close(): Promise<void> {
