@@ -587,6 +587,18 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
 
         await this.adapter.updateDevice(newSettings);
 
+        if (!isMiner(currentSettings) || !isMiner(newSettings)) { // TODO: pool support (#deal with miner -> pool change: just disable category dropdown on settings)
+            this.adapter.log.error(`MinerAdapterDeviceManagement/handleSettingsDevice settings are not miners`);
+            return {refresh: false};
+        }
+
+        // name change requires full instance refresh, not just device - to display correct name in the devices header in the device list
+        if (currentSettings.name != newSettings.name) {
+            // PS: I don't know why this doesn't work
+            // return {refresh: 'instance'};
+            return {refresh: true};
+        }
+
         return {refresh: 'device'};
     }
 

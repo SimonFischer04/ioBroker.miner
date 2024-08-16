@@ -503,6 +503,13 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
       return { refresh: false };
     }
     await this.adapter.updateDevice(newSettings);
+    if (!(0, import_IOBrokerMinerSettings.isMiner)(currentSettings) || !(0, import_IOBrokerMinerSettings.isMiner)(newSettings)) {
+      this.adapter.log.error(`MinerAdapterDeviceManagement/handleSettingsDevice settings are not miners`);
+      return { refresh: false };
+    }
+    if (currentSettings.name != newSettings.name) {
+      return { refresh: true };
+    }
     return { refresh: "device" };
   }
   async close() {
