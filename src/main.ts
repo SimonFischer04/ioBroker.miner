@@ -214,6 +214,18 @@ export class MinerAdapter extends utils.Adapter {
             native: encryptDeviceSettings(settings, (value) => this.encrypt(value))
         });
 
+        // always add empty state, so that getObjectAsync works
+        await this.extendObject(`${id}.empty`, {
+            type: 'state',
+            common: {
+                name: 'empty',
+                type: 'string',
+                read: true,
+                write: true,
+                expert: true
+            }
+        });
+
         const obj: ioBroker.DeviceObject = await this.getObjectAsync(id) as ioBroker.DeviceObject;
         this.log.debug(`configureDeviceObject: ${JSON.stringify(obj)}`);
 

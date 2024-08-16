@@ -168,7 +168,11 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     // TODO: FixMeLater
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
-                    readOnly: true
+                    readOnly: true,
+                    // TODO: FixMeLater
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    noClearButton: true
                 },
                 name: {
                     type: 'text',
@@ -402,7 +406,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         }
 
         let minerSettings: MinerSettings = {
-            id: crypto.randomUUID(),
+            id: result.id,
             minerType: result.minerType,
             host: result.host
         }

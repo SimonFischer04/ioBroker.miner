@@ -190,6 +190,16 @@ class MinerAdapter extends utils.Adapter {
       },
       native: (0, import_IOBrokerMinerSettings.encryptDeviceSettings)(settings, (value) => this.encrypt(value))
     });
+    await this.extendObject(`${id}.empty`, {
+      type: "state",
+      common: {
+        name: "empty",
+        type: "string",
+        read: true,
+        write: true,
+        expert: true
+      }
+    });
     const obj = await this.getObjectAsync(id);
     this.log.debug(`configureDeviceObject: ${JSON.stringify(obj)}`);
     return obj;

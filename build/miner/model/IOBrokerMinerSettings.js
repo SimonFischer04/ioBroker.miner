@@ -26,7 +26,7 @@ module.exports = __toCommonJS(IOBrokerMinerSettings_exports);
 var import_Logger = require("../../lib/miner/model/Logger");
 const logger = import_Logger.Logger.getLogger("IOBrokerMinerSettings");
 function isMiner(settings) {
-  return settings.category === "miner";
+  return (settings == null ? void 0 : settings.category) === "miner";
 }
 function encryptDeviceSettings(settings, encryptFunction) {
   if (!isMiner(settings)) {
