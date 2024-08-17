@@ -72,4 +72,9 @@ export abstract class Miner<S extends MinerSettings> {
             await sub(stats);
         }
     }
+
+    /**
+     * Get the command line arguments required to append to the miner start command for this adapter to be able to connect to the miner / communicate with it
+     */
+    public abstract getCliArgs(): string[];
 }

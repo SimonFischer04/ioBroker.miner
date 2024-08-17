@@ -3,7 +3,7 @@ import {TeamRedMinerSettings} from '../model/MinerSettings';
 import {ClaymoreMiner} from './ClaymoreMiner';
 import {SGMiner} from './SGMiner';
 import {MinerStats} from '../model/MinerStats';
-import { MinerFeatureKey } from '../model/MinerFeature';
+import {MinerFeatureKey} from '../model/MinerFeature';
 
 export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
     // TODO: actually does not support full claymore api
@@ -51,6 +51,12 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
     public getSupportedFeatures(): MinerFeatureKey[] {
         return [
             ...this.claymoreMiner.getSupportedFeatures()
+        ]
+    }
+
+    public getCliArgs(): string[] {
+        return [
+            ...this.claymoreMiner.getCliArgs()
         ]
     }
 }

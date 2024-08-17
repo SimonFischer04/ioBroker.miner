@@ -5,7 +5,13 @@
 - remaining code todos
 
 ## Current
-- dm improvements: edit, ...
-- getcliargs
+- also disable mac (and ip?) input in settings device form: would duplicate the device. changing mac doesn't make sense ... can just create a new device anyway if really needed
+- dm improvements: 
+  - details
+  - validators ...
+  - only show relevant fields
+  - form: tooltips, placeholders, labels, explanations
+- connected status
+- "raw" miner stats state (user can self parse - before "features" implemented)
 - 'Method not implemented.' ...
 - logs everywhere

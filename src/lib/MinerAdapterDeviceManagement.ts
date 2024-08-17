@@ -1,5 +1,5 @@
 import {
-    ActionContext,
+    ActionContext, DeviceDetails,
     DeviceInfo,
     DeviceManagement,
     DeviceRefresh,
@@ -16,12 +16,32 @@ import {
     isMiner
 } from '../miner/model/IOBrokerMinerSettings';
 import {PartialDeep} from 'type-fest';
+import {createMiner} from './miner/miner/MinerFactory';
 
 class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
     async getInstanceInfo(): Promise<InstanceDetails> {
         const data = {
             ...super.getInstanceInfo(),
             actions: [
+                {
+                    id: 'refresh',
+                    icon: 'fas fa-redo-alt',
+                    title: '',
+                    description: {
+                        en: 'Refresh device list',
+                        de: 'Geräteliste aktualisieren',
+                        ru: 'Обновить список устройств',
+                        pt: 'Atualizar lista de dispositivos',
+                        nl: 'Vernieuw apparaatlijst',
+                        fr: 'Actualiser la liste des appareils',
+                        it: 'Aggiorna elenco dispositivi',
+                        es: 'Actualizar lista de dispositivos',
+                        pl: 'Odśwież listę urządzeń',
+                        'zh-cn': '刷新设备列表',
+                        uk: 'Оновити список пристроїв'
+                    },
+                    handler: this.handleRefresh.bind(this)
+                },
                 {
                     id: 'newDevice',
                     icon: 'fas fa-plus',
@@ -64,6 +84,11 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             ],
         };
         return data;
+    }
+
+    async handleRefresh(_context: ActionContext): Promise<{ refresh: boolean }> {
+        this.adapter.log.info('handleRefresh');
+        return {refresh: true};
     }
 
     async handleNewDevice(context: ActionContext): Promise<{ refresh: boolean }> {
@@ -172,7 +197,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     // TODO: FixMeLater
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
-                    noClearButton: true
+                    noClearButton: true,
+                    disabled: true
                 },
                 name: {
                     type: 'text',
@@ -600,6 +626,60 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         }
 
         return {refresh: 'device'};
+    }
+
+    async getDeviceDetails(id: string): Promise<DeviceDetails | null | { error: string }> {
+        this.adapter.log.info(`Get device details ${id}`);
+
+        // TODO: cleanup all this boilerplate
+
+        const obj = await this.adapter.getObjectAsync(id);
+
+        if (obj == null) {
+            const error = `getDeviceDetails device ${id} not found`;
+            this.log.error(error);
+            return {error};
+        }
+
+        const settings: IOBrokerDeviceSettings = decryptDeviceSettings(obj.native as IOBrokerDeviceSettings, (value) => this.adapter.decrypt(value));
+
+        if (!isMiner(settings)) { // TODO: pool support
+            const error = `getDeviceDetails category ${obj.native.category} not yet supported`
+            this.log.error(error);
+            return {error};
+        }
+
+        // create dummy miner to get CLI args
+        const dummyMiner = createMiner(settings.settings);
+
+        // TODO: more details
+        return {
+            id,
+            schema: {
+                type: 'panel',
+                items: {
+                    name: {
+                        type: 'staticText',
+                        label: `<b>Name:</b> ${obj.common.name}`,
+                        newLine: true,
+                        sm: 12,
+                        disabled: 'true',
+                    },
+                    minerCliParams: {
+                        type: 'text',
+                        label: 'Miner CLI parameters',
+                        sm: 12,
+                        disabled: 'true',
+                    }
+                },
+                style: {
+                    minWidth: 420,
+                },
+            },
+            data: {
+                minerCliParams: dummyMiner.getCliArgs().join(' ')
+            },
+        };
     }
 
     async close(): Promise<void> {

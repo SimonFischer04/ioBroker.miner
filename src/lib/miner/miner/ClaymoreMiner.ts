@@ -222,6 +222,13 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
             pciBusIndexes: parseShares(pciBusIndexes)
         };
     }
+
+    public getCliArgs(): string[] {
+        return [
+            '--cm_api_listen=0.0.0.0:3333',
+            `--cm_api_password=${this.settings.password}`
+        ];
+    }
 }
 
 export interface MinerGetStat1Response {

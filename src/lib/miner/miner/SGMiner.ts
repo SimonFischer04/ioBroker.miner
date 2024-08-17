@@ -22,4 +22,8 @@ export class SGMiner extends PollingMiner<SGMinerSettings> {
     public getSupportedFeatures(): MinerFeatureKey[] {
         throw new Error('Method not implemented.');
     }
+
+    public getCliArgs(): string[] {
+        throw new Error('Method not implemented.');
+    }
 }

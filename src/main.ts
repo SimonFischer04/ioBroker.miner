@@ -23,7 +23,7 @@ import {MinerStats} from './lib/miner/model/MinerStats';
 
 export class MinerAdapter extends utils.Adapter {
     private readonly deviceManagement: MinerAdapterDeviceManagement;
-    private readonly minerManager: MinerManager = new MinerManager();
+    public readonly minerManager: MinerManager = new MinerManager();
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({

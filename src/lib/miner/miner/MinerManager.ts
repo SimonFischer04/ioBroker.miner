@@ -44,7 +44,7 @@ export class MinerManager {
         this.miners.splice(0, this.miners.length);
     }
 
-    private getMinerById(id: string): Miner<MinerSettings> | undefined {
+    public getMinerById(id: string): Miner<MinerSettings> | undefined {
         return this.miners.find(miner => miner.settings.id === id);
     }
 
