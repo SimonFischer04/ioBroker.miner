@@ -298,10 +298,10 @@ export class MinerAdapter extends utils.Adapter {
             return false;
         }
 
-        if(!settings.enabled){
+        if (!settings.enabled) {
             this.log.debug(`tryCloseMiner: skipped miner close, because ${settings.settings.id} is disabled`);
 
-            if(this.minerManager.hasMiner(settings.settings.id)){
+            if (this.minerManager.hasMiner(settings.settings.id)) {
                 this.log.error(`tryCloseMiner: this should not happen, miner ${settings.settings.id} is disabled but still in minerManager`);
                 await this.minerManager.close(settings.settings.id);
             }
@@ -342,6 +342,13 @@ export class MinerAdapter extends utils.Adapter {
             // TODO: cleanup, just filter for info features and then directly infer object id from there somehow
             // change MinerStates to Record<MinerFeatureKey, val>?
             switch (feature) {
+                case MinerFeatureKey.rawStats: {
+                    await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.rawStats), {
+                        val: JSON.stringify(stats.raw),
+                        ack: true
+                    });
+                    break;
+                }
                 case MinerFeatureKey.version: {
                     await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.version), {
                         val: stats.version,
@@ -386,11 +393,13 @@ export class MinerAdapter extends utils.Adapter {
             await this.extendObject(`${this.getStateFullObjectId(settings, featureKey)}`, {
                 type: 'state',
                 common: {
-                    name: feature.label,
+                    name: `${feature.label} - ${feature.description}`,
                     type: feature.type as ioBroker.CommonType,
                     read: feature.readable,
-                    write: feature.writable
-                }
+                    write: feature.writable,
+                    unit: feature.unit,
+                    expert: feature.advanced === true ? true : undefined // false needs to be passed in as undefined
+                },
             });
         }
     }

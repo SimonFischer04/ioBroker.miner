@@ -4,11 +4,9 @@ import {ClaymoreMiner} from './ClaymoreMiner';
 import {SGMiner} from './SGMiner';
 import {MinerStats} from '../model/MinerStats';
 import {MinerFeatureKey} from '../model/MinerFeature';
+import {distinct} from '../../utils/array-utils';
 
 export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
-    // TODO: actually does not support full claymore api
-    // TODO: sgminer api
-
     private readonly claymoreMiner: ClaymoreMiner
     private readonly sgMiner: SGMiner;
 
@@ -28,6 +26,7 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
 
         // DO NOT CALL sub-miner.init() here, as it will init the polling interval, but trm is PollingMiner itself (own interval) => calls fetchData() for both miners itself and merges the results
         // await this.claymoreMiner.init();
+        // await this.sgMiner.init();
     }
 
     public override async start(): Promise<void> {
@@ -36,8 +35,16 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
 
     public override async fetchStats(): Promise<MinerStats> {
         const claymoreStats: MinerStats = await this.claymoreMiner.fetchStats();
-        // await this.sgMiner.fetchData()
-        return claymoreStats;
+        const sgStats: MinerStats = await this.sgMiner.fetchStats();
+
+        return {
+            version: claymoreStats.version,
+            totalHashrate: claymoreStats.totalHashrate,
+            raw: {
+                claymore: claymoreStats.raw,
+                sg: sgStats.raw
+            }
+        };
     }
 
     public override async stop(): Promise<void> {
@@ -49,14 +56,16 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
     }
 
     public getSupportedFeatures(): MinerFeatureKey[] {
-        return [
-            ...this.claymoreMiner.getSupportedFeatures()
-        ]
+        return distinct([
+            ...this.claymoreMiner.getSupportedFeatures(),
+            ...this.sgMiner.getSupportedFeatures()
+        ]);
     }
 
     public getCliArgs(): string[] {
         return [
-            ...this.claymoreMiner.getCliArgs()
+            ...this.claymoreMiner.getCliArgs(),
+            ...this.sgMiner.getCliArgs()
         ]
     }
 }

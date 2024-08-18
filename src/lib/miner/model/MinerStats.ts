@@ -1,4 +1,5 @@
 export interface MinerStats {
-    version: string;
-    totalHashrate: number;
+    version?: string;
+    totalHashrate?: number;
+    raw?: object;
 }

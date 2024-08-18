@@ -21,10 +21,10 @@ __export(ClaymoreMiner_exports, {
   ClaymoreMiner: () => ClaymoreMiner
 });
 module.exports = __toCommonJS(ClaymoreMiner_exports);
-var import_node_net = require("node:net");
 var import_PollingMiner = require("./PollingMiner");
 var import_parse_utils = require("../../utils/parse-utils");
 var import_MinerFeature = require("../model/MinerFeature");
+var import_socket_utils = require("../../utils/socket-utils");
 var ClaymoreCommandMethod = /* @__PURE__ */ ((ClaymoreCommandMethod2) => {
   ClaymoreCommandMethod2["minerGetStat1"] = "miner_getstat1";
   ClaymoreCommandMethod2["minerGetStat2"] = "miner_getstat2";
@@ -36,9 +36,6 @@ var ClaymoreCommandMethod = /* @__PURE__ */ ((ClaymoreCommandMethod2) => {
   return ClaymoreCommandMethod2;
 })(ClaymoreCommandMethod || {});
 class ClaymoreMiner extends import_PollingMiner.PollingMiner {
-  constructor(settings) {
-    super(settings);
-  }
   async init() {
     await super.init();
     return Promise.resolve();
@@ -53,8 +50,9 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
       this.logger.debug(`parsed response: ${JSON.stringify(parsedResponse)}`);
       return {
         version: parsedResponse.minerVersion,
-        totalHashrate: parsedResponse.ethTotal.hashrate
+        totalHashrate: parsedResponse.ethTotal.hashrate,
         // actually "ETH hashrate" also means other hashing algorithms
+        raw: response
       };
     } catch (e) {
       return Promise.reject(e);
@@ -66,6 +64,7 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
   getSupportedFeatures() {
     return [
       import_MinerFeature.MinerFeatureKey.running,
+      import_MinerFeature.MinerFeatureKey.rawStats,
       import_MinerFeature.MinerFeatureKey.version,
       import_MinerFeature.MinerFeatureKey.totalHashrate
     ];
@@ -73,60 +72,20 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
   getLoggerName() {
     return `${super.getLoggerName()}ClaymoreMiner[${this.settings.host}:${this.settings.port}]`;
   }
+  getCliArgs() {
+    return [
+      "--cm_api_listen=0.0.0.0:3333",
+      `--cm_api_password=${this.settings.password}`
+    ];
+  }
   async sendCommand(method, params, expectResponse = true) {
-    this.logger.debug(`sendCommand: ${method} ${params}`);
-    let handled = false;
-    const socket = new import_node_net.Socket();
-    return new Promise((resolve, reject) => {
-      socket.on("connect", () => {
-        const cmd = JSON.stringify({
-          id: 0,
-          jsonrpc: "2.0",
-          psw: this.settings.password,
-          method,
-          params
-        }) + "\n";
-        this.logger.debug(`connected, sending cmd now ...: ${cmd}`);
-        socket.write(cmd, (err) => {
-          if (err) {
-            this.logger.error(err.message);
-            reject(err.message);
-          } else {
-            if (!expectResponse) {
-              resolve(void 0);
-            }
-          }
-        });
-      });
-      socket.on("timeout", () => {
-        this.logger.warn("socket timeout");
-        reject("socket timeout");
-      });
-      socket.on("data", (data) => {
-        const d = JSON.parse(data.toString());
-        this.logger.debug(`received: ${data.toString()}`);
-        resolve(d);
-      });
-      socket.on("close", () => {
-      });
-      socket.on("error", (err) => {
-        this.logger.error(err.message);
-        reject(`socket error: ${err.message}`);
-      });
-      socket.setTimeout(3e3);
-      socket.connect(this.settings.port, this.settings.host);
-      setTimeout(() => {
-        if (!handled) {
-          const msg = `timeout handling socket command: ${method} ${params}. maybe the password is wrong?`;
-          this.logger.warn(msg);
-          reject(msg);
-        }
-      }, 3e3);
-    }).finally(() => {
-      handled = true;
-      socket.end();
-      socket.destroy();
-    });
+    return await (0, import_socket_utils.sendSocketCommand)(this.logger, this.settings.host, this.settings.port, {
+      id: 0,
+      jsonrpc: "2.0",
+      psw: this.settings.password,
+      method,
+      params
+    }, expectResponse);
   }
   // public to allow unit tests
   parseMinerGetStat1(response) {

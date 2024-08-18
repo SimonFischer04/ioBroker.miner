@@ -24,9 +24,8 @@ module.exports = __toCommonJS(TeamRedMiner_exports);
 var import_PollingMiner = require("./PollingMiner");
 var import_ClaymoreMiner = require("./ClaymoreMiner");
 var import_SGMiner = require("./SGMiner");
+var import_array_utils = require("../../utils/array-utils");
 class TeamRedMiner extends import_PollingMiner.PollingMiner {
-  // TODO: actually does not support full claymore api
-  // TODO: sgminer api
   claymoreMiner;
   sgMiner;
   constructor(settings) {
@@ -45,7 +44,15 @@ class TeamRedMiner extends import_PollingMiner.PollingMiner {
   }
   async fetchStats() {
     const claymoreStats = await this.claymoreMiner.fetchStats();
-    return claymoreStats;
+    const sgStats = await this.sgMiner.fetchStats();
+    return {
+      version: claymoreStats.version,
+      totalHashrate: claymoreStats.totalHashrate,
+      raw: {
+        claymore: claymoreStats.raw,
+        sg: sgStats.raw
+      }
+    };
   }
   async stop() {
     await this.claymoreMiner.stop();
@@ -54,8 +61,15 @@ class TeamRedMiner extends import_PollingMiner.PollingMiner {
     await this.claymoreMiner.close();
   }
   getSupportedFeatures() {
+    return (0, import_array_utils.distinct)([
+      ...this.claymoreMiner.getSupportedFeatures(),
+      ...this.sgMiner.getSupportedFeatures()
+    ]);
+  }
+  getCliArgs() {
     return [
-      ...this.claymoreMiner.getSupportedFeatures()
+      ...this.claymoreMiner.getCliArgs(),
+      ...this.sgMiner.getCliArgs()
     ];
   }
 }

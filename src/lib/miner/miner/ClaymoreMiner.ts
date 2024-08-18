@@ -1,9 +1,9 @@
-import {Socket} from 'node:net';
 import {ClaymoreMinerSettings} from '../model/MinerSettings';
 import {PollingMiner} from './PollingMiner';
 import {safeParseInt} from '../../utils/parse-utils';
 import {MinerFeatureKey} from '../model/MinerFeature';
 import {MinerStats} from '../model/MinerStats';
+import {sendSocketCommand} from '../../utils/socket-utils';
 
 enum ClaymoreCommandMethod {
     minerGetStat1 = 'miner_getstat1',
@@ -24,10 +24,6 @@ enum ClaymoreCommandMethod {
 }
 
 export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
-    constructor(settings: ClaymoreMinerSettings) {
-        super(settings);
-    }
-
     public override async init(): Promise<void> {
         await super.init();
         // claymore api does not support persistent connections (socket is closed after each command), so don't need to init any connection here
@@ -46,7 +42,8 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
 
             return {
                 version: parsedResponse.minerVersion,
-                totalHashrate: parsedResponse.ethTotal.hashrate // actually "ETH hashrate" also means other hashing algorithms
+                totalHashrate: parsedResponse.ethTotal.hashrate, // actually "ETH hashrate" also means other hashing algorithms
+                raw: response
             }
         } catch (e) { // forward error
             return Promise.reject(e);
@@ -60,6 +57,7 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
     public getSupportedFeatures(): MinerFeatureKey[] {
         return [
             MinerFeatureKey.running,
+            MinerFeatureKey.rawStats,
             MinerFeatureKey.version,
             MinerFeatureKey.totalHashrate
         ]
@@ -69,72 +67,21 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
         return `${super.getLoggerName()}ClaymoreMiner[${this.settings.host}:${this.settings.port}]`;
     }
 
+    public getCliArgs(): string[] {
+        return [
+            '--cm_api_listen=0.0.0.0:3333',
+            `--cm_api_password=${this.settings.password}`
+        ];
+    }
+
     private async sendCommand<T = void>(method: ClaymoreCommandMethod, params?: string[], expectResponse: boolean = true): Promise<T> {
-        this.logger.debug(`sendCommand: ${method} ${params}`);
-
-        let handled = false;
-        const socket: Socket = new Socket();
-
-        return new Promise<T>((resolve, reject) => {
-            socket.on('connect', () => {
-                const cmd = JSON.stringify({
-                    id: 0,
-                    jsonrpc: '2.0',
-                    psw: this.settings.password,
-                    method: method,
-                    params
-                }) + '\n';
-                this.logger.debug(`connected, sending cmd now ...: ${cmd}`);
-                socket.write(cmd, (err) => {
-                    if (err) {
-                        this.logger.error(err.message);
-                        reject(err.message);
-                    } else {
-                        if (!expectResponse) {
-                            resolve(undefined as T);
-                        }
-                    }
-                });
-            });
-
-            socket.on('timeout', () => {
-
-                this.logger.warn('socket timeout');
-                reject('socket timeout');
-            });
-
-            socket.on('data', (data) => {
-                const d = JSON.parse(data.toString());
-
-                this.logger.debug(`received: ${data.toString()}`);
-
-                resolve(d as T);
-            });
-
-            socket.on('close', () => {
-            }); // discard
-
-            socket.on('error', (err) => {
-                this.logger.error(err.message);
-                reject(`socket error: ${err.message}`);
-            });
-
-            socket.setTimeout(3000);
-            socket.connect(this.settings.port, this.settings.host);
-
-            // socket timeout alone does is not enough
-            setTimeout(() => {
-                if(!handled) {
-                    const msg = `timeout handling socket command: ${method} ${params}. maybe the password is wrong?`;
-                    this.logger.warn(msg);
-                    reject(msg);
-                }
-            }, 3000)
-        }).finally(() => {
-            handled = true;
-            socket.end();
-            socket.destroy();
-        });
+        return await sendSocketCommand(this.logger, this.settings.host, this.settings.port, {
+            id: 0,
+            jsonrpc: '2.0',
+            psw: this.settings.password,
+            method,
+            params
+        }, expectResponse);
     }
 
     // public to allow unit tests
@@ -221,13 +168,6 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
             dcrInvalidShares: parseShares(dcrInvalidShares),
             pciBusIndexes: parseShares(pciBusIndexes)
         };
-    }
-
-    public getCliArgs(): string[] {
-        return [
-            '--cm_api_listen=0.0.0.0:3333',
-            `--cm_api_password=${this.settings.password}`
-        ];
     }
 }
 

@@ -25,11 +25,31 @@ var import_dm_utils = require("@iobroker/dm-utils");
 var import_Category = require("./miner/model/Category");
 var import_MinerSettings = require("./miner/model/MinerSettings");
 var import_IOBrokerMinerSettings = require("../miner/model/IOBrokerMinerSettings");
+var import_MinerFactory = require("./miner/miner/MinerFactory");
 class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
   async getInstanceInfo() {
     const data = {
       ...super.getInstanceInfo(),
       actions: [
+        {
+          id: "refresh",
+          icon: "fas fa-redo-alt",
+          title: "",
+          description: {
+            en: "Refresh device list",
+            de: "Ger\xE4teliste aktualisieren",
+            ru: "\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C \u0441\u043F\u0438\u0441\u043E\u043A \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432",
+            pt: "Atualizar lista de dispositivos",
+            nl: "Vernieuw apparaatlijst",
+            fr: "Actualiser la liste des appareils",
+            it: "Aggiorna elenco dispositivi",
+            es: "Actualizar lista de dispositivos",
+            pl: "Od\u015Bwie\u017C list\u0119 urz\u0105dze\u0144",
+            "zh-cn": "\u5237\u65B0\u8BBE\u5907\u5217\u8868",
+            uk: "\u041E\u043D\u043E\u0432\u0438\u0442\u0438 \u0441\u043F\u0438\u0441\u043E\u043A \u043F\u0440\u0438\u0441\u0442\u0440\u043E\u0457\u0432"
+          },
+          handler: this.handleRefresh.bind(this)
+        },
         {
           id: "newDevice",
           icon: "fas fa-plus",
@@ -72,6 +92,10 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
       ]
     };
     return data;
+  }
+  async handleRefresh(_context) {
+    this.adapter.log.info("handleRefresh");
+    return { refresh: true };
   }
   async handleNewDevice(context) {
     this.adapter.log.info("handleNewDevice");
@@ -173,7 +197,8 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             // TODO: FixMeLater
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            noClearButton: true
+            noClearButton: true,
+            disabled: true
           },
           name: {
             type: "text",
@@ -511,6 +536,49 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
       return { refresh: true };
     }
     return { refresh: "device" };
+  }
+  async getDeviceDetails(id) {
+    this.adapter.log.info(`Get device details ${id}`);
+    const obj = await this.adapter.getObjectAsync(id);
+    if (obj == null) {
+      const error = `getDeviceDetails device ${id} not found`;
+      this.log.error(error);
+      return { error };
+    }
+    const settings = (0, import_IOBrokerMinerSettings.decryptDeviceSettings)(obj.native, (value) => this.adapter.decrypt(value));
+    if (!(0, import_IOBrokerMinerSettings.isMiner)(settings)) {
+      const error = `getDeviceDetails category ${obj.native.category} not yet supported`;
+      this.log.error(error);
+      return { error };
+    }
+    const dummyMiner = (0, import_MinerFactory.createMiner)(settings.settings);
+    return {
+      id,
+      schema: {
+        type: "panel",
+        items: {
+          name: {
+            type: "staticText",
+            label: `<b>Name:</b> ${obj.common.name}`,
+            newLine: true,
+            sm: 12,
+            disabled: "true"
+          },
+          minerCliParams: {
+            type: "text",
+            label: "Miner CLI parameters",
+            sm: 12,
+            disabled: "true"
+          }
+        },
+        style: {
+          minWidth: 420
+        }
+      },
+      data: {
+        minerCliParams: dummyMiner.getCliArgs().join(" ")
+      }
+    };
   }
   async close() {
   }

@@ -22,21 +22,53 @@ __export(SGMiner_exports, {
 });
 module.exports = __toCommonJS(SGMiner_exports);
 var import_PollingMiner = require("./PollingMiner");
+var import_MinerFeature = require("../model/MinerFeature");
+var import_socket_utils = require("../../utils/socket-utils");
+var SGMinerCommand = /* @__PURE__ */ ((SGMinerCommand2) => {
+  SGMinerCommand2["stats"] = "summary+coin";
+  return SGMinerCommand2;
+})(SGMinerCommand || {});
 class SGMiner extends import_PollingMiner.PollingMiner {
-  init() {
-    throw new Error("Method not implemented.");
+  async init() {
+    await super.init();
+    return Promise.resolve();
   }
   start() {
-    throw new Error("Method not implemented.");
+    this.logger.error("start() not (yet) implemented");
+    return Promise.resolve();
   }
-  fetchStats() {
-    throw new Error("Method not implemented.");
+  async fetchStats() {
+    try {
+      const response = await this.sendCommand("summary+coin" /* stats */, "", true);
+      return {
+        raw: response
+      };
+    } catch (e) {
+      return Promise.reject(e);
+    }
   }
   stop() {
-    throw new Error("Method not implemented.");
+    this.logger.error("stop() not (yet) implemented");
+    return Promise.resolve();
   }
   getSupportedFeatures() {
-    throw new Error("Method not implemented.");
+    return [
+      import_MinerFeature.MinerFeatureKey.rawStats
+    ];
+  }
+  getLoggerName() {
+    return `${super.getLoggerName()}SGMiner[${this.settings.host}:${this.settings.port}]`;
+  }
+  getCliArgs() {
+    return [
+      "--api_listen=0.0.0.0:4028"
+    ];
+  }
+  async sendCommand(command, parameter = "", expectResponse = true) {
+    return (0, import_socket_utils.sendSocketCommand)(this.logger, this.settings.host, this.settings.port, {
+      command,
+      parameter
+    }, expectResponse);
   }
 }
 // Annotate the CommonJS export names for ESM import in node:

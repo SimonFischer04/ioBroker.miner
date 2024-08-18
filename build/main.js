@@ -285,6 +285,13 @@ class MinerAdapter extends utils.Adapter {
   async processNewStats(miner, settings, stats) {
     for (const feature of miner.getSupportedFeatures()) {
       switch (feature) {
+        case import_MinerFeature.MinerFeatureKey.rawStats: {
+          await this.setState(this.getStateFullObjectId(settings, import_MinerFeature.MinerFeatureKey.rawStats), {
+            val: JSON.stringify(stats.raw),
+            ack: true
+          });
+          break;
+        }
         case import_MinerFeature.MinerFeatureKey.version: {
           await this.setState(this.getStateFullObjectId(settings, import_MinerFeature.MinerFeatureKey.version), {
             val: stats.version,
@@ -325,10 +332,13 @@ class MinerAdapter extends utils.Adapter {
       await this.extendObject(`${this.getStateFullObjectId(settings, featureKey)}`, {
         type: "state",
         common: {
-          name: feature.label,
+          name: `${feature.label} - ${feature.description}`,
           type: feature.type,
           read: feature.readable,
-          write: feature.writable
+          write: feature.writable,
+          unit: feature.unit,
+          expert: feature.advanced === true ? true : void 0
+          // false needs to be passed in as undefined
         }
       });
     }

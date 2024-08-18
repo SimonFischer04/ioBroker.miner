@@ -1,5 +1,6 @@
 export enum MinerFeatureKey {
     running = 'running',
+    rawStats = 'rawStats',
     version = 'version',
     totalHashrate = 'totalHashrate'
 }
@@ -9,7 +10,7 @@ export enum MinerFeatureCategory {
     info = 'info'
 }
 
-export const minerFeatures: Record<MinerFeatureKey, {
+export interface MinerFeatureProperties {
     category: MinerFeatureCategory,
     id: string;
     label: string;
@@ -18,7 +19,13 @@ export const minerFeatures: Record<MinerFeatureKey, {
     unit?: string;
     readable?: boolean;
     writable?: boolean;
-}> = {
+
+    // whether this feature is considered advanced. could be used to f.e. hide it in the UI by default
+    // (f.e. sets the "expert" flag in ioBroker)
+    advanced?: boolean;
+}
+
+export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
     /*
        controls
     */
@@ -35,6 +42,17 @@ export const minerFeatures: Record<MinerFeatureKey, {
     /*
         info
      */
+    [MinerFeatureKey.rawStats]: {
+        category: MinerFeatureCategory.info,
+        id: 'RAW',
+        label: 'RAW Miner Stats',
+        description: 'Raw info returned by the miner.',
+        type: 'object',
+        readable: true,
+        writable: false,
+        advanced: true
+    },
+
     [MinerFeatureKey.version]: {
         category: MinerFeatureCategory.info,
         id: 'VERSION',

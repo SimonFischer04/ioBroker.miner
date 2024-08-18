@@ -26,6 +26,7 @@ __export(MinerFeature_exports, {
 module.exports = __toCommonJS(MinerFeature_exports);
 var MinerFeatureKey = /* @__PURE__ */ ((MinerFeatureKey2) => {
   MinerFeatureKey2["running"] = "running";
+  MinerFeatureKey2["rawStats"] = "rawStats";
   MinerFeatureKey2["version"] = "version";
   MinerFeatureKey2["totalHashrate"] = "totalHashrate";
   return MinerFeatureKey2;
@@ -51,6 +52,16 @@ const minerFeatures = {
   /*
       info
    */
+  ["rawStats" /* rawStats */]: {
+    category: "info" /* info */,
+    id: "RAW",
+    label: "RAW Miner Stats",
+    description: "Raw info returned by the miner.",
+    type: "object",
+    readable: true,
+    writable: false,
+    advanced: true
+  },
   ["version" /* version */]: {
     category: "info" /* info */,
     id: "VERSION",
