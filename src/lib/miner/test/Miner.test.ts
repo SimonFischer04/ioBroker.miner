@@ -14,7 +14,6 @@ describe('Miner', () => {
         };
 
         miner = new class AnyMiner extends Miner<MinerSettings> {
-
             constructor() {
                 super(settings);
             }
@@ -33,6 +32,10 @@ describe('Miner', () => {
 
             public stop(): Promise<void> {
                 return Promise.resolve();
+            }
+
+            public getCliArgs(): string[] {
+                return [];
             }
         };
     })

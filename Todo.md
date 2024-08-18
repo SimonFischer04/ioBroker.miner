@@ -6,6 +6,7 @@
 
 ## Current
 - (settings change) unload WEIRD broken sometimes for some reason ... ???
+- xmrig support
 - also disable mac (and ip?) input in settings device form: would duplicate the device. changing mac doesn't make sense ... can just create a new device anyway if really needed
 - dm improvements: 
   - details
@@ -18,3 +19,5 @@
 - logs everywhere
 - more tests (#Socket stub, ...)
 - show supported device features in device details or auto-generate (material for mkdocs) docs from code
+- fixup adapter instance settings
+- package-json keywords for supported miners
