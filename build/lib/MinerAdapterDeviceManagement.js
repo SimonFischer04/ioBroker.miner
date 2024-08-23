@@ -158,6 +158,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             newLine: true,
             label: "category",
             // TODO: translate
+            tooltip: "category of the iobroker thing (miner or pool)",
             // TODO: FixMeLater
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -174,6 +175,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             newLine: true,
             label: "minerType",
             // TODO: translate
+            tooltip: "type of miner / firmware",
             // TODO: FixMeLater
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -190,6 +192,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             newLine: true,
             label: "id",
             // TODO: translate
+            tooltip: "unique id of the device, used to identify the device in the adapter",
             // TODO: FixMeLater
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -219,7 +222,8 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
               pl: "Nazwa",
               "zh-cn": "\u540D\u79F0",
               uk: "\u0406\u043C'\u044F"
-            }
+            },
+            tooltip: "name for the user to identify the device"
           },
           host: {
             type: "text",
@@ -241,7 +245,8 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
               pl: "Adres IP",
               "zh-cn": "IP\u5730\u5740",
               uk: "IP \u0430\u0434\u0440\u0435\u0441\u0430"
-            }
+            },
+            tooltip: "IP address (or host) of the device"
           },
           // TODO: get by request
           mac: {
@@ -264,7 +269,8 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
               pl: "Adres MAC",
               "zh-cn": "MAC\u5730\u5740",
               uk: "MAC \u0430\u0434\u0440\u0435\u0441\u0430"
-            }
+            },
+            tooltip: "MAC address of the device"
           },
           // TODO: show only if miner requires polling? possible to dynamically add fields to form?
           pollInterval: {
@@ -288,7 +294,8 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
               "pl": "przedzia\u0142 ankietowy",
               "uk": "\u0456\u043D\u0442\u0435\u0440\u0432\u0430\u043B \u043E\u043F\u0438\u0442\u0443\u0432\u0430\u043D\u043D\u044F",
               "zh-cn": "\u6C11\u610F\u8C03\u67E5\u95F4\u9694"
-            }
+            },
+            tooltip: "interval to poll the device for new data"
           },
           password: {
             type: "text",
@@ -311,7 +318,8 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
               "pl": "has\u0142o",
               "uk": "\u0443\u0432\u0456\u0439\u0442\u0438",
               "zh-cn": "\u5BC6\u7801"
-            }
+            },
+            tooltip: "password used to connect to the device api. Adapter generates a random, secure and unique one for each device by default. But can of course be changed if needed."
           },
           enabled: {
             type: "checkbox",
@@ -328,7 +336,8 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
               "pl": "w\u0142\u0105czone",
               "uk": "\u0443\u0432\u0456\u043C\u043A\u043D\u0443\u0442\u0438",
               "zh-cn": "\u542F\u7528"
-            }
+            },
+            tooltip: "whether the device is enabled or not. Disabled devices will do nothing (not get polled, control does not work, ...). Useful if you f.e. shut one off temporarily."
           }
         }
       },

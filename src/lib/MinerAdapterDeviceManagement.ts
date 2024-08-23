@@ -160,6 +160,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     type: 'select',
                     newLine: true,
                     label: 'category', // TODO: translate
+                    tooltip: 'category of the iobroker thing (miner or pool)',
                     // TODO: FixMeLater
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
@@ -175,6 +176,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     type: 'select',
                     newLine: true,
                     label: 'minerType', // TODO: translate
+                    tooltip: 'type of miner / firmware',
                     // TODO: FixMeLater
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
@@ -190,6 +192,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     type: 'text',
                     newLine: true,
                     label: 'id', // TODO: translate
+                    tooltip: 'unique id of the device, used to identify the device in the adapter',
                     // TODO: FixMeLater
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
@@ -219,7 +222,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         pl: 'Nazwa',
                         'zh-cn': '名称',
                         uk: 'Ім\'я'
-                    }
+                    },
+                    tooltip: 'name for the user to identify the device'
                 },
                 host: {
                     type: 'text',
@@ -241,7 +245,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         pl: 'Adres IP',
                         'zh-cn': 'IP地址',
                         uk: 'IP адреса'
-                    }
+                    },
+                    tooltip: 'IP address (or host) of the device'
                 },
                 // TODO: get by request
                 mac: {
@@ -265,6 +270,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         'zh-cn': 'MAC地址',
                         uk: 'MAC адреса'
                     },
+                    tooltip: 'MAC address of the device'
                 },
                 // TODO: show only if miner requires polling? possible to dynamically add fields to form?
                 pollInterval: {
@@ -287,7 +293,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         'pl': 'przedział ankietowy',
                         'uk': 'інтервал опитування',
                         'zh-cn': '民意调查间隔'
-                    }
+                    },
+                    tooltip: 'interval to poll the device for new data'
                 },
                 password: {
                     type: 'text',
@@ -310,7 +317,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         'pl': 'hasło',
                         'uk': 'увійти',
                         'zh-cn': '密码'
-                    }
+                    },
+                    tooltip: 'password used to connect to the device api. Adapter generates a random, secure and unique one for each device by default. But can of course be changed if needed.'
                 },
                 enabled: {
                     type: 'checkbox',
@@ -327,7 +335,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         'pl': 'włączone',
                         'uk': 'увімкнути',
                         'zh-cn': '启用'
-                    }
+                    },
+                    tooltip: 'whether the device is enabled or not. Disabled devices will do nothing (not get polled, control does not work, ...). Useful if you f.e. shut one off temporarily.'
                 }
             }
         },

@@ -348,7 +348,7 @@ class MinerAdapter extends utils.Adapter {
       this.log.error(`category ${settings.category} is not yet supported.`);
       return "<unsupported>";
     }
-    return `${settings.category}.${settings.mac.replace(/:/g, "")}`;
+    return `${settings.category}.${settings.settings.id}`;
   }
   getStateFullObjectId(settings, featureKey) {
     return `${this.getDeviceObjectId(settings)}.${(0, import_MinerFeature.getMinerFeatureFullId)(featureKey)}`;

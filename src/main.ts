@@ -410,7 +410,9 @@ export class MinerAdapter extends utils.Adapter {
             return '<unsupported>';
         }
 
-        return `${settings.category}.${settings.mac.replace(/:/g, '')}`;
+        // TODO: cleanup?. don't use mac, use id. allows to use multiple miners with same mac (f.e. running trm && xmrig on same device)
+        // return `${settings.category}.${settings.mac.replace(/:/g, '')}`;
+        return `${settings.category}.${settings.settings.id}`;
     }
 
     private getStateFullObjectId(settings: IOBrokerDeviceSettings, featureKey: MinerFeatureKey): string {
