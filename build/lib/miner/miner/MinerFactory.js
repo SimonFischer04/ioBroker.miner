@@ -24,6 +24,7 @@ module.exports = __toCommonJS(MinerFactory_exports);
 var import_TeamRedMiner = require("./TeamRedMiner");
 var import_ClaymoreMiner = require("./ClaymoreMiner");
 var import_SGMiner = require("./SGMiner");
+var import_XMRigMiner = require("./XMRigMiner");
 function createMiner(settings) {
   switch (settings.minerType) {
     case "teamRedMiner": {
@@ -34,6 +35,9 @@ function createMiner(settings) {
     }
     case "sgMiner": {
       return new import_SGMiner.SGMiner(settings);
+    }
+    case "xmRig": {
+      return new import_XMRigMiner.XMRigMiner(settings);
     }
     default: {
       throw new Error(`createMiner minerType: ${settings.minerType} not supported yet`);

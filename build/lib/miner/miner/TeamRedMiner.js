@@ -46,12 +46,12 @@ class TeamRedMiner extends import_PollingMiner.PollingMiner {
     const claymoreStats = await this.claymoreMiner.fetchStats();
     const sgStats = await this.sgMiner.fetchStats();
     return {
-      version: claymoreStats.version,
-      totalHashrate: claymoreStats.totalHashrate,
       raw: {
         claymore: claymoreStats.raw,
         sg: sgStats.raw
-      }
+      },
+      version: claymoreStats.version,
+      totalHashrate: claymoreStats.totalHashrate
     };
   }
   async stop() {

@@ -30,8 +30,8 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
         return Promise.resolve();
     }
 
-    public override start(): Promise<void> {
-        return this.sendCommand(ClaymoreCommandMethod.controlGpu, ['-1', '1'], false);
+    public override async start(): Promise<void> {
+        await this.sendCommand(ClaymoreCommandMethod.controlGpu, ['-1', '1'], false);
     }
 
     public override async fetchStats(): Promise<MinerStats> {
@@ -41,9 +41,9 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
             this.logger.debug(`parsed response: ${JSON.stringify(parsedResponse)}`);
 
             return {
+                raw: response,
                 version: parsedResponse.minerVersion,
-                totalHashrate: parsedResponse.ethTotal.hashrate, // actually "ETH hashrate" also means other hashing algorithms
-                raw: response
+                totalHashrate: parsedResponse.ethTotal.hashrate * 1000
             }
         } catch (e) { // forward error
             return Promise.reject(e);
@@ -54,7 +54,7 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
         await this.sendCommand(ClaymoreCommandMethod.controlGpu, ['-1', '0'], false);
     }
 
-    public getSupportedFeatures(): MinerFeatureKey[] {
+    public override getSupportedFeatures(): MinerFeatureKey[] {
         return [
             MinerFeatureKey.running,
             MinerFeatureKey.rawStats,
@@ -67,9 +67,9 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
         return `${super.getLoggerName()}ClaymoreMiner[${this.settings.host}:${this.settings.port}]`;
     }
 
-    public getCliArgs(): string[] {
+    public override getCliArgs(): string[] {
         return [
-            '--cm_api_listen=0.0.0.0:3333',
+            `--cm_api_listen=0.0.0.0:${this.settings.port}`,
             `--cm_api_password=${this.settings.password}`
         ];
     }
@@ -207,7 +207,10 @@ interface ParsedMinerGetStat1Response {
     minerVersion: string;
     runningTimeMinutes: number;
     ethTotal: {
+        // actually "ETH hashrate" also means other hashing algorithms
+        // in kH/s
         hashrate: number;
+
         shares: number;
         rejectedShares: number;
     };

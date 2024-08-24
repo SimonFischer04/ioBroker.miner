@@ -61,7 +61,7 @@ class SGMiner extends import_PollingMiner.PollingMiner {
   }
   getCliArgs() {
     return [
-      "--api_listen=0.0.0.0:4028"
+      `--api_listen=0.0.0.0:${this.settings.port}`
     ];
   }
   async sendCommand(command, parameter = "", expectResponse = true) {

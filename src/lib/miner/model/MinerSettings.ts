@@ -1,7 +1,8 @@
 export const minerTypeKeys = [
     'teamRedMiner',
     'claymoreMiner',
-    'sgMiner'
+    'sgMiner',
+    'xmRig'
 ]
 
 export type MinerType = (typeof minerTypeKeys)[number];
@@ -34,4 +35,10 @@ export interface ClaymoreMinerSettings extends PollingMinerSettings {
 export interface SGMinerSettings extends PollingMinerSettings {
     minerType: (typeof minerTypeKeys)[2];
     port: number;
+}
+
+export interface XMRigSettings extends PollingMinerSettings {
+    minerType: (typeof minerTypeKeys)[3];
+    port: number;
+    password: string;
 }

@@ -77,7 +77,7 @@ const minerFeatures = {
     label: "Total Hashrate",
     description: "The total hashrate of the miner.",
     type: "number",
-    unit: "kh/s",
+    unit: "h/s",
     readable: true,
     writable: false
   }

@@ -8,7 +8,13 @@ import {
 } from '@iobroker/dm-utils';
 import {MinerAdapter} from '../main';
 import {categoryKeys} from './miner/model/Category';
-import {MinerSettings, minerTypeKeys, PollingMinerSettings, TeamRedMinerSettings} from './miner/model/MinerSettings';
+import {
+    ClaymoreMinerSettings,
+    MinerSettings,
+    minerTypeKeys,
+    PollingMinerSettings, SGMinerSettings,
+    TeamRedMinerSettings, XMRigSettings
+} from './miner/model/MinerSettings';
 import {
     decryptDeviceSettings,
     IOBrokerDeviceSettings,
@@ -448,6 +454,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
 
         switch (minerSettings.minerType) {
             case 'teamRedMiner': {
+                // TODO: allow to be left empty => always use interval from adapter config
                 const pollInterval = result.pollInterval ?? this.adapter.config.pollInterval;
 
                 const trmSettings: Omit<TeamRedMinerSettings, keyof MinerSettings> = {
@@ -469,6 +476,50 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 minerSettings = {
                     ...minerSettings,
                     ...trmSettings
+                }
+                break;
+            }
+
+            case 'claymoreMiner': {
+                const pollInterval = result.pollInterval ?? this.adapter.config.pollInterval;
+
+                const claymoreSettings: Omit<ClaymoreMinerSettings, keyof MinerSettings> = {
+                    pollInterval,
+                    port: 3333, // TODO: make configurable
+                    password: result.password
+                }
+                minerSettings = {
+                    ...minerSettings,
+                    ...claymoreSettings
+                }
+                break;
+            }
+
+            case 'sgMiner': {
+                const pollInterval = result.pollInterval ?? this.adapter.config.pollInterval;
+
+                const sgSettings: Omit<SGMinerSettings, keyof MinerSettings> = {
+                    pollInterval,
+                    port: 4028 // TODO: make configurable
+                }
+                minerSettings = {
+                    ...minerSettings,
+                    ...sgSettings
+                }
+                break;
+            }
+
+            case 'xmRig': {
+                const pollInterval = result.pollInterval ?? this.adapter.config.pollInterval;
+
+                const xmRigSettings: Omit<XMRigSettings, keyof MinerSettings> = {
+                    pollInterval,
+                    port: 8420, // TODO: make configurable
+                    password: result.password
+                }
+                minerSettings = {
+                    ...minerSettings,
+                    ...xmRigSettings
                 }
                 break;
             }

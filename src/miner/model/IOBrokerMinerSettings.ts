@@ -1,4 +1,9 @@
-import {ClaymoreMinerSettings, MinerSettings, TeamRedMinerSettings} from '../../lib/miner/model/MinerSettings';
+import {
+    ClaymoreMinerSettings,
+    MinerSettings,
+    TeamRedMinerSettings,
+    XMRigSettings
+} from '../../lib/miner/model/MinerSettings';
 import {Category, categoryKeys} from '../../lib/miner/model/Category';
 import {Logger} from '../../lib/miner/model/Logger';
 
@@ -58,6 +63,11 @@ export function encryptDeviceSettings(settings: IOBrokerDeviceSettings, encryptF
             claymoreSettings.password = encryptFunction(claymoreSettings.password);
             break;
         }
+        case 'xmRig': {
+            const xmRigSettings = settings.settings as XMRigSettings;
+            xmRigSettings.password = encryptFunction(xmRigSettings.password);
+            break
+        }
         default: {
             break;
         }
@@ -87,6 +97,11 @@ export function decryptDeviceSettings(settings: IOBrokerDeviceSettings, decryptF
         case 'claymoreMiner': {
             const claymoreSettings = settings.settings as ClaymoreMinerSettings;
             claymoreSettings.password = decryptFunction(claymoreSettings.password);
+            break;
+        }
+        case 'xmRig': {
+            const xmRigSettings = settings.settings as XMRigSettings;
+            xmRigSettings.password = decryptFunction(xmRigSettings.password);
             break;
         }
         default: {

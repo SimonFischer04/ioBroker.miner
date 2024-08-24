@@ -40,8 +40,8 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
     await super.init();
     return Promise.resolve();
   }
-  start() {
-    return this.sendCommand("control_gpu" /* controlGpu */, ["-1", "1"], false);
+  async start() {
+    await this.sendCommand("control_gpu" /* controlGpu */, ["-1", "1"], false);
   }
   async fetchStats() {
     try {
@@ -49,10 +49,9 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
       const parsedResponse = this.parseMinerGetStat2(response);
       this.logger.debug(`parsed response: ${JSON.stringify(parsedResponse)}`);
       return {
+        raw: response,
         version: parsedResponse.minerVersion,
-        totalHashrate: parsedResponse.ethTotal.hashrate,
-        // actually "ETH hashrate" also means other hashing algorithms
-        raw: response
+        totalHashrate: parsedResponse.ethTotal.hashrate * 1e3
       };
     } catch (e) {
       return Promise.reject(e);
@@ -74,7 +73,7 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
   }
   getCliArgs() {
     return [
-      "--cm_api_listen=0.0.0.0:3333",
+      `--cm_api_listen=0.0.0.0:${this.settings.port}`,
       `--cm_api_password=${this.settings.password}`
     ];
   }

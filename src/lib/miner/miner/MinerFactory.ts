@@ -1,8 +1,15 @@
-import {ClaymoreMinerSettings, MinerSettings, SGMinerSettings, TeamRedMinerSettings} from '../model/MinerSettings';
+import {
+    ClaymoreMinerSettings,
+    MinerSettings,
+    SGMinerSettings,
+    TeamRedMinerSettings,
+    XMRigSettings
+} from '../model/MinerSettings';
 import {Miner} from './Miner';
 import {TeamRedMiner} from './TeamRedMiner';
 import {ClaymoreMiner} from './ClaymoreMiner';
 import {SGMiner} from './SGMiner';
+import {XMRigMiner} from './XMRigMiner';
 
 export function createMiner(settings: MinerSettings): Miner<MinerSettings> {
     switch (settings.minerType) {
@@ -17,6 +24,10 @@ export function createMiner(settings: MinerSettings): Miner<MinerSettings> {
 
         case 'sgMiner': {
             return new SGMiner(settings as SGMinerSettings);
+        }
+
+        case 'xmRig': {
+            return new XMRigMiner(settings as XMRigSettings);
         }
 
         default: {

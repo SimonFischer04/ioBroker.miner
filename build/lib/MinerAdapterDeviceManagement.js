@@ -143,7 +143,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     return { refresh: true };
   }
   async showDeviceConfigurationForm(context, existingSettings, title) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e, _f;
     this.adapter.log.debug(`showDeviceConfigurationForm existingSettings: ${JSON.stringify(existingSettings)}`);
     if (!(0, import_IOBrokerMinerSettings.isMiner)(existingSettings)) {
       this.adapter.log.error(`MinerAdapterDeviceManagement/showDeviceConfigurationForm existingSettings ${existingSettings} is not a miner.`);
@@ -406,6 +406,47 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         minerSettings = {
           ...minerSettings,
           ...trmSettings
+        };
+        break;
+      }
+      case "claymoreMiner": {
+        const pollInterval = (_d = result.pollInterval) != null ? _d : this.adapter.config.pollInterval;
+        const claymoreSettings = {
+          pollInterval,
+          port: 3333,
+          // TODO: make configurable
+          password: result.password
+        };
+        minerSettings = {
+          ...minerSettings,
+          ...claymoreSettings
+        };
+        break;
+      }
+      case "sgMiner": {
+        const pollInterval = (_e = result.pollInterval) != null ? _e : this.adapter.config.pollInterval;
+        const sgSettings = {
+          pollInterval,
+          port: 4028
+          // TODO: make configurable
+        };
+        minerSettings = {
+          ...minerSettings,
+          ...sgSettings
+        };
+        break;
+      }
+      case "xmRig": {
+        const pollInterval = (_f = result.pollInterval) != null ? _f : this.adapter.config.pollInterval;
+        const xmRigSettings = {
+          pollInterval,
+          port: 8420,
+          // TODO: make configurable
+          password: result.password
+        };
+        minerSettings = {
+          ...minerSettings,
+          ...xmRigSettings
         };
         break;
       }

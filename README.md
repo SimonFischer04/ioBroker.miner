@@ -15,8 +15,8 @@
 Interact with different crypto miner apis
 
 ## Roadmap
-- [ ] v0.1: device management, trm implementation
-- [ ] bos+, luxos, xmrig, ...?
+- [X] v0.1: device management, trm implementation
+- [ ] more miners support: bos+, luxos, xmrig, ...?
 - [ ] pools support
 - [ ] device discover
 - [ ] sentry

@@ -38,12 +38,12 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
         const sgStats: MinerStats = await this.sgMiner.fetchStats();
 
         return {
-            version: claymoreStats.version,
-            totalHashrate: claymoreStats.totalHashrate,
             raw: {
                 claymore: claymoreStats.raw,
                 sg: sgStats.raw
-            }
+            },
+            version: claymoreStats.version,
+            totalHashrate: claymoreStats.totalHashrate
         };
     }
 
@@ -55,14 +55,14 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
         await this.claymoreMiner.close();
     }
 
-    public getSupportedFeatures(): MinerFeatureKey[] {
+    public override getSupportedFeatures(): MinerFeatureKey[] {
         return distinct([
             ...this.claymoreMiner.getSupportedFeatures(),
             ...this.sgMiner.getSupportedFeatures()
         ]);
     }
 
-    public getCliArgs(): string[] {
+    public override getCliArgs(): string[] {
         return [
             ...this.claymoreMiner.getCliArgs(),
             ...this.sgMiner.getCliArgs()

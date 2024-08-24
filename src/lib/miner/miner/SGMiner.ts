@@ -39,7 +39,7 @@ export class SGMiner extends PollingMiner<SGMinerSettings> {
         return Promise.resolve();
     }
 
-    public getSupportedFeatures(): MinerFeatureKey[] {
+    public override getSupportedFeatures(): MinerFeatureKey[] {
         return [
             MinerFeatureKey.rawStats
         ]
@@ -49,9 +49,9 @@ export class SGMiner extends PollingMiner<SGMinerSettings> {
         return `${super.getLoggerName()}SGMiner[${this.settings.host}:${this.settings.port}]`;
     }
 
-    public getCliArgs(): string[] {
+    public override getCliArgs(): string[] {
         return [
-            '--api_listen=0.0.0.0:4028'
+            `--api_listen=0.0.0.0:${this.settings.port}`
         ]
     }
 

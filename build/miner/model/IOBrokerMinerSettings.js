@@ -44,6 +44,11 @@ function encryptDeviceSettings(settings, encryptFunction) {
       claymoreSettings.password = encryptFunction(claymoreSettings.password);
       break;
     }
+    case "xmRig": {
+      const xmRigSettings = settings.settings;
+      xmRigSettings.password = encryptFunction(xmRigSettings.password);
+      break;
+    }
     default: {
       break;
     }
@@ -64,6 +69,11 @@ function decryptDeviceSettings(settings, decryptFunction) {
     case "claymoreMiner": {
       const claymoreSettings = settings.settings;
       claymoreSettings.password = decryptFunction(claymoreSettings.password);
+      break;
+    }
+    case "xmRig": {
+      const xmRigSettings = settings.settings;
+      xmRigSettings.password = decryptFunction(xmRigSettings.password);
       break;
     }
     default: {
