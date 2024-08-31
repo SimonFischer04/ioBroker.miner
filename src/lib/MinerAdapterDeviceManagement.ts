@@ -9,7 +9,7 @@ import {
 import {MinerAdapter} from '../main';
 import {categoryKeys} from './miner/model/Category';
 import {
-    ClaymoreMinerSettings,
+    ClaymoreMinerSettings, IceRiverOcMinerSettings,
     MinerSettings,
     minerTypeKeys,
     PollingMinerSettings, SGMinerSettings,
@@ -520,6 +520,21 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 minerSettings = {
                     ...minerSettings,
                     ...xmRigSettings
+                }
+                break;
+            }
+
+            case 'iceRiverOcMiner': {
+                const pollInterval = result.pollInterval ?? this.adapter.config.pollInterval;
+
+                const iceRiverOcSettings: Omit<IceRiverOcMinerSettings, keyof MinerSettings> = {
+                    pollInterval,
+                    port: 443, // TODO: make configurable
+                    password: result.password
+                }
+                minerSettings = {
+                    ...minerSettings,
+                    ...iceRiverOcSettings
                 }
                 break;
             }

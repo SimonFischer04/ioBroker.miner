@@ -23,6 +23,7 @@ __export(XMRigMiner_exports, {
 module.exports = __toCommonJS(XMRigMiner_exports);
 var import_MinerFeature = require("../model/MinerFeature");
 var import_PollingMiner = require("./PollingMiner");
+var import_http_utils = require("../../utils/http-utils");
 var XMRigEndpoint = /* @__PURE__ */ ((XMRigEndpoint2) => {
   XMRigEndpoint2["jsonRPC"] = "json_rpc";
   XMRigEndpoint2["summary"] = "2/summary";
@@ -83,20 +84,7 @@ class XMRigMiner extends import_PollingMiner.PollingMiner {
     }
   }
   async sendHTTPRequest(endpoint, httpMethod, body) {
-    const response = await fetch(`http://${this.settings.host}:${this.settings.port}/${endpoint}`, {
-      method: httpMethod,
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${this.settings.password}`
-      },
-      body: body ? JSON.stringify(body) : null
-    });
-    if (response.status !== 200) {
-      const error = `Error sending JSON-RPC command: ${response.statusText}`;
-      this.logger.error(error);
-      return Promise.reject(error);
-    }
-    return await response.json();
+    return (0, import_http_utils.sendGenericHTTPRequest)("http", this.settings.host, this.settings.port, this.settings.password, this.logger, endpoint, httpMethod, body);
   }
 }
 // Annotate the CommonJS export names for ESM import in node:

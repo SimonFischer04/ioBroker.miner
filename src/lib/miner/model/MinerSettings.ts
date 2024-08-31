@@ -2,7 +2,8 @@ export const minerTypeKeys = [
     'teamRedMiner',
     'claymoreMiner',
     'sgMiner',
-    'xmRig'
+    'xmRig',
+    'iceRiverOcMiner'
 ]
 
 export type MinerType = (typeof minerTypeKeys)[number];
@@ -41,4 +42,10 @@ export interface XMRigSettings extends PollingMinerSettings {
     minerType: (typeof minerTypeKeys)[3];
     port: number;
     password: string;
+}
+
+export interface IceRiverOcMinerSettings extends PollingMinerSettings {
+    minerType: (typeof minerTypeKeys)[4];
+    port: number;
+    password: string; // technically "api-token"
 }

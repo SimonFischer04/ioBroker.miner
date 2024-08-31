@@ -1,5 +1,5 @@
 import {
-    ClaymoreMinerSettings,
+    ClaymoreMinerSettings, IceRiverOcMinerSettings,
     MinerSettings,
     SGMinerSettings,
     TeamRedMinerSettings,
@@ -10,6 +10,7 @@ import {TeamRedMiner} from './TeamRedMiner';
 import {ClaymoreMiner} from './ClaymoreMiner';
 import {SGMiner} from './SGMiner';
 import {XMRigMiner} from './XMRigMiner';
+import {IceRiverOcMiner} from './IceRiverOcMiner';
 
 export function createMiner(settings: MinerSettings): Miner<MinerSettings> {
     switch (settings.minerType) {
@@ -28,6 +29,10 @@ export function createMiner(settings: MinerSettings): Miner<MinerSettings> {
 
         case 'xmRig': {
             return new XMRigMiner(settings as XMRigSettings);
+        }
+
+        case 'iceRiverOcMiner': {
+            return new IceRiverOcMiner(settings as IceRiverOcMinerSettings);
         }
 
         default: {

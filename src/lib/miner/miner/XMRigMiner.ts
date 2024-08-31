@@ -2,6 +2,7 @@ import {MinerFeatureKey} from '../model/MinerFeature';
 import {XMRigSettings} from '../model/MinerSettings';
 import {MinerStats} from '../model/MinerStats';
 import {PollingMiner} from './PollingMiner';
+import {sendGenericHTTPRequest} from '../../utils/http-utils';
 
 // TODO: support more endpoints
 enum XMRigEndpoint {
@@ -86,22 +87,7 @@ export class XMRigMiner extends PollingMiner<XMRigSettings> {
 
     private async sendHTTPRequest<T>(endpoint: string, httpMethod: string, body?: object): Promise<T> {
         // TODO: https support
-        const response = await fetch(`http://${this.settings.host}:${this.settings.port}/${endpoint}`, {
-            method: httpMethod,
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.settings.password}`
-            },
-            body: (body ? JSON.stringify(body) : null)
-        })
-
-        if (response.status !== 200) {
-            const error = `Error sending JSON-RPC command: ${response.statusText}`;
-            this.logger.error(error);
-            return Promise.reject(error);
-        }
-
-        return await response.json() as T;
+        return sendGenericHTTPRequest('http', this.settings.host, this.settings.port, this.settings.password, this.logger, endpoint, httpMethod, body);
     }
 }
 

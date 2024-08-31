@@ -1,5 +1,5 @@
 import {
-    ClaymoreMinerSettings,
+    ClaymoreMinerSettings, IceRiverOcMinerSettings,
     MinerSettings,
     TeamRedMinerSettings,
     XMRigSettings
@@ -68,6 +68,11 @@ export function encryptDeviceSettings(settings: IOBrokerDeviceSettings, encryptF
             xmRigSettings.password = encryptFunction(xmRigSettings.password);
             break
         }
+        case 'iceRiverOcMiner': {
+            const iceRiverOcSettings = settings.settings as IceRiverOcMinerSettings;
+            iceRiverOcSettings.password = encryptFunction(iceRiverOcSettings.password);
+            break
+        }
         default: {
             break;
         }
@@ -94,16 +99,25 @@ export function decryptDeviceSettings(settings: IOBrokerDeviceSettings, decryptF
             trmSettings.claymore.password = decryptFunction(trmSettings.claymore.password);
             break;
         }
+
         case 'claymoreMiner': {
             const claymoreSettings = settings.settings as ClaymoreMinerSettings;
             claymoreSettings.password = decryptFunction(claymoreSettings.password);
             break;
         }
+
         case 'xmRig': {
             const xmRigSettings = settings.settings as XMRigSettings;
             xmRigSettings.password = decryptFunction(xmRigSettings.password);
             break;
         }
+
+        case 'iceRiverOcMiner': {
+            const iceRiverOcSettings = settings.settings as IceRiverOcMinerSettings;
+            iceRiverOcSettings.password = decryptFunction(iceRiverOcSettings.password);
+            break;
+        }
+
         default: {
             break;
         }

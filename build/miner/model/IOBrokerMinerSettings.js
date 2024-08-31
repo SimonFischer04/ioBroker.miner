@@ -49,6 +49,11 @@ function encryptDeviceSettings(settings, encryptFunction) {
       xmRigSettings.password = encryptFunction(xmRigSettings.password);
       break;
     }
+    case "iceRiverOcMiner": {
+      const iceRiverOcSettings = settings.settings;
+      iceRiverOcSettings.password = encryptFunction(iceRiverOcSettings.password);
+      break;
+    }
     default: {
       break;
     }
@@ -74,6 +79,11 @@ function decryptDeviceSettings(settings, decryptFunction) {
     case "xmRig": {
       const xmRigSettings = settings.settings;
       xmRigSettings.password = decryptFunction(xmRigSettings.password);
+      break;
+    }
+    case "iceRiverOcMiner": {
+      const iceRiverOcSettings = settings.settings;
+      iceRiverOcSettings.password = decryptFunction(iceRiverOcSettings.password);
       break;
     }
     default: {
