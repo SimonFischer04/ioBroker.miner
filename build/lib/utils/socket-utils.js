@@ -46,9 +46,16 @@ async function sendSocketCommand(logger, host, port, data, expectResponse = true
       reject("socket timeout");
     });
     socket.on("data", (data2) => {
-      const d = JSON.parse(data2.toString());
       logger.debug(`received: ${data2.toString()}`);
-      resolve(d);
+      try {
+        const jsonString = data2.toString().replace(/[^\x00-\x7F]/g, "").trim().replace(/[^}\]]*$/, "");
+        const d = JSON.parse(jsonString);
+        resolve(d);
+      } catch (e) {
+        const errMsg = `Failed to parse JSON: ${e}`;
+        logger.error(errMsg);
+        reject(errMsg);
+      }
     });
     socket.on("close", () => {
     });

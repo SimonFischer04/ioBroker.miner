@@ -6,7 +6,7 @@
 
 ## Current
 - (settings change) unload WEIRD broken sometimes for some reason ... ???
-- 
+- luxos
 - dm improvements: 
   - details
   - validators ...

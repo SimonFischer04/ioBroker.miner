@@ -9,6 +9,7 @@ import {
 import {MinerAdapter} from '../main';
 import {categoryKeys} from './miner/model/Category';
 import {
+    BOSMinerSettings,
     ClaymoreMinerSettings, IceRiverOcMinerSettings,
     MinerSettings,
     minerTypeKeys,
@@ -535,6 +536,20 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 minerSettings = {
                     ...minerSettings,
                     ...iceRiverOcSettings
+                }
+                break;
+            }
+
+            case 'bosMiner': {
+                const pollInterval = result.pollInterval ?? this.adapter.config.pollInterval;
+
+                const bosSettings: Omit<BOSMinerSettings, keyof MinerSettings> = {
+                    pollInterval,
+                    port: 4028, // TODO: make configurable
+                }
+                minerSettings = {
+                    ...minerSettings,
+                    ...bosSettings
                 }
                 break;
             }

@@ -1,4 +1,5 @@
 import {
+    BOSMinerSettings,
     ClaymoreMinerSettings, IceRiverOcMinerSettings,
     MinerSettings,
     SGMinerSettings,
@@ -11,6 +12,7 @@ import {ClaymoreMiner} from './ClaymoreMiner';
 import {SGMiner} from './SGMiner';
 import {XMRigMiner} from './XMRigMiner';
 import {IceRiverOcMiner} from './IceRiverOcMiner';
+import {BOSMiner} from './BOSMiner';
 
 export function createMiner(settings: MinerSettings): Miner<MinerSettings> {
     switch (settings.minerType) {
@@ -33,6 +35,10 @@ export function createMiner(settings: MinerSettings): Miner<MinerSettings> {
 
         case 'iceRiverOcMiner': {
             return new IceRiverOcMiner(settings as IceRiverOcMinerSettings);
+        }
+
+        case 'bosMiner': {
+            return new BOSMiner(settings as BOSMinerSettings);
         }
 
         default: {

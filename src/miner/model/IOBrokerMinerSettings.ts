@@ -58,21 +58,25 @@ export function encryptDeviceSettings(settings: IOBrokerDeviceSettings, encryptF
             trmSettings.claymore.password = encryptFunction(trmSettings.claymore.password);
             break;
         }
+
         case 'claymoreMiner': {
             const claymoreSettings = settings.settings as ClaymoreMinerSettings;
             claymoreSettings.password = encryptFunction(claymoreSettings.password);
             break;
         }
+
         case 'xmRig': {
             const xmRigSettings = settings.settings as XMRigSettings;
             xmRigSettings.password = encryptFunction(xmRigSettings.password);
             break
         }
+
         case 'iceRiverOcMiner': {
             const iceRiverOcSettings = settings.settings as IceRiverOcMinerSettings;
             iceRiverOcSettings.password = encryptFunction(iceRiverOcSettings.password);
             break
         }
+
         default: {
             break;
         }

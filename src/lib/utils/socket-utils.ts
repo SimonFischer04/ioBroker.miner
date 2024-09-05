@@ -46,11 +46,22 @@ export async function sendSocketCommand<T = void>(
         });
 
         socket.on('data', (data) => {
-            const d = JSON.parse(data.toString());
-
             logger.debug(`received: ${data.toString()}`);
+            try {
+                // BOS would create error while parsing JSON: uncaught exception: Unexpected non-whitespace character after JSON at position 932
+                // Convert buffer to string, remove all non-ASCII characters, trim whitespace, and remove unexpected characters after JSON data
+                const jsonString = data.toString()
+                    .replace(/[^\x00-\x7F]/g, '')
+                    .trim()
+                    .replace(/[^}\]]*$/, '');
 
-            resolve(d as T);
+                const d = JSON.parse(jsonString);
+                resolve(d as T);
+            } catch (e) {
+                const errMsg = `Failed to parse JSON: ${e}`;
+                logger.error(errMsg);
+                reject(errMsg);
+            }
         });
 
         socket.on('close', () => {

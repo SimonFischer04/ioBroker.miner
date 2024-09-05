@@ -26,6 +26,7 @@ var import_ClaymoreMiner = require("./ClaymoreMiner");
 var import_SGMiner = require("./SGMiner");
 var import_XMRigMiner = require("./XMRigMiner");
 var import_IceRiverOcMiner = require("./IceRiverOcMiner");
+var import_BOSMiner = require("./BOSMiner");
 function createMiner(settings) {
   switch (settings.minerType) {
     case "teamRedMiner": {
@@ -42,6 +43,9 @@ function createMiner(settings) {
     }
     case "iceRiverOcMiner": {
       return new import_IceRiverOcMiner.IceRiverOcMiner(settings);
+    }
+    case "bosMiner": {
+      return new import_BOSMiner.BOSMiner(settings);
     }
     default: {
       throw new Error(`createMiner minerType: ${settings.minerType} not supported yet`);

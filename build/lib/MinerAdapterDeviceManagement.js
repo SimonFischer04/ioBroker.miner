@@ -143,7 +143,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     return { refresh: true };
   }
   async showDeviceConfigurationForm(context, existingSettings, title) {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     this.adapter.log.debug(`showDeviceConfigurationForm existingSettings: ${JSON.stringify(existingSettings)}`);
     if (!(0, import_IOBrokerMinerSettings.isMiner)(existingSettings)) {
       this.adapter.log.error(`MinerAdapterDeviceManagement/showDeviceConfigurationForm existingSettings ${existingSettings} is not a miner.`);
@@ -461,6 +461,19 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         minerSettings = {
           ...minerSettings,
           ...iceRiverOcSettings
+        };
+        break;
+      }
+      case "bosMiner": {
+        const pollInterval = (_h = result.pollInterval) != null ? _h : this.adapter.config.pollInterval;
+        const bosSettings = {
+          pollInterval,
+          port: 4028
+          // TODO: make configurable
+        };
+        minerSettings = {
+          ...minerSettings,
+          ...bosSettings
         };
         break;
       }
