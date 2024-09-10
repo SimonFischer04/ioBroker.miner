@@ -159,9 +159,6 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             label: "category",
             // TODO: translate
             tooltip: "category of the iobroker thing (miner or pool)",
-            // TODO: FixMeLater
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
             options: import_Category.categoryKeys.map((key) => {
               return {
                 value: key,
@@ -176,9 +173,6 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             label: "minerType",
             // TODO: translate
             tooltip: "type of miner / firmware",
-            // TODO: FixMeLater
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
             options: import_MinerSettings.minerTypeKeys.map((key) => {
               return {
                 value: key,
@@ -193,22 +187,13 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             label: "id",
             // TODO: translate
             tooltip: "unique id of the device, used to identify the device in the adapter",
-            // TODO: FixMeLater
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
             readOnly: true,
-            // TODO: FixMeLater
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
             noClearButton: true,
             disabled: true
           },
           name: {
             type: "text",
             newLine: true,
-            // TODO: FixMeLater
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
             // trim: false,
             label: {
               en: "Name",
@@ -228,9 +213,6 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
           host: {
             type: "text",
             newLine: true,
-            // TODO: FixMeLater
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
             trim: true,
             placeholder: "fe80::42",
             label: {
@@ -252,9 +234,6 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
           mac: {
             type: "text",
             newLine: true,
-            // TODO: FixMeLater
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
             trim: true,
             placeholder: "00:00:00:00:00:00",
             label: {
@@ -276,11 +255,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
           pollInterval: {
             type: "number",
             newLine: true,
-            // TODO: FixMeLater
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
             min: 100,
-            unit: "ms",
             label: {
               "en": "poll interval",
               // TODO: also fix translate in jsonConfig.json
@@ -302,10 +277,6 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             // type password does not allow to show the password generated as default value
             // type: 'password',
             newLine: true,
-            // TODO: FixMeLater
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            // visible: true,
             label: {
               "en": "password",
               "de": "passwort",
@@ -635,7 +606,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         type: "panel",
         items: {
           name: {
-            type: "staticText",
+            type: "text",
             label: `<b>Name:</b> ${obj.common.name}`,
             newLine: true,
             sm: 12,

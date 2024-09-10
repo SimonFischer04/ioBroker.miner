@@ -168,9 +168,6 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     newLine: true,
                     label: 'category', // TODO: translate
                     tooltip: 'category of the iobroker thing (miner or pool)',
-                    // TODO: FixMeLater
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
                     options: categoryKeys.map(key => {
                         return {
                             value: key,
@@ -184,9 +181,6 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     newLine: true,
                     label: 'minerType', // TODO: translate
                     tooltip: 'type of miner / firmware',
-                    // TODO: FixMeLater
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
                     options: minerTypeKeys.map(key => {
                         return {
                             value: key,
@@ -200,22 +194,13 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     newLine: true,
                     label: 'id', // TODO: translate
                     tooltip: 'unique id of the device, used to identify the device in the adapter',
-                    // TODO: FixMeLater
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
                     readOnly: true,
-                    // TODO: FixMeLater
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
                     noClearButton: true,
                     disabled: true
                 },
                 name: {
                     type: 'text',
                     newLine: true,
-                    // TODO: FixMeLater
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
                     // trim: false,
                     label: {
                         en: 'Name',
@@ -235,9 +220,6 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 host: {
                     type: 'text',
                     newLine: true,
-                    // TODO: FixMeLater
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
                     trim: true,
                     placeholder: 'fe80::42',
                     label: {
@@ -259,9 +241,6 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 mac: {
                     type: 'text',
                     newLine: true,
-                    // TODO: FixMeLater
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
                     trim: true,
                     placeholder: '00:00:00:00:00:00',
                     label: {
@@ -283,11 +262,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 pollInterval: {
                     type: 'number',
                     newLine: true,
-                    // TODO: FixMeLater
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
                     min: 100,
-                    unit: 'ms',
                     label: {
                         'en': 'poll interval', // TODO: also fix translate in jsonConfig.json
                         'de': 'Abrufintervall',
@@ -308,10 +283,6 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     // type password does not allow to show the password generated as default value
                     // type: 'password',
                     newLine: true,
-                    // TODO: FixMeLater
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
-                    // visible: true,
                     label: {
                         'en': 'password',
                         'de': 'passwort',
@@ -749,7 +720,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 type: 'panel',
                 items: {
                     name: {
-                        type: 'staticText',
+                        type: 'text',
                         label: `<b>Name:</b> ${obj.common.name}`,
                         newLine: true,
                         sm: 12,
