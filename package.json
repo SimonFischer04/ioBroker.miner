@@ -23,7 +23,7 @@
     "node": ">= 20"
   },
   "dependencies": {
-    "@iobroker/adapter-core": "^3.1.6",
+    "@iobroker/adapter-core": "^3.2.1",
     "@iobroker/dm-utils": "^0.5.0",
     "type-fest": "^4.26.0"
   },
