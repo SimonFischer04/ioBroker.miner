@@ -120,9 +120,11 @@ export async function sendRawSocketCommand<T = void>(
             socket.write(cmd, (err) => {
                 if (err) {
                     logger.error(err.message);
+                    handled = true;
                     reject(err.message);
                 } else {
                     if (!expectResponse) {
+                        handled = true;
                         resolve(undefined as T);
                     }
                 }
@@ -131,6 +133,7 @@ export async function sendRawSocketCommand<T = void>(
 
         socket.on('timeout', () => {
             logger.warn('socket timeout');
+            handled = true;
             reject('socket timeout');
         });
 
@@ -143,10 +146,12 @@ export async function sendRawSocketCommand<T = void>(
                     .replace(/[^}\]]*$/, '');
 
                 const d = JSON.parse(jsonString);
+                handled = true;
                 resolve(d as T);
             } catch (e) {
                 const errMsg = `Failed to parse JSON: ${e}`;
                 logger.error(errMsg);
+                handled = true;
                 reject(errMsg);
             }
         });
@@ -156,22 +161,23 @@ export async function sendRawSocketCommand<T = void>(
 
         socket.on('error', (err) => {
             logger.error(err.message);
+            handled = true;
             reject(`socket error: ${err.message}`);
         });
 
         socket.setTimeout(3000);
         socket.connect(port, host);
 
-        // socket timeout alone does is not enough
+        // socket timeout alone is not enough
         setTimeout(() => {
             if (!handled) {
                 const msg = `timeout handling raw socket command: ${command}`;
                 logger.warn(msg);
+                handled = true;
                 reject(msg);
             }
         }, 3000)
     }).finally(() => {
-        handled = true;
         socket.end();
         socket.destroy();
     });

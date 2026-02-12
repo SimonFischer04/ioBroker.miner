@@ -90,9 +90,11 @@ async function sendRawSocketCommand(logger, host, port, command, expectResponse 
       socket.write(cmd, (err) => {
         if (err) {
           logger.error(err.message);
+          handled = true;
           reject(err.message);
         } else {
           if (!expectResponse) {
+            handled = true;
             resolve(void 0);
           }
         }
@@ -100,6 +102,7 @@ async function sendRawSocketCommand(logger, host, port, command, expectResponse 
     });
     socket.on("timeout", () => {
       logger.warn("socket timeout");
+      handled = true;
       reject("socket timeout");
     });
     socket.on("data", (data) => {
@@ -107,10 +110,12 @@ async function sendRawSocketCommand(logger, host, port, command, expectResponse 
       try {
         const jsonString = data.toString().replace(/[^\x00-\x7F]/g, "").trim().replace(/[^}\]]*$/, "");
         const d = JSON.parse(jsonString);
+        handled = true;
         resolve(d);
       } catch (e) {
         const errMsg = `Failed to parse JSON: ${e}`;
         logger.error(errMsg);
+        handled = true;
         reject(errMsg);
       }
     });
@@ -118,6 +123,7 @@ async function sendRawSocketCommand(logger, host, port, command, expectResponse 
     });
     socket.on("error", (err) => {
       logger.error(err.message);
+      handled = true;
       reject(`socket error: ${err.message}`);
     });
     socket.setTimeout(3e3);
@@ -126,11 +132,11 @@ async function sendRawSocketCommand(logger, host, port, command, expectResponse 
       if (!handled) {
         const msg = `timeout handling raw socket command: ${command}`;
         logger.warn(msg);
+        handled = true;
         reject(msg);
       }
     }, 3e3);
   }).finally(() => {
-    handled = true;
     socket.end();
     socket.destroy();
   });
