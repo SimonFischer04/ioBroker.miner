@@ -73,7 +73,7 @@ export class MinerAdapter extends utils.Adapter {
             }
 
             callback();
-        } catch (_e) {
+        } catch {
             callback();
         }
     }

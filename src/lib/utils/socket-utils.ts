@@ -30,7 +30,7 @@ export async function sendSocketCommand<T = void>(
             socket.write(cmd, err => {
                 if (err) {
                     logger.error(err.message);
-                    reject(err.message);
+                    reject(new Error(err.message));
                 } else {
                     if (!expectResponse) {
                         resolve(undefined as T);
@@ -41,7 +41,7 @@ export async function sendSocketCommand<T = void>(
 
         socket.on('timeout', () => {
             logger.warn('socket timeout');
-            reject('socket timeout');
+            reject(new Error('socket timeout'));
         });
 
         socket.on('data', data => {
@@ -51,6 +51,7 @@ export async function sendSocketCommand<T = void>(
                 // Convert buffer to string, remove all non-ASCII characters, trim whitespace, and remove unexpected characters after JSON data
                 const jsonString = data
                     .toString()
+                    // eslint-disable-next-line no-control-regex
                     .replace(/[^\x00-\x7F]/g, '')
                     .trim()
                     .replace(/[^}\]]*$/, '');
@@ -58,9 +59,9 @@ export async function sendSocketCommand<T = void>(
                 const d = JSON.parse(jsonString);
                 resolve(d as T);
             } catch (e) {
-                const errMsg = `Failed to parse JSON: ${e}`;
+                const errMsg = `Failed to parse JSON: ${String(e)}`;
                 logger.error(errMsg);
-                reject(errMsg);
+                reject(new Error(errMsg));
             }
         });
 
@@ -68,7 +69,7 @@ export async function sendSocketCommand<T = void>(
 
         socket.on('error', err => {
             logger.error(err.message);
-            reject(`socket error: ${err.message}`);
+            reject(new Error(`socket error: ${err.message}`));
         });
 
         socket.setTimeout(3000);
@@ -79,7 +80,7 @@ export async function sendSocketCommand<T = void>(
             if (!handled) {
                 const msg = `timeout handling socket command: ${JSON.stringify(data)}. maybe the password is wrong?`;
                 logger.warn(msg);
-                reject(msg);
+                reject(new Error(msg));
             }
         }, 3000);
     }).finally(() => {

@@ -40,7 +40,7 @@ export class BOSMiner extends PollingMiner<BOSMinerSettings> {
             };
         } catch (e) {
             // forward error
-            return Promise.reject(e);
+            return Promise.reject(e instanceof Error ? e : new Error(String(e)));
         }
     }
 

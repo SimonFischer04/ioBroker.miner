@@ -51,7 +51,7 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
             };
         } catch (e) {
             // forward error
-            return Promise.reject(e);
+            return Promise.reject(e instanceof Error ? e : new Error(String(e)));
         }
     }
 
@@ -182,7 +182,7 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
             pciBusIndexes,
         ] = response.result;
 
-        const parseShares = (shares: string) => (shares ? shares.split(';').map(safeParseInt) : []);
+        const parseShares = (shares: string): number[] => (shares ? shares.split(';').map(safeParseInt) : []);
 
         return {
             ...parsedStat1,

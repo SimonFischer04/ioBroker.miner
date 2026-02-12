@@ -25,8 +25,9 @@ export default [
         // you may disable some 'jsdoc' warnings - but using jsdoc is highly recommended
         // as this improves maintainability. jsdoc warnings will not block build process.
         rules: {
-            // Disable some rules that may be too strict for this project
-            // These can be adjusted based on project needs
+            // Disable JSDoc empty blocks rule as many existing JSDoc comments don't have descriptions
+            // This can be gradually improved over time
+            'jsdoc/no-blank-blocks': 'off',
         },
     },
 ];

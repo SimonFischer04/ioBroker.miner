@@ -25,7 +25,7 @@ export abstract class PollingMiner<S extends PollingMinerSettings> extends Miner
                     const stats: MinerStats = await this.fetchStats();
                     await this.onStats(stats);
                 } catch (e) {
-                    this.logger.error(`fetchStats failed: ${e}`);
+                    this.logger.error(`fetchStats failed: ${String(e)}`);
                 }
             },
             this.settings.pollInterval,

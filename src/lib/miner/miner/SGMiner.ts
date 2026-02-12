@@ -43,7 +43,7 @@ export class SGMiner extends PollingMiner<SGMinerSettings> {
             };
         } catch (e) {
             // forward error
-            return Promise.reject(e);
+            return Promise.reject(e instanceof Error ? e : new Error(String(e)));
         }
     }
 

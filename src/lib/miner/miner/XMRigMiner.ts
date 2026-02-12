@@ -20,7 +20,7 @@ enum XMRigJsonRPCMethod {
 
 interface JsonRPCResponse {
     result: {
-        status: 'OK' | string;
+        status: string;
     };
     jsonrpc: string;
     id: string;
@@ -105,7 +105,7 @@ export class XMRigMiner extends PollingMiner<XMRigSettings> {
         if (responseBody.result.status !== 'OK') {
             const error = `Error sending JSON-RPC command: ${JSON.stringify(responseBody)}`;
             this.logger.error(error);
-            return Promise.reject(error);
+            return Promise.reject(new Error(error));
         }
     }
 
