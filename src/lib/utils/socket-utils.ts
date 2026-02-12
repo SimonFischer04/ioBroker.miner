@@ -1,5 +1,5 @@
-import {Socket} from 'node:net';
-import {Logger} from '../miner/model/Logger';
+import { Socket } from 'node:net';
+import type { Logger } from '../miner/model/Logger';
 
 /**
  * Utility function to send a command to a socket server (and wait for a response - if expected)
@@ -16,7 +16,7 @@ export async function sendSocketCommand<T = void>(
     host: string,
     port: number,
     data: object,
-    expectResponse: boolean = true
+    expectResponse: boolean = true,
 ): Promise<T> {
     logger.debug(`sendCommand: ${JSON.stringify(data)}`);
 
@@ -25,9 +25,9 @@ export async function sendSocketCommand<T = void>(
 
     return new Promise<T>((resolve, reject) => {
         socket.on('connect', () => {
-            const cmd = JSON.stringify(data) + '\n';
+            const cmd = `${JSON.stringify(data)}\n`;
             logger.debug(`connected, sending cmd now ...: ${cmd}`);
-            socket.write(cmd, (err) => {
+            socket.write(cmd, err => {
                 if (err) {
                     logger.error(err.message);
                     reject(err.message);
@@ -40,17 +40,17 @@ export async function sendSocketCommand<T = void>(
         });
 
         socket.on('timeout', () => {
-
             logger.warn('socket timeout');
             reject('socket timeout');
         });
 
-        socket.on('data', (data) => {
+        socket.on('data', data => {
             logger.debug(`received: ${data.toString()}`);
             try {
                 // BOS would create error while parsing JSON: uncaught exception: Unexpected non-whitespace character after JSON at position 932
                 // Convert buffer to string, remove all non-ASCII characters, trim whitespace, and remove unexpected characters after JSON data
-                const jsonString = data.toString()
+                const jsonString = data
+                    .toString()
                     .replace(/[^\x00-\x7F]/g, '')
                     .trim()
                     .replace(/[^}\]]*$/, '');
@@ -64,10 +64,9 @@ export async function sendSocketCommand<T = void>(
             }
         });
 
-        socket.on('close', () => {
-        }); // discard
+        socket.on('close', () => {}); // discard
 
-        socket.on('error', (err) => {
+        socket.on('error', err => {
             logger.error(err.message);
             reject(`socket error: ${err.message}`);
         });
@@ -82,7 +81,7 @@ export async function sendSocketCommand<T = void>(
                 logger.warn(msg);
                 reject(msg);
             }
-        }, 3000)
+        }, 3000);
     }).finally(() => {
         handled = true;
         socket.end();

@@ -1,3 +1,7 @@
+/**
+ *
+ * @param ms
+ */
 export async function delay(ms: number): Promise<unknown> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -27,7 +31,7 @@ export interface AsyncIntervalReturnType {
 export function asyncInterval(
     asyncCallback: () => Promise<void>,
     msBetweenExecutions?: number,
-    shouldExecuteImmediately = false
+    shouldExecuteImmediately = false,
 ): AsyncIntervalReturnType {
     let timeout: NodeJS.Timeout | undefined;
 
@@ -52,7 +56,7 @@ export function asyncInterval(
     return {
         clear: (): void => {
             clearTimeout(timeout);
-        }
+        },
     };
 }
 

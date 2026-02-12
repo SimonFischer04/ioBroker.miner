@@ -1,11 +1,12 @@
-import {
-    ClaymoreMinerSettings, IceRiverOcMinerSettings,
+import type {
+    ClaymoreMinerSettings,
+    IceRiverOcMinerSettings,
     MinerSettings,
     TeamRedMinerSettings,
-    XMRigSettings
+    XMRigSettings,
 } from '../../lib/miner/model/MinerSettings';
-import {Category, categoryKeys} from '../../lib/miner/model/Category';
-import {Logger} from '../../lib/miner/model/Logger';
+import type { Category, categoryKeys } from '../../lib/miner/model/Category';
+import { Logger } from '../../lib/miner/model/Logger';
 
 const logger = Logger.getLogger('IOBrokerMinerSettings');
 
@@ -14,39 +15,77 @@ const logger = Logger.getLogger('IOBrokerMinerSettings');
  */
 
 // settings / native part of iobroker 'device'- objects
+/**
+ *
+ */
 export interface IOBrokerDeviceSettings {
+    /**
+     *
+     */
     category: Category;
 }
 
+/**
+ *
+ */
 export interface IOBrokerMinerSettings extends IOBrokerDeviceSettings {
+    /**
+     *
+     */
     category: (typeof categoryKeys)[0];
+    /**
+     *
+     */
     name: string;
+    /**
+     *
+     */
     mac: string; // used as object id
 
     // adapter allows to temporarily disable handling a device (no connection created to the device, controls do nothing, ...)
     // does not really make sense in a lib context, as then it is also possible to just not initialise the device
+    /**
+     *
+     */
     enabled: boolean;
 
+    /**
+     *
+     */
     settings: MinerSettings;
 }
 
+/**
+ *
+ */
 export interface IOBrokerPoolSettings extends IOBrokerDeviceSettings {
+    /**
+     *
+     */
     category: (typeof categoryKeys)[1];
     // TODO
 }
 
 // TODO: check everywhere this is used
+/**
+ *
+ */
 export function isMiner(settings?: Partial<IOBrokerDeviceSettings>): settings is IOBrokerMinerSettings {
     return settings?.category === 'miner';
 }
 
 /**
  * Encrypt sensitive data in the settings
+ *
  * @param settings - the settings to encrypt
  * @param encryptFunction - the function to encrypt a value
  */
-export function encryptDeviceSettings(settings: IOBrokerDeviceSettings, encryptFunction: (value: string) => string): IOBrokerDeviceSettings {
-    if (!isMiner(settings)) { // TODO: pool support
+export function encryptDeviceSettings(
+    settings: IOBrokerDeviceSettings,
+    encryptFunction: (value: string) => string,
+): IOBrokerDeviceSettings {
+    if (!isMiner(settings)) {
+        // TODO: pool support
         logger.error(`category ${settings.category} is not yet supported.`);
         return settings;
     }
@@ -68,13 +107,13 @@ export function encryptDeviceSettings(settings: IOBrokerDeviceSettings, encryptF
         case 'xmRig': {
             const xmRigSettings = settings.settings as XMRigSettings;
             xmRigSettings.password = encryptFunction(xmRigSettings.password);
-            break
+            break;
         }
 
         case 'iceRiverOcMiner': {
             const iceRiverOcSettings = settings.settings as IceRiverOcMinerSettings;
             iceRiverOcSettings.password = encryptFunction(iceRiverOcSettings.password);
-            break
+            break;
         }
 
         default: {
@@ -87,11 +126,16 @@ export function encryptDeviceSettings(settings: IOBrokerDeviceSettings, encryptF
 
 /**
  * Decrypt sensitive data in the settings
+ *
  * @param settings - the settings to decrypt
  * @param decryptFunction - the function to decrypt a value
  */
-export function decryptDeviceSettings(settings: IOBrokerDeviceSettings, decryptFunction: (value: string) => string): IOBrokerDeviceSettings {
-    if (!isMiner(settings)) { // TODO: pool support
+export function decryptDeviceSettings(
+    settings: IOBrokerDeviceSettings,
+    decryptFunction: (value: string) => string,
+): IOBrokerDeviceSettings {
+    if (!isMiner(settings)) {
+        // TODO: pool support
         logger.error(`category ${settings.category} is not yet supported.`);
         return settings;
     }

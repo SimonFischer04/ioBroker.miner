@@ -1,5 +1,6 @@
-import {expect} from 'chai';
-import {ClaymoreMiner, MinerGetStat1Response, MinerGetStat2Response} from '../miner/ClaymoreMiner'; // Adjust the import path as needed
+import { expect } from 'chai';
+import type { MinerGetStat1Response, MinerGetStat2Response } from '../miner/ClaymoreMiner';
+import { ClaymoreMiner } from '../miner/ClaymoreMiner'; // Adjust the import path as needed
 
 describe('Claymore Miner', () => {
     describe('Miner Stat Parsing Functions', () => {
@@ -11,7 +12,7 @@ describe('Claymore Miner', () => {
                 host: 'localhost',
                 port: 3333,
                 pollInterval: 1000,
-                password: ''
+                password: '',
             });
         });
 
@@ -29,32 +30,32 @@ describe('Claymore Miner', () => {
                         'off;off;off;off;off;off',
                         '53;71;57;67;61;72;55;70;59;71;61;70',
                         'eth-eu1.nanopool.org:9999',
-                        '0;0;0;0'
-                    ]
+                        '0;0;0;0',
+                    ],
                 };
 
                 const result = miner.parseMinerGetStat1(input);
 
                 expect(result.minerVersion).to.equal('9.3 - ETH');
                 expect(result.runningTimeMinutes).to.equal(21);
-                expect(result.ethTotal).to.deep.equal({hashrate: 182724, shares: 51, rejectedShares: 0});
+                expect(result.ethTotal).to.deep.equal({ hashrate: 182724, shares: 51, rejectedShares: 0 });
                 expect(result.ethDetailedHashrate).to.deep.equal([30502, 30457, 30297, 30481, 30479, 30505]);
-                expect(result.dcrTotal).to.deep.equal({hashrate: 0, shares: 0, rejectedShares: 0});
+                expect(result.dcrTotal).to.deep.equal({ hashrate: 0, shares: 0, rejectedShares: 0 });
                 expect(result.dcrDetailedHashrate).to.deep.equal(['off', 'off', 'off', 'off', 'off', 'off']);
                 expect(result.gpuInfo).to.deep.equal([
-                    {temperature: 53, fanSpeed: 71},
-                    {temperature: 57, fanSpeed: 67},
-                    {temperature: 61, fanSpeed: 72},
-                    {temperature: 55, fanSpeed: 70},
-                    {temperature: 59, fanSpeed: 71},
-                    {temperature: 61, fanSpeed: 70}
+                    { temperature: 53, fanSpeed: 71 },
+                    { temperature: 57, fanSpeed: 67 },
+                    { temperature: 61, fanSpeed: 72 },
+                    { temperature: 55, fanSpeed: 70 },
+                    { temperature: 59, fanSpeed: 71 },
+                    { temperature: 61, fanSpeed: 70 },
                 ]);
                 expect(result.currentMiningPool).to.equal('eth-eu1.nanopool.org:9999');
                 expect(result.stats).to.deep.equal({
                     ethInvalidShares: 0,
                     ethPoolSwitches: 0,
                     dcrInvalidShares: 0,
-                    dcrPoolSwitches: 0
+                    dcrPoolSwitches: 0,
                 });
             });
 
@@ -62,17 +63,7 @@ describe('Claymore Miner', () => {
                 const input: MinerGetStat1Response = {
                     id: 0,
                     jsonrpc: '2.0',
-                    result: [
-                        '',
-                        '0',
-                        '0;0;0',
-                        '',
-                        '0;0;0',
-                        '',
-                        '',
-                        '',
-                        '0;0;0;0'
-                    ]
+                    result: ['', '0', '0;0;0', '', '0;0;0', '', '', '', '0;0;0;0'],
                 };
 
                 const result = miner.parseMinerGetStat1(input);
@@ -107,8 +98,8 @@ describe('Claymore Miner', () => {
                         '0;0;0;0;0;0',
                         '0;0;0;0;0;0',
                         '0;0;0;0;0;0',
-                        '0;1;2;3;4;5'
-                    ]
+                        '0;1;2;3;4;5',
+                    ],
                 };
 
                 const result = miner.parseMinerGetStat2(input);
@@ -143,8 +134,8 @@ describe('Claymore Miner', () => {
                         '',
                         '',
                         '',
-                        ''
-                    ]
+                        '',
+                    ],
                 };
 
                 const result = miner.parseMinerGetStat2(input);
@@ -173,8 +164,8 @@ describe('Claymore Miner', () => {
                         'off;off;off;off;off;off',
                         '53;71;invalid;67;61;72',
                         'eth-eu1.nanopool.org:9999',
-                        '0;invalid;0;0'
-                    ]
+                        '0;invalid;0;0',
+                    ],
                 };
 
                 const result = miner.parseMinerGetStat1(input);
@@ -183,9 +174,9 @@ describe('Claymore Miner', () => {
                 expect(result.ethTotal.hashrate).to.equal(0);
                 expect(result.ethDetailedHashrate).to.deep.equal([30502, 0, 30297, 30481, 30479, 30505]);
                 expect(result.gpuInfo).to.deep.equal([
-                    {temperature: 53, fanSpeed: 71},
-                    {temperature: 0, fanSpeed: 67},
-                    {temperature: 61, fanSpeed: 72}
+                    { temperature: 53, fanSpeed: 71 },
+                    { temperature: 0, fanSpeed: 67 },
+                    { temperature: 61, fanSpeed: 72 },
                 ]);
                 expect(result.stats.ethPoolSwitches).to.equal(0);
             });
@@ -203,8 +194,8 @@ describe('Claymore Miner', () => {
                         'off;off;off;off;off;off',
                         'invalid;invalid;invalid;invalid;invalid;invalid',
                         'eth-eu1.nanopool.org:9999',
-                        '0;0;0;0'
-                    ]
+                        '0;0;0;0',
+                    ],
                 };
 
                 const result = miner.parseMinerGetStat1(input);
@@ -227,8 +218,8 @@ describe('Claymore Miner', () => {
                         'off;off;off;off;off;off',
                         '53;71;57;67;61;72;55;70;59;71;61;70',
                         'eth-eu1.nanopool.org:9999',
-                        '0;0;0;0'
-                    ]
+                        '0;0;0;0',
+                    ],
                 } as unknown as MinerGetStat2Response;
 
                 const result = miner.parseMinerGetStat2(input);

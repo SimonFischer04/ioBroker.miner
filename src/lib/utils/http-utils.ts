@@ -1,4 +1,4 @@
-import {Logger} from '../miner/model/Logger';
+import type { Logger } from '../miner/model/Logger';
 
 // TODO: ignore cert support
 export async function sendGenericHTTPRequest<T>(
@@ -9,17 +9,17 @@ export async function sendGenericHTTPRequest<T>(
     logger: Logger,
     endpoint: string,
     httpMethod: string,
-    body?: object
+    body?: object,
 ): Promise<T> {
     try {
         const response = await fetch(`${protocol}://${host}:${port}/${endpoint}`, {
             method: httpMethod,
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${password}`
+                Authorization: `Bearer ${password}`,
             },
-            body: (body ? JSON.stringify(body) : null)
-        })
+            body: body ? JSON.stringify(body) : null,
+        });
 
         if (response.status !== 200) {
             const error = `Error sending JSON-RPC command: ${response.statusText}`;
@@ -27,7 +27,7 @@ export async function sendGenericHTTPRequest<T>(
             return Promise.reject(error);
         }
 
-        return await response.json() as T;
+        return (await response.json()) as T;
     } catch (e) {
         logger.error(`Error sending HTTP request: ${e}`);
         return Promise.reject(e);

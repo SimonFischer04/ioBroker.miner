@@ -1,19 +1,28 @@
-import {PollingMiner} from './PollingMiner';
-import {TeamRedMinerSettings} from '../model/MinerSettings';
-import {ClaymoreMiner} from './ClaymoreMiner';
-import {SGMiner} from './SGMiner';
-import {MinerStats} from '../model/MinerStats';
-import {MinerFeatureKey} from '../model/MinerFeature';
-import {distinct} from '../../utils/array-utils';
+import { PollingMiner } from './PollingMiner';
+import type { TeamRedMinerSettings } from '../model/MinerSettings';
+import { ClaymoreMiner } from './ClaymoreMiner';
+import { SGMiner } from './SGMiner';
+import type { MinerStats } from '../model/MinerStats';
+import type { MinerFeatureKey } from '../model/MinerFeature';
+import { distinct } from '../../utils/array-utils';
 
+/**
+ *
+ */
 export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
-    private readonly claymoreMiner: ClaymoreMiner
+    private readonly claymoreMiner: ClaymoreMiner;
     private readonly sgMiner: SGMiner;
 
+    /**
+     *
+     */
     constructor(settings: TeamRedMinerSettings) {
         super(settings);
 
-        if (settings.pollInterval !== settings.sg.pollInterval || settings.pollInterval !== settings.claymore.pollInterval) {
+        if (
+            settings.pollInterval !== settings.sg.pollInterval ||
+            settings.pollInterval !== settings.claymore.pollInterval
+        ) {
             throw new Error('pollInterval must be the same for all miners');
         }
 
@@ -21,6 +30,9 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
         this.sgMiner = new SGMiner(settings.sg);
     }
 
+    /**
+     *
+     */
     public override async init(): Promise<void> {
         await super.init();
 
@@ -29,10 +41,16 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
         // await this.sgMiner.init();
     }
 
+    /**
+     *
+     */
     public override async start(): Promise<void> {
         await this.claymoreMiner.start();
     }
 
+    /**
+     *
+     */
     public override async fetchStats(): Promise<MinerStats> {
         const claymoreStats: MinerStats = await this.claymoreMiner.fetchStats();
         const sgStats: MinerStats = await this.sgMiner.fetchStats();
@@ -40,32 +58,38 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
         return {
             raw: {
                 claymore: claymoreStats.raw,
-                sg: sgStats.raw
+                sg: sgStats.raw,
             },
             version: claymoreStats.version,
-            totalHashrate: claymoreStats.totalHashrate
+            totalHashrate: claymoreStats.totalHashrate,
         };
     }
 
+    /**
+     *
+     */
     public override async stop(): Promise<void> {
         await this.claymoreMiner.stop();
     }
 
+    /**
+     *
+     */
     public override async close(): Promise<void> {
         await this.claymoreMiner.close();
     }
 
+    /**
+     *
+     */
     public override getSupportedFeatures(): MinerFeatureKey[] {
-        return distinct([
-            ...this.claymoreMiner.getSupportedFeatures(),
-            ...this.sgMiner.getSupportedFeatures()
-        ]);
+        return distinct([...this.claymoreMiner.getSupportedFeatures(), ...this.sgMiner.getSupportedFeatures()]);
     }
 
+    /**
+     *
+     */
     public override getCliArgs(): string[] {
-        return [
-            ...this.claymoreMiner.getCliArgs(),
-            ...this.sgMiner.getCliArgs()
-        ]
+        return [...this.claymoreMiner.getCliArgs(), ...this.sgMiner.getCliArgs()];
     }
 }

@@ -1,17 +1,21 @@
-import {MinerSettings} from '../model/MinerSettings';
+import type { MinerSettings } from '../model/MinerSettings';
 import * as crypto from 'node:crypto';
-import {MinerFeatureKey} from '../model/MinerFeature';
-import {Logger} from '../model/Logger';
-import {MinerStats} from '../model/MinerStats';
+import type { MinerFeatureKey } from '../model/MinerFeature';
+import { Logger } from '../model/Logger';
+import type { MinerStats } from '../model/MinerStats';
 
+/**
+ *
+ */
 export abstract class Miner<S extends MinerSettings> {
     protected logger: Logger;
     private statSubscriptions: ((stats: MinerStats) => Promise<void>)[] = [];
 
-    constructor(
-        public readonly settings: S
-    ) {
-        if(!settings.id) {
+    /**
+     *
+     */
+    constructor(public readonly settings: S) {
+        if (!settings.id) {
             this.settings.id = crypto.randomUUID();
         }
         this.logger = Logger.getLogger(this.getLoggerName());
@@ -42,14 +46,14 @@ export abstract class Miner<S extends MinerSettings> {
      */
     public async close(): Promise<void> {
         this.statSubscriptions = [];
-    };
+    }
 
     /**
      * Get name to use for the logger
      */
     protected getLoggerName(): string {
         return `Miner[${this.settings.id}, ${this.settings.minerType}]`;
-    };
+    }
 
     /**
      * Subscribe to miner stats

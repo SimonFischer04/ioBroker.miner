@@ -1,13 +1,13 @@
-import {MinerFeatureKey} from '../model/MinerFeature';
-import {XMRigSettings} from '../model/MinerSettings';
-import {MinerStats} from '../model/MinerStats';
-import {PollingMiner} from './PollingMiner';
-import {sendGenericHTTPRequest} from '../../utils/http-utils';
+import { MinerFeatureKey } from '../model/MinerFeature';
+import type { XMRigSettings } from '../model/MinerSettings';
+import type { MinerStats } from '../model/MinerStats';
+import { PollingMiner } from './PollingMiner';
+import { sendGenericHTTPRequest } from '../../utils/http-utils';
 
 // TODO: support more endpoints
 enum XMRigEndpoint {
     jsonRPC = 'json_rpc',
-    summary = '2/summary'
+    summary = '2/summary',
 }
 
 // methods available at the /json_rpc endpoint
@@ -15,7 +15,7 @@ enum XMRigEndpoint {
 enum XMRigJsonRPCMethod {
     pause = 'pause',
     resume = 'resume',
-    stop = 'stop' // TODO: what does this do? seems to stop the miner, but get automatically resumed after a few seconds
+    stop = 'stop', // TODO: what does this do? seems to stop the miner, but get automatically resumed after a few seconds
 }
 
 interface JsonRPCResponse {
@@ -26,56 +26,80 @@ interface JsonRPCResponse {
     id: string;
 }
 
+/**
+ *
+ */
 export class XMRigMiner extends PollingMiner<XMRigSettings> {
+    /**
+     *
+     */
     public override async init(): Promise<void> {
         await super.init();
         // http is stateless!, so don't need to init any connection here
         return Promise.resolve();
     }
 
+    /**
+     *
+     */
     public override async start(): Promise<void> {
         await this.sendJSONRPCCommand(XMRigJsonRPCMethod.resume);
     }
 
+    /**
+     *
+     */
     public override async fetchStats(): Promise<MinerStats> {
         const responseBody = await this.sendHTTPRequest<SummaryResponse>(XMRigEndpoint.summary, 'GET');
 
         return {
             raw: responseBody,
             version: responseBody.version,
-            totalHashrate: responseBody.hashrate.total[0]
-        }
+            totalHashrate: responseBody.hashrate.total[0],
+        };
     }
 
+    /**
+     *
+     */
     public override async stop(): Promise<void> {
         await this.sendJSONRPCCommand(XMRigJsonRPCMethod.pause);
     }
 
+    /**
+     *
+     */
     public override getSupportedFeatures(): MinerFeatureKey[] {
         return [
             MinerFeatureKey.running,
             MinerFeatureKey.rawStats,
             MinerFeatureKey.version,
-            MinerFeatureKey.totalHashrate
-        ]
+            MinerFeatureKey.totalHashrate,
+        ];
     }
 
+    /**
+     *
+     */
     public override getLoggerName(): string {
         return `${super.getLoggerName()}XMRigMiner[${this.settings.host}:${this.settings.port}]`;
     }
 
+    /**
+     *
+     */
     public override getCliArgs(): string[] {
         return [
             '--http-host ::',
             `--http-port ${this.settings.port}`,
             `--http-access-token ${this.settings.password}`,
-            '--http-no-restricted'
+            '--http-no-restricted',
         ];
     }
 
     private async sendJSONRPCCommand(rpcMethod: XMRigJsonRPCMethod): Promise<void> {
         const responseBody = await this.sendHTTPRequest<JsonRPCResponse>(XMRigEndpoint.jsonRPC, 'POST', {
-            method: rpcMethod
+            method: rpcMethod,
         });
 
         if (responseBody.result.status !== 'OK') {
@@ -87,7 +111,16 @@ export class XMRigMiner extends PollingMiner<XMRigSettings> {
 
     private async sendHTTPRequest<T>(endpoint: string, httpMethod: string, body?: object): Promise<T> {
         // TODO: https support
-        return sendGenericHTTPRequest('http', this.settings.host, this.settings.port, this.settings.password, this.logger, endpoint, httpMethod, body);
+        return sendGenericHTTPRequest(
+            'http',
+            this.settings.host,
+            this.settings.port,
+            this.settings.password,
+            this.logger,
+            endpoint,
+            httpMethod,
+            body,
+        );
     }
 }
 
@@ -100,7 +133,7 @@ interface SummaryResponse {
             // other coin hashRates???
             number,
             number,
-        ]
-    }
+        ];
+    };
     // TODO: implement more fields
 }
