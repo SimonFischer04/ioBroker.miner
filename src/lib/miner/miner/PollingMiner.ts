@@ -9,12 +9,12 @@ export abstract class PollingMiner<S extends PollingMinerSettings> extends Miner
 
     public abstract fetchStats(): Promise<MinerStats>;
 
-    public override async init(): Promise<void> {
+    public override init(): Promise<void> {
         this.logger.info(`initializing with interval ${this.settings.pollInterval}`);
 
         if (!this.settings.pollInterval || this.settings.pollInterval < 100) {
             this.logger.error(`pollInterval >= 100 required. got: ${this.settings.pollInterval}`);
-            return;
+            return Promise.resolve();
         }
 
         // start polling
@@ -31,6 +31,7 @@ export abstract class PollingMiner<S extends PollingMinerSettings> extends Miner
             this.settings.pollInterval,
             true,
         );
+        return Promise.resolve();
     }
 
     public override async close(): Promise<void> {

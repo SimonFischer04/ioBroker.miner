@@ -44,8 +44,9 @@ export abstract class Miner<S extends MinerSettings> {
     /**
      * Close / cleanup any open resources
      */
-    public async close(): Promise<void> {
+    public close(): Promise<void> {
         this.statSubscriptions = [];
+        return Promise.resolve();
     }
 
     /**

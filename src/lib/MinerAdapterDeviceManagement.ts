@@ -27,8 +27,9 @@ import { createMiner } from './miner/miner/MinerFactory';
 
 class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
     async getInstanceInfo(): Promise<InstanceDetails> {
+        const baseInfo = await super.getInstanceInfo();
         const data = {
-            ...super.getInstanceInfo(),
+            ...baseInfo,
             actions: [
                 {
                     id: 'refresh',
@@ -93,7 +94,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         return data;
     }
 
-    async handleRefresh(_context: ActionContext): Promise<{ refresh: boolean }> {
+    handleRefresh(_context: ActionContext): { refresh: boolean } {
         this.adapter.log.info('handleRefresh');
         return { refresh: true };
     }
@@ -566,9 +567,6 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
     protected async listDevices(): Promise<DeviceInfo[]> {
         const devices = await this.adapter.getDevicesAsync();
         const arrDevices: DeviceInfo[] = [];
-        console.error('alistDevices');
-
-        debugger;
 
         for (const device of devices) {
             // TODO: add more info
