@@ -1,19 +1,23 @@
-import {
+import type {
     BOSMinerSettings,
-    ClaymoreMinerSettings, IceRiverOcMinerSettings,
+    ClaymoreMinerSettings,
+    IceRiverOcMinerSettings,
     MinerSettings,
     SGMinerSettings,
     TeamRedMinerSettings,
-    XMRigSettings
+    XMRigSettings,
 } from '../model/MinerSettings';
-import {Miner} from './Miner';
-import {TeamRedMiner} from './TeamRedMiner';
-import {ClaymoreMiner} from './ClaymoreMiner';
-import {SGMiner} from './SGMiner';
-import {XMRigMiner} from './XMRigMiner';
-import {IceRiverOcMiner} from './IceRiverOcMiner';
-import {BOSMiner} from './BOSMiner';
+import type { Miner } from './Miner';
+import { TeamRedMiner } from './TeamRedMiner';
+import { ClaymoreMiner } from './ClaymoreMiner';
+import { SGMiner } from './SGMiner';
+import { XMRigMiner } from './XMRigMiner';
+import { IceRiverOcMiner } from './IceRiverOcMiner';
+import { BOSMiner } from './BOSMiner';
 
+/**
+ *
+ */
 export function createMiner(settings: MinerSettings): Miner<MinerSettings> {
     switch (settings.minerType) {
         case 'teamRedMiner': {

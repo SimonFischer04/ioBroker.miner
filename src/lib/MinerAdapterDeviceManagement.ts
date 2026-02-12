@@ -1,34 +1,35 @@
-import {
-    ActionContext, DeviceDetails,
+import type {
+    ActionContext,
+    DeviceDetails,
     DeviceInfo,
-    DeviceManagement,
     DeviceRefresh,
     InstanceDetails,
-    JsonFormData
+    JsonFormData,
 } from '@iobroker/dm-utils';
-import {MinerAdapter} from '../main';
-import {categoryKeys} from './miner/model/Category';
-import {
+import { DeviceManagement } from '@iobroker/dm-utils';
+import type { MinerAdapter } from '../main';
+import { categoryKeys } from './miner/model/Category';
+import type {
     BOSMinerSettings,
-    ClaymoreMinerSettings, IceRiverOcMinerSettings,
+    ClaymoreMinerSettings,
+    IceRiverOcMinerSettings,
     MinerSettings,
-    minerTypeKeys,
-    PollingMinerSettings, SGMinerSettings,
-    TeamRedMinerSettings, XMRigSettings
+    PollingMinerSettings,
+    SGMinerSettings,
+    TeamRedMinerSettings,
+    XMRigSettings,
 } from './miner/model/MinerSettings';
-import {
-    decryptDeviceSettings,
-    IOBrokerDeviceSettings,
-    IOBrokerMinerSettings,
-    isMiner
-} from '../miner/model/IOBrokerMinerSettings';
-import {PartialDeep} from 'type-fest';
-import {createMiner} from './miner/miner/MinerFactory';
+import { minerTypeKeys } from './miner/model/MinerSettings';
+import type { IOBrokerDeviceSettings, IOBrokerMinerSettings } from '../miner/model/IOBrokerMinerSettings';
+import { decryptDeviceSettings, isMiner } from '../miner/model/IOBrokerMinerSettings';
+import type { PartialDeep } from 'type-fest';
+import { createMiner } from './miner/miner/MinerFactory';
 
 class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
     async getInstanceInfo(): Promise<InstanceDetails> {
+        const baseInfo = await super.getInstanceInfo();
         const data = {
-            ...super.getInstanceInfo(),
+            ...baseInfo,
             actions: [
                 {
                     id: 'refresh',
@@ -45,9 +46,9 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         es: 'Actualizar lista de dispositivos',
                         pl: 'Odśwież listę urządzeń',
                         'zh-cn': '刷新设备列表',
-                        uk: 'Оновити список пристроїв'
+                        uk: 'Оновити список пристроїв',
                     },
-                    handler: this.handleRefresh.bind(this)
+                    handler: this.handleRefresh.bind(this),
                 },
                 {
                     id: 'newDevice',
@@ -64,9 +65,9 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         es: 'Agregar nuevo dispositivo a Miner',
                         pl: 'Dodaj nowe urządzenie do Miner',
                         'zh-cn': '将新设备添加到Miner',
-                        uk: 'Додати новий пристрій до Miner'
+                        uk: 'Додати новий пристрій до Miner',
                     },
-                    handler: this.handleNewDevice.bind(this)
+                    handler: this.handleNewDevice.bind(this),
                 },
                 // TODO
                 /*{
@@ -93,62 +94,71 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         return data;
     }
 
-    async handleRefresh(_context: ActionContext): Promise<{ refresh: boolean }> {
+    handleRefresh(_context: ActionContext): { refresh: boolean } {
         this.adapter.log.info('handleRefresh');
-        return {refresh: true};
+        return { refresh: true };
     }
 
     async handleNewDevice(context: ActionContext): Promise<{ refresh: boolean }> {
         this.adapter.log.info('handleNewDevice');
 
-        const settings = await this.showDeviceConfigurationForm(context, {
-            category: 'miner',
-            settings: {
-                minerType: undefined,
-                id: crypto.randomUUID(),
-                host: '',
-                pollInterval: this.adapter.config.pollInterval,
-                claymore: {
-                    minerType: 'claymoreMiner',
+        const settings = await this.showDeviceConfigurationForm(
+            context,
+            {
+                category: 'miner',
+                settings: {
+                    minerType: undefined,
+                    id: crypto.randomUUID(),
                     host: '',
-                    password: crypto.randomUUID(),
-                    port: 3333
+                    pollInterval: this.adapter.config.pollInterval,
+                    claymore: {
+                        minerType: 'claymoreMiner',
+                        host: '',
+                        password: crypto.randomUUID(),
+                        port: 3333,
+                    },
+                    sg: {
+                        minerType: 'sgMiner',
+                        host: '',
+                        port: 4028,
+                    },
                 },
-                sg: {
-                    minerType: 'sgMiner',
-                    host: '',
-                    port: 4028
-                }
+                name: '',
+                mac: '',
+                enabled: true,
+            } as PartialDeep<IOBrokerMinerSettings>,
+            {
+                // TODO: improve this (by making IOBrokerMinerSettings generic?, ...)
+                en: 'Add new device',
+                de: 'Neues Gerät hinzufügen',
+                ru: 'Добавить новое устройство',
+                pt: 'Adicionar novo dispositivo',
+                nl: 'Voeg nieuw apparaat toe',
+                fr: 'Ajouter un nouvel appareil',
+                it: 'Aggiungi nuovo dispositivo',
+                es: 'Agregar nuevo dispositivo',
+                pl: 'Dodaj nowe urządzenie',
+                'zh-cn': '添加新设备',
+                uk: 'Додати новий пристрій',
             },
-            name: '',
-            mac: '',
-            enabled: true
-        } as PartialDeep<IOBrokerMinerSettings>, { // TODO: improve this (by making IOBrokerMinerSettings generic?, ...)
-            en: 'Add new device',
-            de: 'Neues Gerät hinzufügen',
-            ru: 'Добавить новое устройство',
-            pt: 'Adicionar novo dispositivo',
-            nl: 'Voeg nieuw apparaat toe',
-            fr: 'Ajouter un nouvel appareil',
-            it: 'Aggiungi nuovo dispositivo',
-            es: 'Agregar nuevo dispositivo',
-            pl: 'Dodaj nowe urządzenie',
-            'zh-cn': '添加新设备',
-            uk: 'Додати новий пристрій'
-        });
+        );
 
         this.adapter.log.debug(`handleNewDevice settings: ${JSON.stringify(settings)}`);
 
         if (settings === undefined) {
-            return {refresh: false};
+            return { refresh: false };
         }
 
         await this.adapter.addDevice(settings);
 
-        return {refresh: true};
+        return { refresh: true };
     }
 
-    private async showDeviceConfigurationForm(context: ActionContext, existingSettings: PartialDeep<IOBrokerDeviceSettings>, title: ioBroker.StringOrTranslated): Promise<IOBrokerMinerSettings | undefined> {
+    private async showDeviceConfigurationForm(
+        context: ActionContext,
+        existingSettings: PartialDeep<IOBrokerDeviceSettings>,
+        title: ioBroker.StringOrTranslated,
+    ): Promise<IOBrokerMinerSettings | undefined> {
         // TODO: re-open form with filled in values if something is missing after showing validation result
         // basically recursive call with existingSettings = return value of this function
 
@@ -156,182 +166,187 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
 
         // TODO: implement pool support
         if (!isMiner(existingSettings)) {
-            this.adapter.log.error(`MinerAdapterDeviceManagement/showDeviceConfigurationForm existingSettings ${existingSettings} is not a miner.`);
+            this.adapter.log.error(
+                `MinerAdapterDeviceManagement/showDeviceConfigurationForm existingSettings ${JSON.stringify(existingSettings)} is not a miner.`,
+            );
             return undefined;
         }
 
-        const result: JsonFormData | undefined = await context.showForm({
-            type: 'panel',
-            items: {
-                category: {
-                    type: 'select',
-                    newLine: true,
-                    label: 'category', // TODO: translate
-                    tooltip: 'category of the iobroker thing (miner or pool)',
-                    options: categoryKeys.map(key => {
-                        return {
-                            value: key,
-                            // TODO: translate(key)
-                            label: key
-                        }
-                    })
-                },
-                minerType: {
-                    type: 'select',
-                    newLine: true,
-                    label: 'minerType', // TODO: translate
-                    tooltip: 'type of miner / firmware',
-                    options: minerTypeKeys.map(key => {
-                        return {
-                            value: key,
-                            // TODO: translate(key)
-                            label: key
-                        }
-                    })
-                },
-                id: {
-                    type: 'text',
-                    newLine: true,
-                    label: 'id', // TODO: translate
-                    tooltip: 'unique id of the device, used to identify the device in the adapter',
-                    readOnly: true,
-                    noClearButton: true,
-                    disabled: true
-                },
-                name: {
-                    type: 'text',
-                    newLine: true,
-                    // trim: false,
-                    label: {
-                        en: 'Name',
-                        de: 'Name',
-                        ru: 'Имя',
-                        pt: 'Nome',
-                        nl: 'Naam',
-                        fr: 'Nom',
-                        it: 'Nome',
-                        es: 'Nombre',
-                        pl: 'Nazwa',
-                        'zh-cn': '名称',
-                        uk: 'Ім\'я'
+        const result: JsonFormData | undefined = await context.showForm(
+            {
+                type: 'panel',
+                items: {
+                    category: {
+                        type: 'select',
+                        newLine: true,
+                        label: 'category', // TODO: translate
+                        tooltip: 'category of the iobroker thing (miner or pool)',
+                        options: categoryKeys.map(key => {
+                            return {
+                                value: key,
+                                // TODO: translate(key)
+                                label: key,
+                            };
+                        }),
                     },
-                    tooltip: 'name for the user to identify the device'
-                },
-                host: {
-                    type: 'text',
-                    newLine: true,
-                    trim: true,
-                    placeholder: 'fe80::42',
-                    label: {
-                        en: 'IP address',
-                        de: 'IP-Adresse',
-                        ru: 'IP адрес',
-                        pt: 'Endereço de IP',
-                        nl: 'IP adres',
-                        fr: 'Adresse IP',
-                        it: 'Indirizzo IP',
-                        es: 'Dirección IP',
-                        pl: 'Adres IP',
-                        'zh-cn': 'IP地址',
-                        uk: 'IP адреса'
+                    minerType: {
+                        type: 'select',
+                        newLine: true,
+                        label: 'minerType', // TODO: translate
+                        tooltip: 'type of miner / firmware',
+                        options: minerTypeKeys.map(key => {
+                            return {
+                                value: key,
+                                // TODO: translate(key)
+                                label: key,
+                            };
+                        }),
                     },
-                    tooltip: 'IP address (or host) of the device'
-                },
-                // TODO: get by request
-                mac: {
-                    type: 'text',
-                    newLine: true,
-                    trim: true,
-                    placeholder: '00:00:00:00:00:00',
-                    label: {
-                        en: 'MAC address',
-                        de: 'MAC-Adresse',
-                        ru: 'MAC адрес',
-                        pt: 'Endereço MAC',
-                        nl: 'MAC adres',
-                        fr: 'Adresse MAC',
-                        it: 'Indirizzo MAC',
-                        es: 'Dirección MAC',
-                        pl: 'Adres MAC',
-                        'zh-cn': 'MAC地址',
-                        uk: 'MAC адреса'
+                    id: {
+                        type: 'text',
+                        newLine: true,
+                        label: 'id', // TODO: translate
+                        tooltip: 'unique id of the device, used to identify the device in the adapter',
+                        readOnly: true,
+                        noClearButton: true,
+                        disabled: true,
                     },
-                    tooltip: 'MAC address of the device'
-                },
-                // TODO: show only if miner requires polling? possible to dynamically add fields to form?
-                pollInterval: {
-                    type: 'number',
-                    newLine: true,
-                    min: 100,
-                    label: {
-                        'en': 'poll interval', // TODO: also fix translate in jsonConfig.json
-                        'de': 'Abrufintervall',
-                        'ru': 'интервал',
-                        'pt': 'intervalo de poluição',
-                        'nl': 'poll-interval',
-                        'fr': 'intervalle de sondage',
-                        'it': 'intervallo di sondaggio',
-                        'es': 'intervalo de encuesta',
-                        'pl': 'przedział ankietowy',
-                        'uk': 'інтервал опитування',
-                        'zh-cn': '民意调查间隔'
+                    name: {
+                        type: 'text',
+                        newLine: true,
+                        // trim: false,
+                        label: {
+                            en: 'Name',
+                            de: 'Name',
+                            ru: 'Имя',
+                            pt: 'Nome',
+                            nl: 'Naam',
+                            fr: 'Nom',
+                            it: 'Nome',
+                            es: 'Nombre',
+                            pl: 'Nazwa',
+                            'zh-cn': '名称',
+                            uk: "Ім'я",
+                        },
+                        tooltip: 'name for the user to identify the device',
                     },
-                    tooltip: 'interval to poll the device for new data'
-                },
-                password: {
-                    type: 'text',
-                    // type password does not allow to show the password generated as default value
-                    // type: 'password',
-                    newLine: true,
-                    label: {
-                        'en': 'password',
-                        'de': 'passwort',
-                        'ru': 'пароль',
-                        'pt': 'senha',
-                        'nl': 'wachtwoord',
-                        'fr': 'mot de passe',
-                        'it': 'password',
-                        'es': 'contraseña',
-                        'pl': 'hasło',
-                        'uk': 'увійти',
-                        'zh-cn': '密码'
+                    host: {
+                        type: 'text',
+                        newLine: true,
+                        trim: true,
+                        placeholder: 'fe80::42',
+                        label: {
+                            en: 'IP address',
+                            de: 'IP-Adresse',
+                            ru: 'IP адрес',
+                            pt: 'Endereço de IP',
+                            nl: 'IP adres',
+                            fr: 'Adresse IP',
+                            it: 'Indirizzo IP',
+                            es: 'Dirección IP',
+                            pl: 'Adres IP',
+                            'zh-cn': 'IP地址',
+                            uk: 'IP адреса',
+                        },
+                        tooltip: 'IP address (or host) of the device',
                     },
-                    tooltip: 'password used to connect to the device api. Adapter generates a random, secure and unique one for each device by default. But can of course be changed if needed.'
-                },
-                enabled: {
-                    type: 'checkbox',
-                    newLine: true,
-                    label: {
-                        'en': 'enabled',
-                        'de': 'aktiviert',
-                        'ru': 'включен',
-                        'pt': 'habilitado',
-                        'nl': 'ingeschakeld',
-                        'fr': 'activé',
-                        'it': 'abilitata',
-                        'es': 'habilitado',
-                        'pl': 'włączone',
-                        'uk': 'увімкнути',
-                        'zh-cn': '启用'
+                    // TODO: get by request
+                    mac: {
+                        type: 'text',
+                        newLine: true,
+                        trim: true,
+                        placeholder: '00:00:00:00:00:00',
+                        label: {
+                            en: 'MAC address',
+                            de: 'MAC-Adresse',
+                            ru: 'MAC адрес',
+                            pt: 'Endereço MAC',
+                            nl: 'MAC adres',
+                            fr: 'Adresse MAC',
+                            it: 'Indirizzo MAC',
+                            es: 'Dirección MAC',
+                            pl: 'Adres MAC',
+                            'zh-cn': 'MAC地址',
+                            uk: 'MAC адреса',
+                        },
+                        tooltip: 'MAC address of the device',
                     },
-                    tooltip: 'whether the device is enabled or not. Disabled devices will do nothing (not get polled, control does not work, ...). Useful if you f.e. shut one off temporarily.'
-                }
-            }
-        },
-        {
-            data: {
-                category: existingSettings.category,
-                id: existingSettings.settings.id,
-                minerType: existingSettings.settings.minerType,
-                name: existingSettings.name,
-                host: existingSettings.settings.host,
-                mac: existingSettings.mac,
-                pollInterval: (existingSettings.settings as PollingMinerSettings).pollInterval, // TODO: implement this properly
-                password: (existingSettings.settings as TeamRedMinerSettings).claymore?.password ?? '', // TODO: implement this properly
-                enabled: existingSettings.enabled
+                    // TODO: show only if miner requires polling? possible to dynamically add fields to form?
+                    pollInterval: {
+                        type: 'number',
+                        newLine: true,
+                        min: 100,
+                        label: {
+                            en: 'poll interval', // TODO: also fix translate in jsonConfig.json
+                            de: 'Abrufintervall',
+                            ru: 'интервал',
+                            pt: 'intervalo de poluição',
+                            nl: 'poll-interval',
+                            fr: 'intervalle de sondage',
+                            it: 'intervallo di sondaggio',
+                            es: 'intervalo de encuesta',
+                            pl: 'przedział ankietowy',
+                            uk: 'інтервал опитування',
+                            'zh-cn': '民意调查间隔',
+                        },
+                        tooltip: 'interval to poll the device for new data',
+                    },
+                    password: {
+                        type: 'text',
+                        // type password does not allow to show the password generated as default value
+                        // type: 'password',
+                        newLine: true,
+                        label: {
+                            en: 'password',
+                            de: 'passwort',
+                            ru: 'пароль',
+                            pt: 'senha',
+                            nl: 'wachtwoord',
+                            fr: 'mot de passe',
+                            it: 'password',
+                            es: 'contraseña',
+                            pl: 'hasło',
+                            uk: 'увійти',
+                            'zh-cn': '密码',
+                        },
+                        tooltip:
+                            'password used to connect to the device api. Adapter generates a random, secure and unique one for each device by default. But can of course be changed if needed.',
+                    },
+                    enabled: {
+                        type: 'checkbox',
+                        newLine: true,
+                        label: {
+                            en: 'enabled',
+                            de: 'aktiviert',
+                            ru: 'включен',
+                            pt: 'habilitado',
+                            nl: 'ingeschakeld',
+                            fr: 'activé',
+                            it: 'abilitata',
+                            es: 'habilitado',
+                            pl: 'włączone',
+                            uk: 'увімкнути',
+                            'zh-cn': '启用',
+                        },
+                        tooltip:
+                            'whether the device is enabled or not. Disabled devices will do nothing (not get polled, control does not work, ...). Useful if you f.e. shut one off temporarily.',
+                    },
+                },
             },
-            title
-        }
+            {
+                data: {
+                    category: existingSettings.category,
+                    id: existingSettings.settings.id,
+                    minerType: existingSettings.settings.minerType,
+                    name: existingSettings.name,
+                    host: existingSettings.settings.host,
+                    mac: existingSettings.mac,
+                    pollInterval: (existingSettings.settings as PollingMinerSettings).pollInterval, // TODO: implement this properly
+                    password: (existingSettings.settings as TeamRedMinerSettings).claymore?.password ?? '', // TODO: implement this properly
+                    enabled: existingSettings.enabled,
+                },
+                title,
+            },
         );
 
         console.log('add device result: ', result);
@@ -413,16 +428,19 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             }*/
         }
 
-        if (!isMiner({category: result.category})) { // TODO: pool support
-            this.log.error(`MinerAdapterDeviceManagement/handleNewDevice category ${result.category} is not yet supported.`);
+        if (!isMiner({ category: result.category })) {
+            // TODO: pool support
+            this.log.error(
+                `MinerAdapterDeviceManagement/handleNewDevice category ${result.category} is not yet supported.`,
+            );
             return undefined;
         }
 
         let minerSettings: MinerSettings = {
             id: result.id,
             minerType: result.minerType,
-            host: result.host
-        }
+            host: result.host,
+        };
 
         switch (minerSettings.minerType) {
             case 'teamRedMiner': {
@@ -436,19 +454,19 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         pollInterval,
                         host: minerSettings.host,
                         password: result.password,
-                        port: 3333 // TODO: make configurable
+                        port: 3333, // TODO: make configurable
                     },
                     sg: {
                         minerType: 'sgMiner',
                         pollInterval,
                         host: minerSettings.host,
-                        port: 4028 // TODO: make configurable
-                    }
-                }
+                        port: 4028, // TODO: make configurable
+                    },
+                };
                 minerSettings = {
                     ...minerSettings,
-                    ...trmSettings
-                }
+                    ...trmSettings,
+                };
                 break;
             }
 
@@ -458,12 +476,12 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 const claymoreSettings: Omit<ClaymoreMinerSettings, keyof MinerSettings> = {
                     pollInterval,
                     port: 3333, // TODO: make configurable
-                    password: result.password
-                }
+                    password: result.password,
+                };
                 minerSettings = {
                     ...minerSettings,
-                    ...claymoreSettings
-                }
+                    ...claymoreSettings,
+                };
                 break;
             }
 
@@ -472,12 +490,12 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
 
                 const sgSettings: Omit<SGMinerSettings, keyof MinerSettings> = {
                     pollInterval,
-                    port: 4028 // TODO: make configurable
-                }
+                    port: 4028, // TODO: make configurable
+                };
                 minerSettings = {
                     ...minerSettings,
-                    ...sgSettings
-                }
+                    ...sgSettings,
+                };
                 break;
             }
 
@@ -487,12 +505,12 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 const xmRigSettings: Omit<XMRigSettings, keyof MinerSettings> = {
                     pollInterval,
                     port: 8420, // TODO: make configurable
-                    password: result.password
-                }
+                    password: result.password,
+                };
                 minerSettings = {
                     ...minerSettings,
-                    ...xmRigSettings
-                }
+                    ...xmRigSettings,
+                };
                 break;
             }
 
@@ -502,12 +520,12 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 const iceRiverOcSettings: Omit<IceRiverOcMinerSettings, keyof MinerSettings> = {
                     pollInterval,
                     port: 443, // TODO: make configurable
-                    password: result.password
-                }
+                    password: result.password,
+                };
                 minerSettings = {
                     ...minerSettings,
-                    ...iceRiverOcSettings
-                }
+                    ...iceRiverOcSettings,
+                };
                 break;
             }
 
@@ -517,18 +535,20 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 const bosSettings: Omit<BOSMinerSettings, keyof MinerSettings> = {
                     pollInterval,
                     port: 4028, // TODO: make configurable
-                }
+                };
                 minerSettings = {
                     ...minerSettings,
-                    ...bosSettings
-                }
+                    ...bosSettings,
+                };
                 break;
             }
 
             default: {
                 // TODO: same for category dropdown
                 // TODO: hide in dropdown to not create confusion something like "visibleMinerTypes" filter array?
-                this.adapter.log.error(`MinerAdapterDeviceManagement/handleNewDevice minerType ${minerSettings.minerType} not yet supported`);
+                this.adapter.log.error(
+                    `MinerAdapterDeviceManagement/handleNewDevice minerType ${minerSettings.minerType} not yet supported`,
+                );
                 return undefined;
             }
         }
@@ -538,8 +558,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             name: result.name,
             mac: result.mac,
             enabled: result.enabled,
-            settings: minerSettings
-        }
+            settings: minerSettings,
+        };
 
         return settings;
     }
@@ -547,9 +567,6 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
     protected async listDevices(): Promise<DeviceInfo[]> {
         const devices = await this.adapter.getDevicesAsync();
         const arrDevices: DeviceInfo[] = [];
-        console.error('alistDevices')
-
-        debugger
 
         for (const device of devices) {
             // TODO: add more info
@@ -573,9 +590,9 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                             es: 'Eliminar este dispositivo',
                             pl: 'Usuń to urządzenie',
                             'zh-cn': '删除此设备',
-                            uk: 'Видалити цей пристрій'
+                            uk: 'Видалити цей пристрій',
                         },
-                        handler: this.handleDeleteDevice.bind(this)
+                        handler: this.handleDeleteDevice.bind(this),
                     },
                     {
                         id: 'settings',
@@ -591,12 +608,12 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                             es: 'Configuraciones',
                             pl: 'Ustawienia',
                             'zh-cn': '设定值',
-                            uk: 'Налаштування'
+                            uk: 'Налаштування',
                         },
-                        handler: this.handleSettingsDevice.bind(this)
-                    }
-                ]
-            })
+                        handler: this.handleSettingsDevice.bind(this),
+                    },
+                ],
+            });
         }
 
         return arrDevices;
@@ -614,12 +631,12 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             es: `¿Realmente desea eliminar el dispositivo ${id}?`,
             pl: `Czy na pewno chcesz usunąć urządzenie ${id}?`,
             'zh-cn': `您真的要删除设备 ${id} 吗？`,
-            uk: `Ви дійсно бажаєте видалити пристрій ${id}?`
+            uk: `Ви дійсно бажаєте видалити пристрій ${id}?`,
         });
 
         // delete device
         if (!response) {
-            return {refresh: false};
+            return { refresh: false };
         }
         const success = await this.adapter.delDevice(id);
         if (!success) {
@@ -634,12 +651,11 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 es: `No se puede eliminar el dispositivo ${id}`,
                 pl: `Nie można usunąć urządzenia ${id}`,
                 'zh-cn': `无法删除设备 ${id}`,
-                uk: `Не вдалося видалити пристрій ${id}`
+                uk: `Не вдалося видалити пристрій ${id}`,
             });
-            return {refresh: false};
-        } else {
-            return {refresh: true};
+            return { refresh: false };
         }
+        return { refresh: true };
     }
 
     protected async handleSettingsDevice(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
@@ -647,10 +663,13 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
 
         if (obj == null) {
             this.adapter.log.error(`MinerAdapterDeviceManagement/handleSettingsDevice object ${id} not found`);
-            return {refresh: false};
+            return { refresh: false };
         }
 
-        const currentSettings: IOBrokerDeviceSettings = decryptDeviceSettings(obj.native as IOBrokerDeviceSettings, (value) => this.adapter.decrypt(value));
+        const currentSettings: IOBrokerDeviceSettings = decryptDeviceSettings(
+            obj.native as IOBrokerDeviceSettings,
+            value => this.adapter.decrypt(value),
+        );
 
         const newSettings = await this.showDeviceConfigurationForm(context, currentSettings, {
             en: 'Settings',
@@ -663,30 +682,31 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             es: 'Configuraciones',
             pl: 'Ustawienia',
             'zh-cn': '设定值',
-            uk: 'Налаштування'
+            uk: 'Налаштування',
         });
 
         this.adapter.log.debug(`handleSettingsDevice newSettings: ${JSON.stringify(newSettings)}`);
 
         if (newSettings === undefined) {
-            return {refresh: false};
+            return { refresh: false };
         }
 
         await this.adapter.updateDevice(newSettings);
 
-        if (!isMiner(currentSettings) || !isMiner(newSettings)) { // TODO: pool support (#deal with miner -> pool change: just disable category dropdown on settings)
+        if (!isMiner(currentSettings) || !isMiner(newSettings)) {
+            // TODO: pool support (#deal with miner -> pool change: just disable category dropdown on settings)
             this.adapter.log.error(`MinerAdapterDeviceManagement/handleSettingsDevice settings are not miners`);
-            return {refresh: false};
+            return { refresh: false };
         }
 
         // name change requires full instance refresh, not just device - to display correct name in the devices header in the device list
         if (currentSettings.name != newSettings.name) {
             // PS: I don't know why this doesn't work
             // return {refresh: 'instance'};
-            return {refresh: true};
+            return { refresh: true };
         }
 
-        return {refresh: 'device'};
+        return { refresh: 'device' };
     }
 
     async getDeviceDetails(id: string): Promise<DeviceDetails | null | { error: string }> {
@@ -699,15 +719,18 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         if (obj == null) {
             const error = `getDeviceDetails device ${id} not found`;
             this.log.error(error);
-            return {error};
+            return { error };
         }
 
-        const settings: IOBrokerDeviceSettings = decryptDeviceSettings(obj.native as IOBrokerDeviceSettings, (value) => this.adapter.decrypt(value));
+        const settings: IOBrokerDeviceSettings = decryptDeviceSettings(obj.native as IOBrokerDeviceSettings, value =>
+            this.adapter.decrypt(value),
+        );
 
-        if (!isMiner(settings)) { // TODO: pool support
-            const error = `getDeviceDetails category ${obj.native.category} not yet supported`
+        if (!isMiner(settings)) {
+            // TODO: pool support
+            const error = `getDeviceDetails category ${obj.native.category} not yet supported`;
             this.log.error(error);
-            return {error};
+            return { error };
         }
 
         // create dummy miner to get CLI args
@@ -721,7 +744,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 items: {
                     name: {
                         type: 'text',
-                        label: `<b>Name:</b> ${obj.common.name}`,
+                        label: `<b>Name:</b> ${typeof obj.common.name === 'string' ? obj.common.name : JSON.stringify(obj.common.name)}`,
                         newLine: true,
                         sm: 12,
                         disabled: 'true',
@@ -731,14 +754,14 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         label: 'Miner CLI parameters',
                         sm: 12,
                         disabled: 'true',
-                    }
+                    },
                 },
                 style: {
                     minWidth: 420,
                 },
             },
             data: {
-                minerCliParams: dummyMiner.getCliArgs().join(' ')
+                minerCliParams: dummyMiner.getCliArgs().join(' '),
             },
         };
     }

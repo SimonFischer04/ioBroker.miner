@@ -31,32 +31,56 @@ var IceRiverOcEndpoint = /* @__PURE__ */ ((IceRiverOcEndpoint2) => {
   return IceRiverOcEndpoint2;
 })(IceRiverOcEndpoint || {});
 class IceRiverOcMiner extends import_PollingMiner.PollingMiner {
+  /**
+   *
+   */
   async start() {
     await this.sendHTTPRequest("api/machine/wake" /* wake */, "GET");
   }
+  /**
+   *
+   */
   async fetchStats() {
     const responseBody = await this.sendHTTPRequest("api/overview" /* overview */, "GET");
     return {
       raw: responseBody
     };
   }
+  /**
+   *
+   */
   async stop() {
     await this.sendHTTPRequest("api/machine/sleep" /* sleep */, "GET");
   }
+  /**
+   *
+   */
   getSupportedFeatures() {
-    return [
-      import_MinerFeature.MinerFeatureKey.running,
-      import_MinerFeature.MinerFeatureKey.rawStats
-    ];
+    return [import_MinerFeature.MinerFeatureKey.running, import_MinerFeature.MinerFeatureKey.rawStats];
   }
+  /**
+   *
+   */
   getLoggerName() {
     return `${super.getLoggerName()}IceRiverOcMiner[${this.settings.host}:${this.settings.port}]`;
   }
+  /**
+   *
+   */
   getCliArgs() {
     return [];
   }
   async sendHTTPRequest(endpoint, httpMethod, body) {
-    return (0, import_http_utils.sendGenericHTTPRequest)("https", this.settings.host, this.settings.port, this.settings.password, this.logger, endpoint, httpMethod, body);
+    return (0, import_http_utils.sendGenericHTTPRequest)(
+      "https",
+      this.settings.host,
+      this.settings.port,
+      this.settings.password,
+      this.logger,
+      endpoint,
+      httpMethod,
+      body
+    );
   }
 }
 // Annotate the CommonJS export names for ESM import in node:

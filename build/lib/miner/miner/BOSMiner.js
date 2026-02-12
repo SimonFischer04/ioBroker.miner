@@ -31,9 +31,15 @@ var BOSMinerCommand = /* @__PURE__ */ ((BOSMinerCommand2) => {
   return BOSMinerCommand2;
 })(BOSMinerCommand || {});
 class BOSMiner extends import_PollingMiner.PollingMiner {
+  /**
+   *
+   */
   async start() {
     await this.sendCommand("resume" /* resume */, "", false);
   }
+  /**
+   *
+   */
   async fetchStats() {
     try {
       const response = await this.sendCommand("summary+coin" /* stats */, "", true);
@@ -41,29 +47,44 @@ class BOSMiner extends import_PollingMiner.PollingMiner {
         raw: response
       };
     } catch (e) {
-      return Promise.reject(e);
+      return Promise.reject(e instanceof Error ? e : new Error(String(e)));
     }
   }
+  /**
+   *
+   */
   async stop() {
     await this.sendCommand("pause" /* pause */, "", false);
   }
+  /**
+   *
+   */
   getSupportedFeatures() {
-    return [
-      import_MinerFeature.MinerFeatureKey.running,
-      import_MinerFeature.MinerFeatureKey.rawStats
-    ];
+    return [import_MinerFeature.MinerFeatureKey.running, import_MinerFeature.MinerFeatureKey.rawStats];
   }
+  /**
+   *
+   */
   getLoggerName() {
     return `${super.getLoggerName()}BOSMiner[${this.settings.host}:${this.settings.port}]`;
   }
+  /**
+   *
+   */
   getCliArgs() {
     return [];
   }
   async sendCommand(command, parameter = "", expectResponse = true) {
-    return (0, import_socket_utils.sendSocketCommand)(this.logger, this.settings.host, this.settings.port, {
-      command,
-      parameter
-    }, expectResponse);
+    return (0, import_socket_utils.sendSocketCommand)(
+      this.logger,
+      this.settings.host,
+      this.settings.port,
+      {
+        command,
+        parameter
+      },
+      expectResponse
+    );
   }
 }
 // Annotate the CommonJS export names for ESM import in node:

@@ -54,30 +54,57 @@ class Logger {
     this.name = name;
   }
   static logger = consoleLogger();
+  /**
+   *
+   */
   static getLogger(name) {
     return new Logger(name);
   }
+  /**
+   *
+   */
   static setLogger(logger) {
     Logger.logger = logger;
   }
+  /**
+   *
+   */
   log(message) {
     this.logWithLevel(import_Level.Level.INFO, message);
   }
+  /**
+   *
+   */
   debug(message) {
     this.logWithLevel(import_Level.Level.DEBUG, message);
   }
+  /**
+   *
+   */
   info(message) {
     this.logWithLevel(import_Level.Level.INFO, message);
   }
+  /**
+   *
+   */
   notice(message) {
     this.logWithLevel(import_Level.Level.NOTICE, message);
   }
+  /**
+   *
+   */
   warn(message) {
     this.logWithLevel(import_Level.Level.WARN, message);
   }
+  /**
+   *
+   */
   error(message) {
     this.logWithLevel(import_Level.Level.ERROR, message);
   }
+  /**
+   *
+   */
   fatal(message) {
     this.logWithLevel(import_Level.Level.FATAL, message);
   }

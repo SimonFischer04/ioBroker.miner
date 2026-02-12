@@ -1,9 +1,9 @@
-import {ClaymoreMinerSettings} from '../model/MinerSettings';
-import {PollingMiner} from './PollingMiner';
-import {safeParseInt} from '../../utils/parse-utils';
-import {MinerFeatureKey} from '../model/MinerFeature';
-import {MinerStats} from '../model/MinerStats';
-import {sendSocketCommand} from '../../utils/socket-utils';
+import type { ClaymoreMinerSettings } from '../model/MinerSettings';
+import { PollingMiner } from './PollingMiner';
+import { safeParseInt } from '../../utils/parse-utils';
+import { MinerFeatureKey } from '../model/MinerFeature';
+import type { MinerStats } from '../model/MinerStats';
+import { sendSocketCommand } from '../../utils/socket-utils';
 
 enum ClaymoreCommandMethod {
     minerGetStat1 = 'miner_getstat1',
@@ -36,17 +36,22 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
 
     public override async fetchStats(): Promise<MinerStats> {
         try {
-            const response: MinerGetStat2Response = await this.sendCommand(ClaymoreCommandMethod.minerGetStat2, undefined, true);
+            const response: MinerGetStat2Response = await this.sendCommand(
+                ClaymoreCommandMethod.minerGetStat2,
+                undefined,
+                true,
+            );
             const parsedResponse: ParsedMinerGetStat2Response = this.parseMinerGetStat2(response);
             this.logger.debug(`parsed response: ${JSON.stringify(parsedResponse)}`);
 
             return {
                 raw: response,
                 version: parsedResponse.minerVersion,
-                totalHashrate: parsedResponse.ethTotal.hashrate * 1000
-            }
-        } catch (e) { // forward error
-            return Promise.reject(e);
+                totalHashrate: parsedResponse.ethTotal.hashrate * 1000,
+            };
+        } catch (e) {
+            // forward error
+            return Promise.reject(e instanceof Error ? e : new Error(String(e)));
         }
     }
 
@@ -59,8 +64,8 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
             MinerFeatureKey.running,
             MinerFeatureKey.rawStats,
             MinerFeatureKey.version,
-            MinerFeatureKey.totalHashrate
-        ]
+            MinerFeatureKey.totalHashrate,
+        ];
     }
 
     public override getLoggerName(): string {
@@ -68,20 +73,27 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
     }
 
     public override getCliArgs(): string[] {
-        return [
-            `--cm_api_listen=0.0.0.0:${this.settings.port}`,
-            `--cm_api_password=${this.settings.password}`
-        ];
+        return [`--cm_api_listen=0.0.0.0:${this.settings.port}`, `--cm_api_password=${this.settings.password}`];
     }
 
-    private async sendCommand<T = void>(method: ClaymoreCommandMethod, params?: string[], expectResponse: boolean = true): Promise<T> {
-        return await sendSocketCommand(this.logger, this.settings.host, this.settings.port, {
-            id: 0,
-            jsonrpc: '2.0',
-            psw: this.settings.password,
-            method,
-            params
-        }, expectResponse);
+    private async sendCommand<T = void>(
+        method: ClaymoreCommandMethod,
+        params?: string[],
+        expectResponse: boolean = true,
+    ): Promise<T> {
+        return await sendSocketCommand(
+            this.logger,
+            this.settings.host,
+            this.settings.port,
+            {
+                id: 0,
+                jsonrpc: '2.0',
+                psw: this.settings.password,
+                method,
+                params,
+            },
+            expectResponse,
+        );
     }
 
     // public to allow unit tests
@@ -95,22 +107,28 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
             dcrDetailedHashrate,
             temperatureAndFanSpeed,
             currentMiningPool,
-            invalidSharesAndPoolSwitches
+            invalidSharesAndPoolSwitches,
         ] = response.result;
 
         const [ethHashrate, ethShares, ethRejectedShares] = (ethTotalStats || '0;0;0').split(';').map(safeParseInt);
         const [dcrHashrate, dcrShares, dcrRejectedShares] = (dcrTotalStats || '0;0;0').split(';').map(safeParseInt);
-        const [ethInvalidShares, ethPoolSwitches, dcrInvalidShares, dcrPoolSwitches] = (invalidSharesAndPoolSwitches || '0;0;0;0').split(';').map(safeParseInt);
+        const [ethInvalidShares, ethPoolSwitches, dcrInvalidShares, dcrPoolSwitches] = (
+            invalidSharesAndPoolSwitches || '0;0;0;0'
+        )
+            .split(';')
+            .map(safeParseInt);
 
-        const gpuInfo = (temperatureAndFanSpeed || '').split(';').reduce<Array<{
-            temperature: number;
-            fanSpeed: number
-        }>>((acc, value, index, array) => {
+        const gpuInfo = (temperatureAndFanSpeed || '').split(';').reduce<
+            Array<{
+                temperature: number;
+                fanSpeed: number;
+            }>
+        >((acc, value, index, array) => {
             if (index % 2 === 0) {
                 const temperature = safeParseInt(value);
                 const fanSpeed = safeParseInt(array[index + 1]);
                 if (temperature !== 0 || fanSpeed !== 0) {
-                    acc.push({temperature, fanSpeed});
+                    acc.push({ temperature, fanSpeed });
                 }
             }
             return acc;
@@ -122,13 +140,13 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
             ethTotal: {
                 hashrate: ethHashrate,
                 shares: ethShares,
-                rejectedShares: ethRejectedShares
+                rejectedShares: ethRejectedShares,
             },
             ethDetailedHashrate: ethDetailedHashrate ? ethDetailedHashrate.split(';').map(safeParseInt) : [],
             dcrTotal: {
                 hashrate: dcrHashrate,
                 shares: dcrShares,
-                rejectedShares: dcrRejectedShares
+                rejectedShares: dcrRejectedShares,
             },
             dcrDetailedHashrate: dcrDetailedHashrate ? dcrDetailedHashrate.split(';').filter(s => s !== '') : [],
             gpuInfo,
@@ -137,8 +155,8 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
                 ethInvalidShares,
                 ethPoolSwitches,
                 dcrInvalidShares,
-                dcrPoolSwitches
-            }
+                dcrPoolSwitches,
+            },
         };
     }
 
@@ -146,17 +164,25 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
     public parseMinerGetStat2(response: MinerGetStat2Response): ParsedMinerGetStat2Response {
         const parsedStat1 = this.parseMinerGetStat1(response as unknown as MinerGetStat1Response);
         const [
-            , , , , , , , , ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
             ethAcceptedShares,
             ethRejectedShares,
             ethInvalidShares,
             dcrAcceptedShares,
             dcrRejectedShares,
             dcrInvalidShares,
-            pciBusIndexes
+            pciBusIndexes,
         ] = response.result;
 
-        const parseShares = (shares: string) => shares ? shares.split(';').map(safeParseInt) : [];
+        const parseShares = (shares: string): number[] => (shares ? shares.split(';').map(safeParseInt) : []);
 
         return {
             ...parsedStat1,
@@ -166,7 +192,7 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
             dcrAcceptedShares: parseShares(dcrAcceptedShares),
             dcrRejectedShares: parseShares(dcrRejectedShares),
             dcrInvalidShares: parseShares(dcrInvalidShares),
-            pciBusIndexes: parseShares(pciBusIndexes)
+            pciBusIndexes: parseShares(pciBusIndexes),
         };
     }
 }
@@ -175,15 +201,15 @@ export interface MinerGetStat1Response {
     id: number;
     jsonrpc: string;
     result: [
-        string,  // Miner version
-        string,  // Running time in minutes
-        string,  // Total ETH hashrate, shares, rejected shares
-        string,  // Detailed ETH hashrate for all GPUs
-        string,  // Total DCR hashrate, shares, rejected shares
-        string,  // Detailed DCR hashrate for all GPUs
-        string,  // Temperature and Fan speed pairs for all GPUs
-        string,  // Current mining pool(s)
-        string   // ETH invalid shares, pool switches, DCR invalid shares, pool switches
+        string, // Miner version
+        string, // Running time in minutes
+        string, // Total ETH hashrate, shares, rejected shares
+        string, // Detailed ETH hashrate for all GPUs
+        string, // Total DCR hashrate, shares, rejected shares
+        string, // Detailed DCR hashrate for all GPUs
+        string, // Temperature and Fan speed pairs for all GPUs
+        string, // Current mining pool(s)
+        string, // ETH invalid shares, pool switches, DCR invalid shares, pool switches
     ];
 }
 
@@ -192,13 +218,13 @@ export interface MinerGetStat2Response {
     jsonrpc: string;
     result: [
         ...MinerGetStat1Response['result'],
-        string,  // ETH accepted shares for every GPU
-        string,  // ETH rejected shares for every GPU
-        string,  // ETH invalid shares for every GPU
-        string,  // DCR accepted shares for every GPU
-        string,  // DCR rejected shares for every GPU
-        string,  // DCR invalid shares for every GPU
-        string   // PCI bus index for every GPU
+        string, // ETH accepted shares for every GPU
+        string, // ETH rejected shares for every GPU
+        string, // ETH invalid shares for every GPU
+        string, // DCR accepted shares for every GPU
+        string, // DCR rejected shares for every GPU
+        string, // DCR invalid shares for every GPU
+        string, // PCI bus index for every GPU
     ];
 }
 

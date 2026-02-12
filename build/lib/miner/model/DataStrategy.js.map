@@ -1,7 +1,7 @@
 {
   "version": 3,
   "sources": ["../../../../src/lib/miner/model/DataStrategy.ts"],
-  "sourcesContent": ["export const dataStrategyKeys = [\n    'poll',\n    'push'\n] as const;\n\nexport type DataStrategy = (typeof dataStrategyKeys)[number];"],
-  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAO,MAAM,mBAAmB;AAAA,EAC5B;AAAA,EACA;AACJ;",
+  "sourcesContent": ["export const dataStrategyKeys = ['poll', 'push'] as const;\n\nexport type DataStrategy = (typeof dataStrategyKeys)[number];\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAO,MAAM,mBAAmB,CAAC,QAAQ,MAAM;",
   "names": []
 }

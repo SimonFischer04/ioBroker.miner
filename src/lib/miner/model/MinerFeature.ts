@@ -2,26 +2,56 @@ export enum MinerFeatureKey {
     running = 'running',
     rawStats = 'rawStats',
     version = 'version',
-    totalHashrate = 'totalHashrate'
+    totalHashrate = 'totalHashrate',
 }
 
 export enum MinerFeatureCategory {
     control = 'control',
-    info = 'info'
+    info = 'info',
 }
 
+/**
+ *
+ */
 export interface MinerFeatureProperties {
-    category: MinerFeatureCategory,
+    /**
+     *
+     */
+    category: MinerFeatureCategory;
+    /**
+     *
+     */
     id: string;
+    /**
+     *
+     */
     label: string;
+    /**
+     *
+     */
     description: string;
+    /**
+     *
+     */
     type: string;
+    /**
+     *
+     */
     unit?: string;
+    /**
+     *
+     */
     readable?: boolean;
+    /**
+     *
+     */
     writable?: boolean;
 
     // whether this feature is considered advanced. could be used to f.e. hide it in the UI by default
     // (f.e. sets the "expert" flag in ioBroker)
+    /**
+     *
+     */
     advanced?: boolean;
 }
 
@@ -36,7 +66,7 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
         description: 'Whether the miner is running.',
         type: 'boolean',
         readable: true,
-        writable: true
+        writable: true,
     },
 
     /*
@@ -50,7 +80,7 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
         type: 'object',
         readable: true,
         writable: false,
-        advanced: true
+        advanced: true,
     },
 
     [MinerFeatureKey.version]: {
@@ -60,7 +90,7 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
         description: 'The version of the miner software.',
         type: 'string',
         readable: true,
-        writable: false
+        writable: false,
     },
 
     [MinerFeatureKey.totalHashrate]: {
@@ -71,10 +101,13 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
         type: 'number',
         unit: 'h/s',
         readable: true,
-        writable: false
-    }
+        writable: false,
+    },
 } as const;
 
-export function getMinerFeatureFullId(key: MinerFeatureKey): string{
+/**
+ *
+ */
+export function getMinerFeatureFullId(key: MinerFeatureKey): string {
     return `${minerFeatures[key].category}.${minerFeatures[key].id}`;
 }

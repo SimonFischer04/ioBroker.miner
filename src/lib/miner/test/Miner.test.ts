@@ -1,7 +1,7 @@
-import {Miner} from '../miner/Miner';
-import {expect, should} from 'chai';
-import {MinerSettings} from '../model/MinerSettings';
-import {MinerFeatureKey} from '../model/MinerFeature';
+import { Miner } from '../miner/Miner';
+import { expect, should } from 'chai';
+import type { MinerSettings } from '../model/MinerSettings';
+import type { MinerFeatureKey } from '../model/MinerFeature';
 
 describe('Miner', () => {
     let miner: Miner<MinerSettings>;
@@ -10,10 +10,10 @@ describe('Miner', () => {
         // Arrange
         const settings = {
             minerType: '',
-            host: ''
+            host: '',
         };
 
-        miner = new class AnyMiner extends Miner<MinerSettings> {
+        miner = new (class AnyMiner extends Miner<MinerSettings> {
             constructor() {
                 super(settings);
             }
@@ -37,8 +37,8 @@ describe('Miner', () => {
             public getCliArgs(): string[] {
                 return [];
             }
-        };
-    })
+        })();
+    });
 
     it('automatically generates an id if none is provided', () => {
         should().exist(miner.settings.id);

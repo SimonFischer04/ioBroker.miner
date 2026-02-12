@@ -21,10 +21,7 @@ __export(DataStrategy_exports, {
   dataStrategyKeys: () => dataStrategyKeys
 });
 module.exports = __toCommonJS(DataStrategy_exports);
-const dataStrategyKeys = [
-  "poll",
-  "push"
-];
+const dataStrategyKeys = ["poll", "push"];
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   dataStrategyKeys

@@ -34,6 +34,9 @@ module.exports = __toCommonJS(Miner_exports);
 var crypto = __toESM(require("node:crypto"));
 var import_Logger = require("../model/Logger");
 class Miner {
+  /**
+   *
+   */
   constructor(settings) {
     this.settings = settings;
     if (!settings.id) {
@@ -46,8 +49,9 @@ class Miner {
   /**
    * Close / cleanup any open resources
    */
-  async close() {
+  close() {
     this.statSubscriptions = [];
+    return Promise.resolve();
   }
   /**
    * Get name to use for the logger

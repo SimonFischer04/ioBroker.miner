@@ -1,25 +1,21 @@
 import * as utils from '@iobroker/adapter-core';
 import MinerAdapterDeviceManagement from './lib/MinerAdapterDeviceManagement';
-import {categoryKeys} from './lib/miner/model/Category';
-import {MinerManager} from './lib/miner/miner/MinerManager';
-import {
-    decryptDeviceSettings,
-    encryptDeviceSettings,
-    IOBrokerDeviceSettings, IOBrokerMinerSettings,
-    isMiner
-} from './miner/model/IOBrokerMinerSettings';
-import {Level} from './lib/miner/model/Level';
+import { categoryKeys } from './lib/miner/model/Category';
+import { MinerManager } from './lib/miner/miner/MinerManager';
+import type { IOBrokerDeviceSettings, IOBrokerMinerSettings } from './miner/model/IOBrokerMinerSettings';
+import { decryptDeviceSettings, encryptDeviceSettings, isMiner } from './miner/model/IOBrokerMinerSettings';
+import { Level } from './lib/miner/model/Level';
 import {
     getMinerFeatureFullId,
     MinerFeatureCategory,
     MinerFeatureKey,
-    minerFeatures
+    minerFeatures,
 } from './lib/miner/model/MinerFeature';
-import {createMiner} from './lib/miner/miner/MinerFactory';
-import {Logger} from './lib/miner/model/Logger';
-import {Miner} from './lib/miner/miner/Miner';
-import {MinerSettings} from './lib/miner/model/MinerSettings';
-import {MinerStats} from './lib/miner/model/MinerStats';
+import { createMiner } from './lib/miner/miner/MinerFactory';
+import { Logger } from './lib/miner/model/Logger';
+import type { Miner } from './lib/miner/miner/Miner';
+import type { MinerSettings } from './lib/miner/model/MinerSettings';
+import type { MinerStats } from './lib/miner/model/MinerStats';
 
 export class MinerAdapter extends utils.Adapter {
     private readonly deviceManagement: MinerAdapterDeviceManagement;
@@ -53,9 +49,9 @@ export class MinerAdapter extends utils.Adapter {
 
         // The adapters config (in the instance object everything under the attribute "native") is accessible via
         // this.config:
-        this.log.info('aconfig option1: ' + this.config.option1);
-        this.log.info('config option2: ' + this.config.option2);
-        console.log('testABC')
+        this.log.info(`aconfig option1: ${this.config.option1}`);
+        this.log.info(`config option2: ${this.config.option2}`);
+        console.log('testABC');
 
         // try to connect to already known devices
         await this.tryKnownDevices();
@@ -65,6 +61,8 @@ export class MinerAdapter extends utils.Adapter {
 
     /**
      * Is called when adapter shuts down - callback has to be called under any circumstances!
+     *
+     * @param callback
      */
     private async onUnload(callback: () => void): Promise<void> {
         try {
@@ -75,7 +73,7 @@ export class MinerAdapter extends utils.Adapter {
             }
 
             callback();
-        } catch (e) {
+        } catch {
             callback();
         }
     }
@@ -97,6 +95,9 @@ export class MinerAdapter extends utils.Adapter {
 
     /**
      * Is called if a subscribed state changes
+     *
+     * @param id
+     * @param state
      */
     private async onStateChange(id: string, state: ioBroker.State | null | undefined): Promise<void> {
         if (state) {
@@ -104,8 +105,9 @@ export class MinerAdapter extends utils.Adapter {
             this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
 
             // adapters usually should not process ack=true messages
-            if (state.ack)
-                return
+            if (state.ack) {
+                return;
+            }
 
             // example: miner.0.miner.d85ed30e24d3.control.running
             const parts = id.split('.');
@@ -143,7 +145,7 @@ export class MinerAdapter extends utils.Adapter {
                     } else {
                         await this.minerManager.stopMiner(deviceSettings.settings.id);
                     }
-                    await this.setState(id, {val: state.val, ack: true});
+                    await this.setState(id, { val: state.val, ack: true });
                     break;
                 }
 
@@ -180,9 +182,9 @@ export class MinerAdapter extends utils.Adapter {
                 type: 'folder',
                 common: {
                     // TODO: translate(key+"Folder") oda so
-                    name: key
+                    name: key,
                 },
-                native: {}
+                native: {},
             });
         }
     }
@@ -197,7 +199,8 @@ export class MinerAdapter extends utils.Adapter {
     }
 
     private async configureDeviceObject(settings: IOBrokerDeviceSettings): Promise<ioBroker.DeviceObject | undefined> {
-        if (!isMiner(settings)) { // TODO: pool support
+        if (!isMiner(settings)) {
+            // TODO: pool support
             this.log.error(`category ${settings.category} is not yet supported.`);
             return;
         }
@@ -209,9 +212,9 @@ export class MinerAdapter extends utils.Adapter {
         await this.extendObject(id, {
             type: 'device',
             common: {
-                name: settings.name || settings.settings.host
+                name: settings.name || settings.settings.host,
             },
-            native: encryptDeviceSettings(settings, (value) => this.encrypt(value))
+            native: encryptDeviceSettings(settings, value => this.encrypt(value)),
         });
 
         // always add empty state, so that getObjectAsync works
@@ -222,11 +225,11 @@ export class MinerAdapter extends utils.Adapter {
                 type: 'string',
                 read: true,
                 write: true,
-                expert: true
-            }
+                expert: true,
+            },
         });
 
-        const obj: ioBroker.DeviceObject = await this.getObjectAsync(id) as ioBroker.DeviceObject;
+        const obj: ioBroker.DeviceObject = (await this.getObjectAsync(id)) as ioBroker.DeviceObject;
         this.log.debug(`configureDeviceObject: ${JSON.stringify(obj)}`);
 
         return obj;
@@ -243,11 +246,11 @@ export class MinerAdapter extends utils.Adapter {
         await this.initDevice(obj);
     }
 
-
     public async updateDevice(settings: IOBrokerDeviceSettings): Promise<void> {
         // PS: don't just delDevice and addDevice, as this would lose all state history, ...
 
-        if (!isMiner(settings)) { // TODO: pool support
+        if (!isMiner(settings)) {
+            // TODO: pool support
             this.log.error(`category ${settings.category} is not yet supported.`);
             return;
         }
@@ -274,9 +277,12 @@ export class MinerAdapter extends utils.Adapter {
             return false;
         }
 
-        const settings: IOBrokerDeviceSettings = decryptDeviceSettings(obj.native as IOBrokerDeviceSettings, (value) => this.decrypt(value));
+        const settings: IOBrokerDeviceSettings = decryptDeviceSettings(obj.native as IOBrokerDeviceSettings, value =>
+            this.decrypt(value),
+        );
 
-        if (!isMiner(settings)) { // TODO: pool support
+        if (!isMiner(settings)) {
+            // TODO: pool support
             this.log.error(`deleteDevice category ${obj.native.category} not yet supported`);
             return false;
         }
@@ -286,7 +292,7 @@ export class MinerAdapter extends utils.Adapter {
             return false;
         }
 
-        await this.delObjectAsync(deviceId, {recursive: true});
+        await this.delObjectAsync(deviceId, { recursive: true });
 
         this.log.info(`${deviceId} deleted`);
         return true;
@@ -302,7 +308,9 @@ export class MinerAdapter extends utils.Adapter {
             this.log.debug(`tryCloseMiner: skipped miner close, because ${settings.settings.id} is disabled`);
 
             if (this.minerManager.hasMiner(settings.settings.id)) {
-                this.log.error(`tryCloseMiner: this should not happen, miner ${settings.settings.id} is disabled but still in minerManager`);
+                this.log.error(
+                    `tryCloseMiner: this should not happen, miner ${settings.settings.id} is disabled but still in minerManager`,
+                );
                 await this.minerManager.close(settings.settings.id);
             }
 
@@ -314,7 +322,9 @@ export class MinerAdapter extends utils.Adapter {
     }
 
     private async initDevice(device: ioBroker.DeviceObject): Promise<void> {
-        const settings: IOBrokerDeviceSettings = decryptDeviceSettings(device.native as IOBrokerDeviceSettings, (value) => this.decrypt(value));
+        const settings: IOBrokerDeviceSettings = decryptDeviceSettings(device.native as IOBrokerDeviceSettings, value =>
+            this.decrypt(value),
+        );
         this.log.info(`initialising device ${JSON.stringify(settings)}`);
 
         if (!isMiner(settings)) {
@@ -337,7 +347,11 @@ export class MinerAdapter extends utils.Adapter {
         });
     }
 
-    private async processNewStats(miner: Miner<MinerSettings>, settings: IOBrokerDeviceSettings, stats: MinerStats): Promise<void> {
+    private async processNewStats(
+        miner: Miner<MinerSettings>,
+        settings: IOBrokerDeviceSettings,
+        stats: MinerStats,
+    ): Promise<void> {
         for (const feature of miner.getSupportedFeatures()) {
             // TODO: cleanup, just filter for info features and then directly infer object id from there somehow
             // change MinerStates to Record<MinerFeatureKey, val>?
@@ -345,21 +359,21 @@ export class MinerAdapter extends utils.Adapter {
                 case MinerFeatureKey.rawStats: {
                     await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.rawStats), {
                         val: JSON.stringify(stats.raw),
-                        ack: true
+                        ack: true,
                     });
                     break;
                 }
                 case MinerFeatureKey.version: {
                     await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.version), {
                         val: stats.version,
-                        ack: true
+                        ack: true,
                     });
                     break;
                 }
                 case MinerFeatureKey.totalHashrate: {
                     await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.totalHashrate), {
                         val: stats.totalHashrate,
-                        ack: true
+                        ack: true,
                     });
                     break;
                 }
@@ -376,14 +390,14 @@ export class MinerAdapter extends utils.Adapter {
         await this.extendObject(`${this.getDeviceObjectId(settings)}.${MinerFeatureCategory.control}`, {
             type: 'channel',
             common: {
-                name: 'device controls'
+                name: 'device controls',
             },
         });
 
         await this.extendObject(`${this.getDeviceObjectId(settings)}.${MinerFeatureCategory.info}`, {
             type: 'channel',
             common: {
-                name: 'device information'
+                name: 'device information',
             },
         });
 
@@ -398,14 +412,15 @@ export class MinerAdapter extends utils.Adapter {
                     read: feature.readable,
                     write: feature.writable,
                     unit: feature.unit,
-                    expert: feature.advanced === true ? true : undefined // false needs to be passed in as undefined
+                    expert: feature.advanced === true ? true : undefined, // false needs to be passed in as undefined
                 },
             });
         }
     }
 
     private getDeviceObjectId(settings: IOBrokerDeviceSettings): string {
-        if (!isMiner(settings)) { // TODO: pool support
+        if (!isMiner(settings)) {
+            // TODO: pool support
             this.log.error(`category ${settings.category} is not yet supported.`);
             return '<unsupported>';
         }
@@ -442,8 +457,8 @@ export class MinerAdapter extends utils.Adapter {
                         this.log.error(message);
                         break;
                 }
-            }
-        })
+            },
+        });
     }
 }
 
