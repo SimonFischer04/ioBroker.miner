@@ -28,8 +28,9 @@ var import_IOBrokerMinerSettings = require("../miner/model/IOBrokerMinerSettings
 var import_MinerFactory = require("./miner/miner/MinerFactory");
 class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
   async getInstanceInfo() {
+    const baseInfo = await super.getInstanceInfo();
     const data = {
-      ...super.getInstanceInfo(),
+      ...baseInfo,
       actions: [
         {
           id: "refresh",
@@ -93,48 +94,52 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     };
     return data;
   }
-  async handleRefresh(_context) {
+  handleRefresh(_context) {
     this.adapter.log.info("handleRefresh");
     return { refresh: true };
   }
   async handleNewDevice(context) {
     this.adapter.log.info("handleNewDevice");
-    const settings = await this.showDeviceConfigurationForm(context, {
-      category: "miner",
-      settings: {
-        minerType: void 0,
-        id: crypto.randomUUID(),
-        host: "",
-        pollInterval: this.adapter.config.pollInterval,
-        claymore: {
-          minerType: "claymoreMiner",
+    const settings = await this.showDeviceConfigurationForm(
+      context,
+      {
+        category: "miner",
+        settings: {
+          minerType: void 0,
+          id: crypto.randomUUID(),
           host: "",
-          password: crypto.randomUUID(),
-          port: 3333
+          pollInterval: this.adapter.config.pollInterval,
+          claymore: {
+            minerType: "claymoreMiner",
+            host: "",
+            password: crypto.randomUUID(),
+            port: 3333
+          },
+          sg: {
+            minerType: "sgMiner",
+            host: "",
+            port: 4028
+          }
         },
-        sg: {
-          minerType: "sgMiner",
-          host: "",
-          port: 4028
-        }
+        name: "",
+        mac: "",
+        enabled: true
       },
-      name: "",
-      mac: "",
-      enabled: true
-    }, {
-      // TODO: improve this (by making IOBrokerMinerSettings generic?, ...)
-      en: "Add new device",
-      de: "Neues Ger\xE4t hinzuf\xFCgen",
-      ru: "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043D\u043E\u0432\u043E\u0435 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E",
-      pt: "Adicionar novo dispositivo",
-      nl: "Voeg nieuw apparaat toe",
-      fr: "Ajouter un nouvel appareil",
-      it: "Aggiungi nuovo dispositivo",
-      es: "Agregar nuevo dispositivo",
-      pl: "Dodaj nowe urz\u0105dzenie",
-      "zh-cn": "\u6DFB\u52A0\u65B0\u8BBE\u5907",
-      uk: "\u0414\u043E\u0434\u0430\u0442\u0438 \u043D\u043E\u0432\u0438\u0439 \u043F\u0440\u0438\u0441\u0442\u0440\u0456\u0439"
-    });
+      {
+        // TODO: improve this (by making IOBrokerMinerSettings generic?, ...)
+        en: "Add new device",
+        de: "Neues Ger\xE4t hinzuf\xFCgen",
+        ru: "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043D\u043E\u0432\u043E\u0435 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E",
+        pt: "Adicionar novo dispositivo",
+        nl: "Voeg nieuw apparaat toe",
+        fr: "Ajouter un nouvel appareil",
+        it: "Aggiungi nuovo dispositivo",
+        es: "Agregar nuevo dispositivo",
+        pl: "Dodaj nowe urz\u0105dzenie",
+        "zh-cn": "\u6DFB\u52A0\u65B0\u8BBE\u5907",
+        uk: "\u0414\u043E\u0434\u0430\u0442\u0438 \u043D\u043E\u0432\u0438\u0439 \u043F\u0440\u0438\u0441\u0442\u0440\u0456\u0439"
+      }
+    );
     this.adapter.log.debug(`handleNewDevice settings: ${JSON.stringify(settings)}`);
     if (settings === void 0) {
       return { refresh: false };
@@ -146,7 +151,9 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     var _a, _b, _c, _d, _e, _f, _g, _h;
     this.adapter.log.debug(`showDeviceConfigurationForm existingSettings: ${JSON.stringify(existingSettings)}`);
     if (!(0, import_IOBrokerMinerSettings.isMiner)(existingSettings)) {
-      this.adapter.log.error(`MinerAdapterDeviceManagement/showDeviceConfigurationForm existingSettings ${existingSettings} is not a miner.`);
+      this.adapter.log.error(
+        `MinerAdapterDeviceManagement/showDeviceConfigurationForm existingSettings ${existingSettings} is not a miner.`
+      );
       return void 0;
     }
     const result = await context.showForm(
@@ -257,17 +264,17 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             newLine: true,
             min: 100,
             label: {
-              "en": "poll interval",
+              en: "poll interval",
               // TODO: also fix translate in jsonConfig.json
-              "de": "Abrufintervall",
-              "ru": "\u0438\u043D\u0442\u0435\u0440\u0432\u0430\u043B",
-              "pt": "intervalo de polui\xE7\xE3o",
-              "nl": "poll-interval",
-              "fr": "intervalle de sondage",
-              "it": "intervallo di sondaggio",
-              "es": "intervalo de encuesta",
-              "pl": "przedzia\u0142 ankietowy",
-              "uk": "\u0456\u043D\u0442\u0435\u0440\u0432\u0430\u043B \u043E\u043F\u0438\u0442\u0443\u0432\u0430\u043D\u043D\u044F",
+              de: "Abrufintervall",
+              ru: "\u0438\u043D\u0442\u0435\u0440\u0432\u0430\u043B",
+              pt: "intervalo de polui\xE7\xE3o",
+              nl: "poll-interval",
+              fr: "intervalle de sondage",
+              it: "intervallo di sondaggio",
+              es: "intervalo de encuesta",
+              pl: "przedzia\u0142 ankietowy",
+              uk: "\u0456\u043D\u0442\u0435\u0440\u0432\u0430\u043B \u043E\u043F\u0438\u0442\u0443\u0432\u0430\u043D\u043D\u044F",
               "zh-cn": "\u6C11\u610F\u8C03\u67E5\u95F4\u9694"
             },
             tooltip: "interval to poll the device for new data"
@@ -278,16 +285,16 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             // type: 'password',
             newLine: true,
             label: {
-              "en": "password",
-              "de": "passwort",
-              "ru": "\u043F\u0430\u0440\u043E\u043B\u044C",
-              "pt": "senha",
-              "nl": "wachtwoord",
-              "fr": "mot de passe",
-              "it": "password",
-              "es": "contrase\xF1a",
-              "pl": "has\u0142o",
-              "uk": "\u0443\u0432\u0456\u0439\u0442\u0438",
+              en: "password",
+              de: "passwort",
+              ru: "\u043F\u0430\u0440\u043E\u043B\u044C",
+              pt: "senha",
+              nl: "wachtwoord",
+              fr: "mot de passe",
+              it: "password",
+              es: "contrase\xF1a",
+              pl: "has\u0142o",
+              uk: "\u0443\u0432\u0456\u0439\u0442\u0438",
               "zh-cn": "\u5BC6\u7801"
             },
             tooltip: "password used to connect to the device api. Adapter generates a random, secure and unique one for each device by default. But can of course be changed if needed."
@@ -296,16 +303,16 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             type: "checkbox",
             newLine: true,
             label: {
-              "en": "enabled",
-              "de": "aktiviert",
-              "ru": "\u0432\u043A\u043B\u044E\u0447\u0435\u043D",
-              "pt": "habilitado",
-              "nl": "ingeschakeld",
-              "fr": "activ\xE9",
-              "it": "abilitata",
-              "es": "habilitado",
-              "pl": "w\u0142\u0105czone",
-              "uk": "\u0443\u0432\u0456\u043C\u043A\u043D\u0443\u0442\u0438",
+              en: "enabled",
+              de: "aktiviert",
+              ru: "\u0432\u043A\u043B\u044E\u0447\u0435\u043D",
+              pt: "habilitado",
+              nl: "ingeschakeld",
+              fr: "activ\xE9",
+              it: "abilitata",
+              es: "habilitado",
+              pl: "w\u0142\u0105czone",
+              uk: "\u0443\u0432\u0456\u043C\u043A\u043D\u0443\u0442\u0438",
               "zh-cn": "\u542F\u7528"
             },
             tooltip: "whether the device is enabled or not. Disabled devices will do nothing (not get polled, control does not work, ...). Useful if you f.e. shut one off temporarily."
@@ -345,7 +352,9 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     if (result.host !== "") {
     }
     if (!(0, import_IOBrokerMinerSettings.isMiner)({ category: result.category })) {
-      this.log.error(`MinerAdapterDeviceManagement/handleNewDevice category ${result.category} is not yet supported.`);
+      this.log.error(
+        `MinerAdapterDeviceManagement/handleNewDevice category ${result.category} is not yet supported.`
+      );
       return void 0;
     }
     let minerSettings = {
@@ -449,7 +458,9 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         break;
       }
       default: {
-        this.adapter.log.error(`MinerAdapterDeviceManagement/handleNewDevice minerType ${minerSettings.minerType} not yet supported`);
+        this.adapter.log.error(
+          `MinerAdapterDeviceManagement/handleNewDevice minerType ${minerSettings.minerType} not yet supported`
+        );
         return void 0;
       }
     }
@@ -465,8 +476,6 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
   async listDevices() {
     const devices = await this.adapter.getDevicesAsync();
     const arrDevices = [];
-    console.error("alistDevices");
-    debugger;
     for (const device of devices) {
       arrDevices.push({
         id: device._id,
@@ -547,9 +556,8 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         uk: `\u041D\u0435 \u0432\u0434\u0430\u043B\u043E\u0441\u044F \u0432\u0438\u0434\u0430\u043B\u0438\u0442\u0438 \u043F\u0440\u0438\u0441\u0442\u0440\u0456\u0439 ${id}`
       });
       return { refresh: false };
-    } else {
-      return { refresh: true };
     }
+    return { refresh: true };
   }
   async handleSettingsDevice(id, context) {
     const obj = await this.adapter.getObjectAsync(id);
@@ -557,7 +565,10 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
       this.adapter.log.error(`MinerAdapterDeviceManagement/handleSettingsDevice object ${id} not found`);
       return { refresh: false };
     }
-    const currentSettings = (0, import_IOBrokerMinerSettings.decryptDeviceSettings)(obj.native, (value) => this.adapter.decrypt(value));
+    const currentSettings = (0, import_IOBrokerMinerSettings.decryptDeviceSettings)(
+      obj.native,
+      (value) => this.adapter.decrypt(value)
+    );
     const newSettings = await this.showDeviceConfigurationForm(context, currentSettings, {
       en: "Settings",
       de: "Einstellungen",
@@ -593,7 +604,10 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
       this.log.error(error);
       return { error };
     }
-    const settings = (0, import_IOBrokerMinerSettings.decryptDeviceSettings)(obj.native, (value) => this.adapter.decrypt(value));
+    const settings = (0, import_IOBrokerMinerSettings.decryptDeviceSettings)(
+      obj.native,
+      (value) => this.adapter.decrypt(value)
+    );
     if (!(0, import_IOBrokerMinerSettings.isMiner)(settings)) {
       const error = `getDeviceDetails category ${obj.native.category} not yet supported`;
       this.log.error(error);

@@ -25,21 +25,26 @@ var import_Miner = require("./Miner");
 var import_delay = require("../../utils/delay");
 class PollingMiner extends import_Miner.Miner {
   pollInterval;
-  async init() {
+  init() {
     this.logger.info(`initializing with interval ${this.settings.pollInterval}`);
     if (!this.settings.pollInterval || this.settings.pollInterval < 100) {
       this.logger.error(`pollInterval >= 100 required. got: ${this.settings.pollInterval}`);
-      return;
+      return Promise.resolve();
     }
-    this.pollInterval = (0, import_delay.asyncInterval)(async () => {
-      this.logger.debug("next poll interval time reached. calling fetchData()");
-      try {
-        const stats = await this.fetchStats();
-        await this.onStats(stats);
-      } catch (e) {
-        this.logger.error(`fetchStats failed: ${e}`);
-      }
-    }, this.settings.pollInterval, true);
+    this.pollInterval = (0, import_delay.asyncInterval)(
+      async () => {
+        this.logger.debug("next poll interval time reached. calling fetchData()");
+        try {
+          const stats = await this.fetchStats();
+          await this.onStats(stats);
+        } catch (e) {
+          this.logger.error(`fetchStats failed: ${e}`);
+        }
+      },
+      this.settings.pollInterval,
+      true
+    );
+    return Promise.resolve();
   }
   async close() {
     var _a;

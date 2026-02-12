@@ -29,14 +29,23 @@ var SGMinerCommand = /* @__PURE__ */ ((SGMinerCommand2) => {
   return SGMinerCommand2;
 })(SGMinerCommand || {});
 class SGMiner extends import_PollingMiner.PollingMiner {
+  /**
+   *
+   */
   async init() {
     await super.init();
     return Promise.resolve();
   }
+  /**
+   *
+   */
   start() {
     this.logger.error("start() not (yet) implemented");
     return Promise.resolve();
   }
+  /**
+   *
+   */
   async fetchStats() {
     try {
       const response = await this.sendCommand("summary+coin" /* stats */, "", true);
@@ -47,28 +56,42 @@ class SGMiner extends import_PollingMiner.PollingMiner {
       return Promise.reject(e);
     }
   }
+  /**
+   *
+   */
   stop() {
     this.logger.error("stop() not (yet) implemented");
     return Promise.resolve();
   }
+  /**
+   *
+   */
   getSupportedFeatures() {
-    return [
-      import_MinerFeature.MinerFeatureKey.rawStats
-    ];
+    return [import_MinerFeature.MinerFeatureKey.rawStats];
   }
+  /**
+   *
+   */
   getLoggerName() {
     return `${super.getLoggerName()}SGMiner[${this.settings.host}:${this.settings.port}]`;
   }
+  /**
+   *
+   */
   getCliArgs() {
-    return [
-      `--api_listen=0.0.0.0:${this.settings.port}`
-    ];
+    return [`--api_listen=0.0.0.0:${this.settings.port}`];
   }
   async sendCommand(command, parameter = "", expectResponse = true) {
-    return (0, import_socket_utils.sendSocketCommand)(this.logger, this.settings.host, this.settings.port, {
-      command,
-      parameter
-    }, expectResponse);
+    return (0, import_socket_utils.sendSocketCommand)(
+      this.logger,
+      this.settings.host,
+      this.settings.port,
+      {
+        command,
+        parameter
+      },
+      expectResponse
+    );
   }
 }
 // Annotate the CommonJS export names for ESM import in node:

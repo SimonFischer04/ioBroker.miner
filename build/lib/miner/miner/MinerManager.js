@@ -26,6 +26,9 @@ var import_Logger = require("../model/Logger");
 const logger = import_Logger.Logger.getLogger("MinerManager");
 class MinerManager {
   miners = [];
+  /**
+   *
+   */
   async init(settings) {
     logger.info(`initializing miner with id ${settings.id}`);
     const miner = (0, import_MinerFactory.createMiner)(settings);
@@ -33,6 +36,9 @@ class MinerManager {
     await miner.init();
     return miner;
   }
+  /**
+   *
+   */
   async close(id) {
     logger.info(`unloading miner with id ${id}`);
     if (id == null) {
@@ -47,6 +53,9 @@ class MinerManager {
     await miner.close();
     this.miners.splice(this.miners.indexOf(miner), 1);
   }
+  /**
+   *
+   */
   async closeAll() {
     logger.log("unloading all miners");
     for (const miner of this.miners) {
@@ -54,12 +63,21 @@ class MinerManager {
     }
     this.miners.splice(0, this.miners.length);
   }
+  /**
+   *
+   */
   getMinerById(id) {
     return this.miners.find((miner) => miner.settings.id === id);
   }
+  /**
+   *
+   */
   hasMiner(id) {
     return this.getMinerById(id) != null;
   }
+  /**
+   *
+   */
   async startMiner(id) {
     logger.info(`starting miner with id ${id}`);
     const miner = this.getMinerById(id);
@@ -68,6 +86,9 @@ class MinerManager {
     }
     await miner.start();
   }
+  /**
+   *
+   */
   async stopMiner(id) {
     logger.info(`stopping miner with id ${id}`);
     const miner = this.getMinerById(id);

@@ -28,7 +28,8 @@ async function sendSocketCommand(logger, host, port, data, expectResponse = true
   const socket = new import_node_net.Socket();
   return new Promise((resolve, reject) => {
     socket.on("connect", () => {
-      const cmd = JSON.stringify(data) + "\n";
+      const cmd = `${JSON.stringify(data)}
+`;
       logger.debug(`connected, sending cmd now ...: ${cmd}`);
       socket.write(cmd, (err) => {
         if (err) {

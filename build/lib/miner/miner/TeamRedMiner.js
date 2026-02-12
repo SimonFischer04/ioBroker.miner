@@ -28,6 +28,9 @@ var import_array_utils = require("../../utils/array-utils");
 class TeamRedMiner extends import_PollingMiner.PollingMiner {
   claymoreMiner;
   sgMiner;
+  /**
+   *
+   */
   constructor(settings) {
     super(settings);
     if (settings.pollInterval !== settings.sg.pollInterval || settings.pollInterval !== settings.claymore.pollInterval) {
@@ -36,12 +39,21 @@ class TeamRedMiner extends import_PollingMiner.PollingMiner {
     this.claymoreMiner = new import_ClaymoreMiner.ClaymoreMiner(settings.claymore);
     this.sgMiner = new import_SGMiner.SGMiner(settings.sg);
   }
+  /**
+   *
+   */
   async init() {
     await super.init();
   }
+  /**
+   *
+   */
   async start() {
     await this.claymoreMiner.start();
   }
+  /**
+   *
+   */
   async fetchStats() {
     const claymoreStats = await this.claymoreMiner.fetchStats();
     const sgStats = await this.sgMiner.fetchStats();
@@ -54,23 +66,29 @@ class TeamRedMiner extends import_PollingMiner.PollingMiner {
       totalHashrate: claymoreStats.totalHashrate
     };
   }
+  /**
+   *
+   */
   async stop() {
     await this.claymoreMiner.stop();
   }
+  /**
+   *
+   */
   async close() {
     await this.claymoreMiner.close();
   }
+  /**
+   *
+   */
   getSupportedFeatures() {
-    return (0, import_array_utils.distinct)([
-      ...this.claymoreMiner.getSupportedFeatures(),
-      ...this.sgMiner.getSupportedFeatures()
-    ]);
+    return (0, import_array_utils.distinct)([...this.claymoreMiner.getSupportedFeatures(), ...this.sgMiner.getSupportedFeatures()]);
   }
+  /**
+   *
+   */
   getCliArgs() {
-    return [
-      ...this.claymoreMiner.getCliArgs(),
-      ...this.sgMiner.getCliArgs()
-    ];
+    return [...this.claymoreMiner.getCliArgs(), ...this.sgMiner.getCliArgs()];
   }
 }
 // Annotate the CommonJS export names for ESM import in node:

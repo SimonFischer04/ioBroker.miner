@@ -45,7 +45,11 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
   }
   async fetchStats() {
     try {
-      const response = await this.sendCommand("miner_getstat2" /* minerGetStat2 */, void 0, true);
+      const response = await this.sendCommand(
+        "miner_getstat2" /* minerGetStat2 */,
+        void 0,
+        true
+      );
       const parsedResponse = this.parseMinerGetStat2(response);
       this.logger.debug(`parsed response: ${JSON.stringify(parsedResponse)}`);
       return {
@@ -72,19 +76,22 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
     return `${super.getLoggerName()}ClaymoreMiner[${this.settings.host}:${this.settings.port}]`;
   }
   getCliArgs() {
-    return [
-      `--cm_api_listen=0.0.0.0:${this.settings.port}`,
-      `--cm_api_password=${this.settings.password}`
-    ];
+    return [`--cm_api_listen=0.0.0.0:${this.settings.port}`, `--cm_api_password=${this.settings.password}`];
   }
   async sendCommand(method, params, expectResponse = true) {
-    return await (0, import_socket_utils.sendSocketCommand)(this.logger, this.settings.host, this.settings.port, {
-      id: 0,
-      jsonrpc: "2.0",
-      psw: this.settings.password,
-      method,
-      params
-    }, expectResponse);
+    return await (0, import_socket_utils.sendSocketCommand)(
+      this.logger,
+      this.settings.host,
+      this.settings.port,
+      {
+        id: 0,
+        jsonrpc: "2.0",
+        psw: this.settings.password,
+        method,
+        params
+      },
+      expectResponse
+    );
   }
   // public to allow unit tests
   parseMinerGetStat1(response) {

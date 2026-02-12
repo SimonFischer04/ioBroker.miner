@@ -27,7 +27,7 @@ async function sendGenericHTTPRequest(protocol, host, port, password, logger, en
       method: httpMethod,
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${password}`
+        Authorization: `Bearer ${password}`
       },
       body: body ? JSON.stringify(body) : null
     });

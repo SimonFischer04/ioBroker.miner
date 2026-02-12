@@ -36,13 +36,22 @@ var XMRigJsonRPCMethod = /* @__PURE__ */ ((XMRigJsonRPCMethod2) => {
   return XMRigJsonRPCMethod2;
 })(XMRigJsonRPCMethod || {});
 class XMRigMiner extends import_PollingMiner.PollingMiner {
+  /**
+   *
+   */
   async init() {
     await super.init();
     return Promise.resolve();
   }
+  /**
+   *
+   */
   async start() {
     await this.sendJSONRPCCommand("resume" /* resume */);
   }
+  /**
+   *
+   */
   async fetchStats() {
     const responseBody = await this.sendHTTPRequest("2/summary" /* summary */, "GET");
     return {
@@ -51,9 +60,15 @@ class XMRigMiner extends import_PollingMiner.PollingMiner {
       totalHashrate: responseBody.hashrate.total[0]
     };
   }
+  /**
+   *
+   */
   async stop() {
     await this.sendJSONRPCCommand("pause" /* pause */);
   }
+  /**
+   *
+   */
   getSupportedFeatures() {
     return [
       import_MinerFeature.MinerFeatureKey.running,
@@ -62,9 +77,15 @@ class XMRigMiner extends import_PollingMiner.PollingMiner {
       import_MinerFeature.MinerFeatureKey.totalHashrate
     ];
   }
+  /**
+   *
+   */
   getLoggerName() {
     return `${super.getLoggerName()}XMRigMiner[${this.settings.host}:${this.settings.port}]`;
   }
+  /**
+   *
+   */
   getCliArgs() {
     return [
       "--http-host ::",
@@ -84,7 +105,16 @@ class XMRigMiner extends import_PollingMiner.PollingMiner {
     }
   }
   async sendHTTPRequest(endpoint, httpMethod, body) {
-    return (0, import_http_utils.sendGenericHTTPRequest)("http", this.settings.host, this.settings.port, this.settings.password, this.logger, endpoint, httpMethod, body);
+    return (0, import_http_utils.sendGenericHTTPRequest)(
+      "http",
+      this.settings.host,
+      this.settings.port,
+      this.settings.password,
+      this.logger,
+      endpoint,
+      httpMethod,
+      body
+    );
   }
 }
 // Annotate the CommonJS export names for ESM import in node:

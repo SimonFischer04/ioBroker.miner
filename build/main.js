@@ -60,14 +60,16 @@ class MinerAdapter extends utils.Adapter {
     this.setupMinerLib();
     await this.setState("info.connection", false, true);
     await this.createBasicObjectStructure();
-    this.log.info("aconfig option1: " + this.config.option1);
-    this.log.info("config option2: " + this.config.option2);
+    this.log.info(`aconfig option1: ${this.config.option1}`);
+    this.log.info(`config option2: ${this.config.option2}`);
     console.log("testABC");
     await this.tryKnownDevices();
     this.subscribeStates("miner.*.control.*");
   }
   /**
    * Is called when adapter shuts down - callback has to be called under any circumstances!
+   *
+   * @param callback
    */
   async onUnload(callback) {
     try {
@@ -76,7 +78,7 @@ class MinerAdapter extends utils.Adapter {
         await this.deviceManagement.close();
       }
       callback();
-    } catch (e) {
+    } catch (_e) {
       callback();
     }
   }
@@ -96,12 +98,16 @@ class MinerAdapter extends utils.Adapter {
   // }
   /**
    * Is called if a subscribed state changes
+   *
+   * @param id
+   * @param state
    */
   async onStateChange(id, state) {
     if (state) {
       this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
-      if (state.ack)
+      if (state.ack) {
         return;
+      }
       const parts = id.split(".");
       if (parts.length < 5) {
         this.log.error(`invalid state id: ${id}`);
@@ -235,7 +241,10 @@ class MinerAdapter extends utils.Adapter {
       this.log.error(`deleteDevice device ${deviceId} not found`);
       return false;
     }
-    const settings = (0, import_IOBrokerMinerSettings.decryptDeviceSettings)(obj.native, (value) => this.decrypt(value));
+    const settings = (0, import_IOBrokerMinerSettings.decryptDeviceSettings)(
+      obj.native,
+      (value) => this.decrypt(value)
+    );
     if (!(0, import_IOBrokerMinerSettings.isMiner)(settings)) {
       this.log.error(`deleteDevice category ${obj.native.category} not yet supported`);
       return false;
@@ -256,7 +265,9 @@ class MinerAdapter extends utils.Adapter {
     if (!settings.enabled) {
       this.log.debug(`tryCloseMiner: skipped miner close, because ${settings.settings.id} is disabled`);
       if (this.minerManager.hasMiner(settings.settings.id)) {
-        this.log.error(`tryCloseMiner: this should not happen, miner ${settings.settings.id} is disabled but still in minerManager`);
+        this.log.error(
+          `tryCloseMiner: this should not happen, miner ${settings.settings.id} is disabled but still in minerManager`
+        );
         await this.minerManager.close(settings.settings.id);
       }
       return true;
@@ -265,7 +276,10 @@ class MinerAdapter extends utils.Adapter {
     return true;
   }
   async initDevice(device) {
-    const settings = (0, import_IOBrokerMinerSettings.decryptDeviceSettings)(device.native, (value) => this.decrypt(value));
+    const settings = (0, import_IOBrokerMinerSettings.decryptDeviceSettings)(
+      device.native,
+      (value) => this.decrypt(value)
+    );
     this.log.info(`initialising device ${JSON.stringify(settings)}`);
     if (!(0, import_IOBrokerMinerSettings.isMiner)(settings)) {
       this.log.error(`tryKnownDevices category ${settings.category} not yet supported`);

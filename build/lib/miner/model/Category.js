@@ -21,10 +21,7 @@ __export(Category_exports, {
   categoryKeys: () => categoryKeys
 });
 module.exports = __toCommonJS(Category_exports);
-const categoryKeys = [
-  "miner",
-  "pool"
-];
+const categoryKeys = ["miner", "pool"];
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   categoryKeys

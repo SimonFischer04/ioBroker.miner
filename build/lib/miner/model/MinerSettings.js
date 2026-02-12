@@ -21,14 +21,7 @@ __export(MinerSettings_exports, {
   minerTypeKeys: () => minerTypeKeys
 });
 module.exports = __toCommonJS(MinerSettings_exports);
-const minerTypeKeys = [
-  "teamRedMiner",
-  "claymoreMiner",
-  "sgMiner",
-  "xmRig",
-  "iceRiverOcMiner",
-  "bosMiner"
-];
+const minerTypeKeys = ["teamRedMiner", "claymoreMiner", "sgMiner", "xmRig", "iceRiverOcMiner", "bosMiner"];
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   minerTypeKeys
