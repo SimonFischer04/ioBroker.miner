@@ -91,7 +91,7 @@ async function sendRawSocketCommand(logger, host, port, command, expectResponse 
         if (err) {
           logger.error(err.message);
           handled = true;
-          reject(err.message);
+          reject(`Failed to write command "${command}": ${err.message}`);
         } else {
           if (!expectResponse) {
             handled = true;
@@ -101,9 +101,9 @@ async function sendRawSocketCommand(logger, host, port, command, expectResponse 
       });
     });
     socket.on("timeout", () => {
-      logger.warn("socket timeout");
+      logger.warn(`socket timeout for command: ${command}`);
       handled = true;
-      reject("socket timeout");
+      reject(`socket timeout for command: ${command}`);
     });
     socket.on("data", (data) => {
       logger.debug(`received: ${data.toString()}`);

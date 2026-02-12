@@ -121,7 +121,7 @@ export async function sendRawSocketCommand<T = void>(
                 if (err) {
                     logger.error(err.message);
                     handled = true;
-                    reject(err.message);
+                    reject(`Failed to write command "${command}": ${err.message}`);
                 } else {
                     if (!expectResponse) {
                         handled = true;
@@ -132,9 +132,9 @@ export async function sendRawSocketCommand<T = void>(
         });
 
         socket.on('timeout', () => {
-            logger.warn('socket timeout');
+            logger.warn(`socket timeout for command: ${command}`);
             handled = true;
-            reject('socket timeout');
+            reject(`socket timeout for command: ${command}`);
         });
 
         socket.on('data', (data) => {
@@ -157,7 +157,8 @@ export async function sendRawSocketCommand<T = void>(
         });
 
         socket.on('close', () => {
-        }); // discard
+            // Socket close is handled by finally block
+        });
 
         socket.on('error', (err) => {
             logger.error(err.message);
