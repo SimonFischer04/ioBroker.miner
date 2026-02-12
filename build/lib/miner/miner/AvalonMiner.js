@@ -44,13 +44,14 @@ var AvalonControlCommand = /* @__PURE__ */ ((AvalonControlCommand2) => {
   AvalonControlCommand2["reboot"] = "ascset|0,reboot,0";
   return AvalonControlCommand2;
 })(AvalonControlCommand || {});
+const TIMESTAMP_OFFSET_SECONDS = 5;
 class AvalonMiner extends import_PollingMiner.PollingMiner {
   async init() {
     await super.init();
     return Promise.resolve();
   }
   async start() {
-    const timestamp = Math.floor(Date.now() / 1e3) + 5;
+    const timestamp = Math.floor(Date.now() / 1e3) + TIMESTAMP_OFFSET_SECONDS;
     await this.sendControlCommand(`ascset|0,softon,1:${timestamp}`);
   }
   async fetchStats() {
@@ -72,7 +73,7 @@ class AvalonMiner extends import_PollingMiner.PollingMiner {
     }
   }
   async stop() {
-    const timestamp = Math.floor(Date.now() / 1e3) + 5;
+    const timestamp = Math.floor(Date.now() / 1e3) + TIMESTAMP_OFFSET_SECONDS;
     await this.sendControlCommand(`ascset|0,softoff,1:${timestamp}`);
   }
   /**

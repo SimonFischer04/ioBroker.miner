@@ -176,7 +176,7 @@ export async function sendRawSocketCommand<T = void>(
                 handled = true;
                 reject(msg);
             }
-        }, 3000)
+        }, 3000);
     }).finally(() => {
         socket.end();
         socket.destroy();

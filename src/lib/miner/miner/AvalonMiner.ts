@@ -27,6 +27,10 @@ enum AvalonControlCommand {
     reboot = 'ascset|0,reboot,0'
 }
 
+// Timestamp offset in seconds for Avalon soft on/off commands
+// The timestamp must be slightly in the future for the command to be accepted
+const TIMESTAMP_OFFSET_SECONDS = 5;
+
 export class AvalonMiner extends PollingMiner<AvalonMinerSettings> {
     public override async init(): Promise<void> {
         await super.init();
@@ -37,7 +41,7 @@ export class AvalonMiner extends PollingMiner<AvalonMinerSettings> {
 
     public override async start(): Promise<void> {
         // Wake up from standby mode using softon command with timestamp
-        const timestamp = Math.floor(Date.now() / 1000) + 5;
+        const timestamp = Math.floor(Date.now() / 1000) + TIMESTAMP_OFFSET_SECONDS;
         await this.sendControlCommand(`ascset|0,softon,1:${timestamp}`);
     }
 
@@ -64,7 +68,7 @@ export class AvalonMiner extends PollingMiner<AvalonMinerSettings> {
 
     public override async stop(): Promise<void> {
         // Send to standby mode using softoff command with timestamp
-        const timestamp = Math.floor(Date.now() / 1000) + 5;
+        const timestamp = Math.floor(Date.now() / 1000) + TIMESTAMP_OFFSET_SECONDS;
         await this.sendControlCommand(`ascset|0,softoff,1:${timestamp}`);
     }
 
