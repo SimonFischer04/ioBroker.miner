@@ -56,7 +56,7 @@ export class MinerAdapter extends utils.Adapter {
         // try to connect to already known devices
         await this.tryKnownDevices();
 
-        this.subscribeStates('miner.*.control.*');
+        this.subscribeStates('control.*');
     }
 
     /**
