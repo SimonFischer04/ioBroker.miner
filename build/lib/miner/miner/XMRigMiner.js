@@ -101,7 +101,7 @@ class XMRigMiner extends import_PollingMiner.PollingMiner {
     if (responseBody.result.status !== "OK") {
       const error = `Error sending JSON-RPC command: ${JSON.stringify(responseBody)}`;
       this.logger.error(error);
-      return Promise.reject(error);
+      return Promise.reject(new Error(error));
     }
   }
   async sendHTTPRequest(endpoint, httpMethod, body) {

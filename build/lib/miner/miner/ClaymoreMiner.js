@@ -58,7 +58,7 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
         totalHashrate: parsedResponse.ethTotal.hashrate * 1e3
       };
     } catch (e) {
-      return Promise.reject(e);
+      return Promise.reject(e instanceof Error ? e : new Error(String(e)));
     }
   }
   async stop() {

@@ -34,12 +34,12 @@ async function sendGenericHTTPRequest(protocol, host, port, password, logger, en
     if (response.status !== 200) {
       const error = `Error sending JSON-RPC command: ${response.statusText}`;
       logger.error(error);
-      return Promise.reject(error);
+      return Promise.reject(new Error(error));
     }
     return await response.json();
   } catch (e) {
-    logger.error(`Error sending HTTP request: ${e}`);
-    return Promise.reject(e);
+    logger.error(`Error sending HTTP request: ${String(e)}`);
+    return Promise.reject(e instanceof Error ? e : new Error(String(e)));
   }
 }
 // Annotate the CommonJS export names for ESM import in node:

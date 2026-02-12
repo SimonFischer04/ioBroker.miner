@@ -38,7 +38,7 @@ class PollingMiner extends import_Miner.Miner {
           const stats = await this.fetchStats();
           await this.onStats(stats);
         } catch (e) {
-          this.logger.error(`fetchStats failed: ${e}`);
+          this.logger.error(`fetchStats failed: ${String(e)}`);
         }
       },
       this.settings.pollInterval,

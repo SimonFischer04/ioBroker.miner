@@ -34,7 +34,7 @@ async function sendSocketCommand(logger, host, port, data, expectResponse = true
       socket.write(cmd, (err) => {
         if (err) {
           logger.error(err.message);
-          reject(err.message);
+          reject(new Error(err.message));
         } else {
           if (!expectResponse) {
             resolve(void 0);
@@ -44,7 +44,7 @@ async function sendSocketCommand(logger, host, port, data, expectResponse = true
     });
     socket.on("timeout", () => {
       logger.warn("socket timeout");
-      reject("socket timeout");
+      reject(new Error("socket timeout"));
     });
     socket.on("data", (data2) => {
       logger.debug(`received: ${data2.toString()}`);
@@ -53,16 +53,16 @@ async function sendSocketCommand(logger, host, port, data, expectResponse = true
         const d = JSON.parse(jsonString);
         resolve(d);
       } catch (e) {
-        const errMsg = `Failed to parse JSON: ${e}`;
+        const errMsg = `Failed to parse JSON: ${String(e)}`;
         logger.error(errMsg);
-        reject(errMsg);
+        reject(new Error(errMsg));
       }
     });
     socket.on("close", () => {
     });
     socket.on("error", (err) => {
       logger.error(err.message);
-      reject(`socket error: ${err.message}`);
+      reject(new Error(`socket error: ${err.message}`));
     });
     socket.setTimeout(3e3);
     socket.connect(port, host);
@@ -70,7 +70,7 @@ async function sendSocketCommand(logger, host, port, data, expectResponse = true
       if (!handled) {
         const msg = `timeout handling socket command: ${JSON.stringify(data)}. maybe the password is wrong?`;
         logger.warn(msg);
-        reject(msg);
+        reject(new Error(msg));
       }
     }, 3e3);
   }).finally(() => {

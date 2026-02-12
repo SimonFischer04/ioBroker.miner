@@ -152,7 +152,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     this.adapter.log.debug(`showDeviceConfigurationForm existingSettings: ${JSON.stringify(existingSettings)}`);
     if (!(0, import_IOBrokerMinerSettings.isMiner)(existingSettings)) {
       this.adapter.log.error(
-        `MinerAdapterDeviceManagement/showDeviceConfigurationForm existingSettings ${existingSettings} is not a miner.`
+        `MinerAdapterDeviceManagement/showDeviceConfigurationForm existingSettings ${JSON.stringify(existingSettings)} is not a miner.`
       );
       return void 0;
     }
@@ -621,7 +621,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         items: {
           name: {
             type: "text",
-            label: `<b>Name:</b> ${obj.common.name}`,
+            label: `<b>Name:</b> ${typeof obj.common.name === "string" ? obj.common.name : JSON.stringify(obj.common.name)}`,
             newLine: true,
             sm: 12,
             disabled: "true"
