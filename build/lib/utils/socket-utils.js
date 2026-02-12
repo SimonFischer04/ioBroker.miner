@@ -18,6 +18,7 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var socket_utils_exports = {};
 __export(socket_utils_exports, {
+  sendRawSocketCommand: () => sendRawSocketCommand,
   sendSocketCommand: () => sendSocketCommand
 });
 module.exports = __toCommonJS(socket_utils_exports);
@@ -78,8 +79,65 @@ async function sendSocketCommand(logger, host, port, data, expectResponse = true
     socket.destroy();
   });
 }
+async function sendRawSocketCommand(logger, host, port, command, expectResponse = false) {
+  logger.debug(`sendRawCommand: ${command}`);
+  let handled = false;
+  const socket = new import_node_net.Socket();
+  return new Promise((resolve, reject) => {
+    socket.on("connect", () => {
+      const cmd = command + "\n";
+      logger.debug(`connected, sending raw cmd now ...: ${cmd}`);
+      socket.write(cmd, (err) => {
+        if (err) {
+          logger.error(err.message);
+          reject(err.message);
+        } else {
+          if (!expectResponse) {
+            resolve(void 0);
+          }
+        }
+      });
+    });
+    socket.on("timeout", () => {
+      logger.warn("socket timeout");
+      reject("socket timeout");
+    });
+    socket.on("data", (data) => {
+      logger.debug(`received: ${data.toString()}`);
+      try {
+        const jsonString = data.toString().replace(/[^\x00-\x7F]/g, "").trim().replace(/[^}\]]*$/, "");
+        const d = JSON.parse(jsonString);
+        resolve(d);
+      } catch (e) {
+        const errMsg = `Failed to parse JSON: ${e}`;
+        logger.error(errMsg);
+        reject(errMsg);
+      }
+    });
+    socket.on("close", () => {
+    });
+    socket.on("error", (err) => {
+      logger.error(err.message);
+      reject(`socket error: ${err.message}`);
+    });
+    socket.setTimeout(3e3);
+    socket.connect(port, host);
+    setTimeout(() => {
+      if (!handled) {
+        const msg = `timeout handling raw socket command: ${command}`;
+        logger.warn(msg);
+        reject(msg);
+      }
+    }, 3e3);
+  }).finally(() => {
+    handled = true;
+    socket.end();
+    socket.destroy();
+  });
+}
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  sendRawSocketCommand,
   sendSocketCommand
 });
 //# sourceMappingURL=socket-utils.js.map

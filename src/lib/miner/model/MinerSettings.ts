@@ -4,7 +4,8 @@ export const minerTypeKeys = [
     'sgMiner',
     'xmRig',
     'iceRiverOcMiner',
-    'bosMiner'
+    'bosMiner',
+    'avalonMiner'
 ]
 
 export type MinerType = (typeof minerTypeKeys)[number];
@@ -53,5 +54,10 @@ export interface IceRiverOcMinerSettings extends PollingMinerSettings {
 
 export interface BOSMinerSettings extends PollingMinerSettings {
     minerType: (typeof minerTypeKeys)[5];
+    port: number;
+}
+
+export interface AvalonMinerSettings extends PollingMinerSettings {
+    minerType: (typeof minerTypeKeys)[6];
     port: number;
 }

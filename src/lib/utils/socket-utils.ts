@@ -89,3 +89,90 @@ export async function sendSocketCommand<T = void>(
         socket.destroy();
     });
 }
+
+/**
+ * Utility function to send a raw string command to a socket server
+ * (connection is closed after the response is received or after a timeout)
+ * Used for Avalon ascset commands that don't use JSON format
+ *
+ * @param logger - logger to use
+ * @param host - host to connect to
+ * @param port - port to connect to
+ * @param command - raw command string to send
+ * @param expectResponse - whether to expect a response
+ */
+export async function sendRawSocketCommand<T = void>(
+    logger: Logger,
+    host: string,
+    port: number,
+    command: string,
+    expectResponse: boolean = false
+): Promise<T> {
+    logger.debug(`sendRawCommand: ${command}`);
+
+    let handled = false;
+    const socket: Socket = new Socket();
+
+    return new Promise<T>((resolve, reject) => {
+        socket.on('connect', () => {
+            const cmd = command + '\n';
+            logger.debug(`connected, sending raw cmd now ...: ${cmd}`);
+            socket.write(cmd, (err) => {
+                if (err) {
+                    logger.error(err.message);
+                    reject(err.message);
+                } else {
+                    if (!expectResponse) {
+                        resolve(undefined as T);
+                    }
+                }
+            });
+        });
+
+        socket.on('timeout', () => {
+            logger.warn('socket timeout');
+            reject('socket timeout');
+        });
+
+        socket.on('data', (data) => {
+            logger.debug(`received: ${data.toString()}`);
+            try {
+                const jsonString = data.toString()
+                    .replace(/[^\x00-\x7F]/g, '')
+                    .trim()
+                    .replace(/[^}\]]*$/, '');
+
+                const d = JSON.parse(jsonString);
+                resolve(d as T);
+            } catch (e) {
+                const errMsg = `Failed to parse JSON: ${e}`;
+                logger.error(errMsg);
+                reject(errMsg);
+            }
+        });
+
+        socket.on('close', () => {
+        }); // discard
+
+        socket.on('error', (err) => {
+            logger.error(err.message);
+            reject(`socket error: ${err.message}`);
+        });
+
+        socket.setTimeout(3000);
+        socket.connect(port, host);
+
+        // socket timeout alone does is not enough
+        setTimeout(() => {
+            if (!handled) {
+                const msg = `timeout handling raw socket command: ${command}`;
+                logger.warn(msg);
+                reject(msg);
+            }
+        }, 3000)
+    }).finally(() => {
+        handled = true;
+        socket.end();
+        socket.destroy();
+    });
+}
