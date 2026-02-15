@@ -114,9 +114,9 @@ Please refer to the [`dev-server` documentation](https://github.com/ioBroker/dev
 -->
 
 ### **WORK IN PROGRESS**
-* (copilot) **FIXED**: Added missing size attributes (xs, xl) to admin configuration fields
-* (copilot) **ENHANCED**: Updated dependencies to recommended versions (admin 7.6.17, js-controller 6.0.11)
-* (copilot) **ENHANCED**: Added copyright notice to README
+* (SimonFischer04) **FIXED**: Added missing size attributes (xs, xl) to admin configuration fields
+* (SimonFischer04) **ENHANCED**: Updated dependencies to recommended versions (admin 7.6.17, js-controller 6.0.11)
+* (SimonFischer04) **ENHANCED**: Added copyright notice to README
 
 ### 0.0.1 (2026-02-15)
 * (SimonFischer04) initial release
