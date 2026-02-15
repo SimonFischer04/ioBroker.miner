@@ -9,17 +9,26 @@
         "option1": {
           "type": "checkbox",
           "label": "option1",
-          "newLine": true
+          "newLine": true,
+          "sm": 12,
+          "md": 6,
+          "lg": 4
         },
         "option2": {
           "type": "text",
           "label": "option2",
-          "newLine": true
+          "newLine": true,
+          "sm": 12,
+          "md": 6,
+          "lg": 4
         },
         "pollInterval": {
           "type": "number",
           "label": "Poll Interval",
-          "newLine": true
+          "newLine": true,
+          "sm": 12,
+          "md": 6,
+          "lg": 4
         }
       }
     },
