@@ -14,6 +14,21 @@
 
 Interact with different crypto miner apis
 
+## Table of Contents
+
+- [ioBroker Object Structure](#iobroker-object-structure)
+  - [Object Tree Structure](#object-tree-structure)
+  - [Object Hierarchy Levels](#object-hierarchy-levels)
+  - [Feature System](#feature-system)
+  - [Miner Type Support Matrix](#miner-type-support-matrix)
+  - [Extensibility](#extensibility)
+  - [Example: Complete Device Object Tree](#example-complete-device-object-tree)
+  - [Implementation Details](#implementation-details)
+- [Roadmap](#roadmap)
+- [Developer Manual](#developer-manual)
+- [Changelog](#changelog)
+- [License](#license)
+
 ## ioBroker Object Structure
 
 This adapter uses a hierarchical object structure to organize mining device data and controls. The structure is designed to be flexible and universal across all crypto miner types.
