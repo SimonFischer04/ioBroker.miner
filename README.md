@@ -14,6 +14,155 @@
 
 Interact with different crypto miner apis
 
+## ioBroker Object Structure
+
+This adapter uses a hierarchical object structure to organize mining device data and controls. The structure is designed to be flexible and universal across all crypto miner types.
+
+### Object Tree Structure
+
+```
+miner.0/
+├── miner/                              # Category folder for mining devices
+│   └── {device-id}/                    # Device (identified by unique ID)
+│       ├── control/                    # Channel for device controls
+│       │   └── MINER_RUNNING          # State: Start/stop the miner
+│       └── info/                       # Channel for device information
+│           ├── VERSION                # State: Miner software version
+│           ├── TOTAL_HASHRATE         # State: Total hashrate (h/s)
+│           ├── RAW                    # State: Raw API response (advanced)
+│           └── ...                    # Additional states based on miner features
+└── pool/                               # Category folder for mining pools (future)
+    └── {pool-id}/                      # Pool device (future implementation)
+```
+
+### Object Hierarchy Levels
+
+1. **Category Level** (`miner`, `pool`)
+   - **Type**: `folder`
+   - **Purpose**: Organizes devices by category type
+   - Currently supported: `miner` (mining hardware/software)
+   - Planned: `pool` (mining pools)
+
+2. **Device Level** (`miner.{device-id}`)
+   - **Type**: `device`
+   - **Purpose**: Represents a single mining device
+   - **ID Format**: Unique device ID (UUID)
+   - **Native Data**: Encrypted device settings (credentials, host, port, miner type)
+
+3. **Channel Level** (`control`, `info`)
+   - **Type**: `channel`
+   - **Purpose**: Groups related states by functionality
+   - **control**: Writable states for device control
+   - **info**: Readable states for device information/monitoring
+
+4. **State Level** (individual features)
+   - **Type**: `state`
+   - **Purpose**: Individual data points and controls
+   - **Naming**: Feature-based IDs (e.g., `MINER_RUNNING`, `TOTAL_HASHRATE`)
+
+### Feature System
+
+The adapter uses a **feature-based system** to define what states are available for each device. Features are defined in `MinerFeatureKey` enum and mapped to ioBroker states.
+
+#### Core Feature Properties
+
+Each feature defines:
+- **category**: Which channel it belongs to (`control` or `info`)
+- **id**: Unique identifier for the state
+- **label**: Human-readable name
+- **description**: Detailed explanation
+- **type**: Data type (boolean, number, string, object)
+- **unit**: Optional unit of measurement (e.g., "h/s" for hashrate)
+- **readable/writable**: Access permissions
+- **advanced**: Whether feature is shown in expert mode only
+
+#### Standard Features
+
+| Feature | Category | Type | Unit | Description |
+|---------|----------|------|------|-------------|
+| `running` | control | boolean | - | Start/stop mining operations |
+| `version` | info | string | - | Miner software version |
+| `totalHashrate` | info | number | h/s | Total hashrate across all workers |
+| `rawStats` | info | object | - | Raw API response (advanced/expert) |
+
+#### Extended Features (Miner-Specific)
+
+Different miner types support additional features based on their capabilities:
+
+**GPU Miners** (Claymore, TeamRedMiner):
+- Per-GPU hashrate, temperature, fan speed
+- Share statistics (accepted, rejected, invalid)
+- Dual-algorithm support (ETH + DCR for Claymore)
+- Pool connection status and switching
+
+**CPU Miners** (XMRig):
+- CPU-specific hashrate metrics
+- Per-thread performance
+- Algorithm-specific optimizations
+
+**ASIC Miners** (BOSMiner, IceRiverOc):
+- Chip-level statistics
+- Temperature monitoring
+- Power consumption
+- Hardware health metrics
+
+### Miner Type Support Matrix
+
+| Miner Type | Version | Hashrate | Control | Temperature | Fan | Shares | Advanced Stats |
+|------------|---------|----------|---------|-------------|-----|--------|----------------|
+| XMRig | ✓ | ✓ | ✓ | - | - | - | Raw only |
+| Claymore | ✓ | ✓ (dual-algo) | ✓ | ✓ per-GPU | ✓ per-GPU | ✓ per-GPU | Pool stats |
+| TeamRedMiner | ✓ | ✓ | ✓ | ✓ per-GPU | ✓ per-GPU | ✓ per-GPU | Multi-API |
+| BOSMiner (Braiins) | Partial | Partial | ✓ | - | - | - | Raw only |
+| SGMiner/CGMiner | Partial | Partial | Partial | - | - | - | Raw only |
+| IceRiver OC | Partial | Partial | ✓ | - | - | - | Raw only |
+
+**Note**: "Partial" indicates feature parsing is not yet fully implemented, but raw API data is available for custom parsing.
+
+### Extensibility
+
+The object structure is designed for easy extension:
+
+1. **Adding New Features**: Define in `MinerFeatureKey` enum and `minerFeatures` object
+2. **New Miner Types**: Implement `Miner` interface and declare supported features
+3. **Custom Categories**: Extend `categoryKeys` array (e.g., for pool support)
+4. **Per-Device Features**: Features are dynamically created based on `getSupportedFeatures()`
+
+### Example: Complete Device Object Tree
+
+```
+miner.0.miner.abc123-uuid/
+├── control/
+│   └── MINER_RUNNING (boolean, writable) = true
+└── info/
+    ├── VERSION (string, readonly) = "6.21.0"
+    ├── TOTAL_HASHRATE (number, readonly) = 245000000
+    └── RAW (object, readonly, expert) = {...}
+```
+
+For a Claymore miner with full GPU stats (future implementation):
+```
+miner.0.miner.abc123-uuid/
+├── control/
+│   └── MINER_RUNNING (boolean, writable) = true
+└── info/
+    ├── VERSION (string, readonly) = "15.0"
+    ├── TOTAL_HASHRATE (number, readonly) = 185000000
+    ├── gpu/
+    │   ├── 0/
+    │   │   ├── HASHRATE (number, readonly) = 31000000
+    │   │   ├── TEMPERATURE (number, readonly, unit: °C) = 67
+    │   │   └── FAN_SPEED (number, readonly, unit: %) = 75
+    │   └── 1/
+    │       ├── HASHRATE (number, readonly) = 30500000
+    │       ├── TEMPERATURE (number, readonly, unit: °C) = 65
+    │       └── FAN_SPEED (number, readonly, unit: %) = 72
+    ├── pool/
+    │   ├── CURRENT (string, readonly) = "eth.pool.example.com:4444"
+    │   └── SWITCHES (number, readonly) = 3
+    └── RAW (object, readonly, expert) = {...}
+```
+
 ## Roadmap
 - [X] v0.1: device management, trm implementation
 - [X] more miners support: bos+, xmrig, ...?
@@ -22,6 +171,93 @@ Interact with different crypto miner apis
 - [ ] device discover
 - [ ] sentry
 - [ ] more: see Todo.md / issues 
+
+### Implementation Details
+
+#### Feature to Object Mapping
+
+The adapter automatically creates ioBroker objects based on declared features:
+
+1. **Feature Declaration**: Each miner class implements `getSupportedFeatures()` returning an array of `MinerFeatureKey` values
+2. **Object Creation**: During device initialization, the adapter calls `createDeviceStateObjects()` which:
+   - Creates `control` and `info` channels
+   - For each supported feature, creates a state object with properties from `minerFeatures` configuration
+3. **State Updates**: When new stats arrive via `subscribeToStats()`, the adapter maps feature keys to state IDs and updates values
+
+#### Adding New Features
+
+To add a new feature to the adapter:
+
+1. **Define the feature key** in `src/lib/miner/model/MinerFeature.ts`:
+```typescript
+export enum MinerFeatureKey {
+    // ... existing features
+    temperature = 'temperature',  // New feature
+}
+```
+
+2. **Add feature properties** in the same file:
+```typescript
+export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
+    // ... existing features
+    [MinerFeatureKey.temperature]: {
+        category: MinerFeatureCategory.info,
+        id: 'TEMPERATURE',
+        label: 'Temperature',
+        description: 'Current temperature of the miner',
+        type: 'number',
+        unit: '°C',
+        readable: true,
+        writable: false,
+    },
+};
+```
+
+3. **Extend MinerStats interface** in `src/lib/miner/model/MinerStats.ts`:
+```typescript
+export interface MinerStats {
+    // ... existing properties
+    temperature?: number;  // Add new property
+}
+```
+
+4. **Implement in miner class**:
+```typescript
+public override getSupportedFeatures(): MinerFeatureKey[] {
+    return [..., MinerFeatureKey.temperature];
+}
+
+public override async fetchStats(): Promise<MinerStats> {
+    return {
+        temperature: parsedData.temperature,
+        // ... other stats
+    };
+}
+```
+
+5. **Map to state updates** in `src/main.ts` `processNewStats()`:
+```typescript
+case MinerFeatureKey.temperature: {
+    await this.setState(
+        this.getStateFullObjectId(settings, MinerFeatureKey.temperature),
+        { val: stats.temperature, ack: true }
+    );
+    break;
+}
+```
+
+#### Supporting New Miner Types
+
+To add support for a new miner type:
+
+1. **Create miner settings interface** in `src/lib/miner/model/MinerSettings.ts`
+2. **Implement Miner class** extending `Miner` or `PollingMiner`
+3. **Declare supported features** via `getSupportedFeatures()`
+4. **Parse API responses** in `fetchStats()` to populate `MinerStats`
+5. **Add to factory** in `src/lib/miner/miner/MinerFactory.ts`
+6. **Update device management UI** in `admin/jsonConfig.json`
+
+See existing implementations (XMRig, Claymore, BOSMiner) for examples.
 
 ## Developer manual
 This section is intended for the developer. It can be deleted later.
@@ -114,6 +350,9 @@ Please refer to the [`dev-server` documentation](https://github.com/ioBroker/dev
 -->
 
 ### **WORK IN PROGRESS**
+* (SimonFischer04) **NEW**: Documented universal ioBroker object structure for crypto miners in README
+* (SimonFischer04) **NEW**: Added comprehensive feature system documentation with implementation guide
+* (SimonFischer04) **ENHANCED**: Documented miner type support matrix showing capabilities of each miner
 * (SimonFischer04) **FIXED**: Added missing size attributes (xs, xl) to admin configuration fields
 * (SimonFischer04) **ENHANCED**: Updated dependencies to recommended versions (admin 7.6.17, js-controller 6.0.11)
 * (SimonFischer04) **ENHANCED**: Added copyright notice to README
