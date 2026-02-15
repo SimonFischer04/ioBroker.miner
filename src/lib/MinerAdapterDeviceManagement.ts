@@ -10,6 +10,7 @@ import { DeviceManagement } from '@iobroker/dm-utils';
 import type { MinerAdapter } from '../main';
 import { categoryKeys } from './miner/model/Category';
 import type {
+    AvalonMinerSettings,
     BOSMinerSettings,
     ClaymoreMinerSettings,
     IceRiverOcMinerSettings,

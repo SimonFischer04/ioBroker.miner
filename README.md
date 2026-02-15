@@ -14,6 +14,26 @@
 
 Interact with different crypto miner apis
 
+## Supported Miners
+
+- **Team Red Miner (TRM)** - AMD GPU miner
+- **Claymore Miner** - Dual mining support
+- **SGMiner** - ASIC and GPU miner with CGMiner API
+- **XMRig** - Monero (XMR) CPU/GPU miner
+- **IceRiver OC Miner** - IceRiver mining devices
+- **BOS Miner (Braiins OS+)** - ASIC miners running Braiins OS
+- **Avalon Miner** - Canaan Avalon ASIC miners (e.g., Avalon Q Home Miner)
+
+### Avalon Miner Support
+
+The Avalon miner implementation supports:
+- **Monitoring**: Real-time statistics including hashrate, temperature, power consumption, pool status
+- **Control**: Start/stop mining (softon/softoff commands)
+- **Workmode Management**: Switch between Eco, Standard, and Super modes
+- **API Protocol**: CGMiner-based API on port 4028
+
+Based on the Canaan Avalon Q reference implementation from [ha_avalonq](https://github.com/c7ph3r10/ha_avalonq).
+
 ## Roadmap
 - [X] v0.1: device management, trm implementation
 - [X] more miners support: bos+, xmrig, ...?
@@ -114,6 +134,7 @@ Please refer to the [`dev-server` documentation](https://github.com/ioBroker/dev
 -->
 
 ### **WORK IN PROGRESS**
+* (SimonFischer04) **NEW**: Added support for Avalon miners (e.g., Canaan Avalon Q)
 * (SimonFischer04) **FIXED**: Added missing size attributes (xs, xl) to admin configuration fields
 * (SimonFischer04) **ENHANCED**: Updated dependencies to recommended versions (admin 7.6.17, js-controller 6.0.11)
 * (SimonFischer04) **ENHANCED**: Added copyright notice to README
