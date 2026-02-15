@@ -7,8 +7,9 @@
     "email": "simi.fischa@gmail.com"
   },
   "homepage": "https://github.com/SimonFischer04/ioBroker.miner",
-  "license": "GPL-3.0",
+  "license": "GPL-3.0-only",
   "keywords": [
+    "ioBroker",
     "crypto",
     "bitcoin",
     "miner",

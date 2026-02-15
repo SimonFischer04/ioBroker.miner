@@ -17,7 +17,6 @@
                 "zh-cn": "首次出版"
             }
         },
-        "title": "crypto miner control",
         "titleLang": {
             "en": "crypto miner control",
             "de": "Krypto-Miner-Kontrolle",
@@ -56,10 +55,9 @@
         ],
         "licenseInformation": {
             "type": "free",
-            "license": "GPL-3.0"
+            "license": "GPL-3.0-only"
         },
         "platform": "Javascript/Node.js",
-        "main": "build/main.js",
         "icon": "miner.png",
         "enabled": true,
         "extIcon": "https://raw.githubusercontent.com/SimonFischer04/ioBroker.miner/main/admin/miner.png",
@@ -80,12 +78,12 @@
         },
         "dependencies": [
             {
-                "js-controller": ">=3.3.22"
+                "js-controller": ">=5.0.19"
             }
         ],
         "globalDependencies": [
             {
-                "admin": ">=5.1.13"
+                "admin": ">=6.17.14"
             }
         ]
     },
