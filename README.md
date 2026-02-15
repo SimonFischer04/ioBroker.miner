@@ -14,6 +14,339 @@
 
 Interact with different crypto miner apis
 
+## Table of Contents
+
+- [ioBroker Object Structure](#iobroker-object-structure)
+  - [Object Tree Structure](#object-tree-structure)
+  - [Object Hierarchy Levels](#object-hierarchy-levels)
+  - [Feature System](#feature-system)
+  - [Miner Type Support Matrix](#miner-type-support-matrix)
+  - [Extensibility](#extensibility)
+  - [Example: Complete Device Object Tree](#example-complete-device-object-tree)
+  - [Implementation Details](#implementation-details)
+- [Roadmap](#roadmap)
+- [Developer Manual](#developer-manual)
+- [Changelog](#changelog)
+- [License](#license)
+
+## ioBroker Object Structure
+
+This adapter uses a hierarchical object structure to organize mining device data and controls. The structure is designed to be flexible and universal across all crypto miner types.
+
+### Object Tree Structure
+
+```
+miner.0/
+├── miner/                              # Category folder for mining devices
+│   └── {device-id}/                    # Device (identified by unique ID)
+│       ├── control/                    # Channel for device controls
+│       │   └── MINER_RUNNING          # State: Start/stop the miner
+│       └── info/                       # Channel for device information
+│           ├── VERSION                # State: Miner software version
+│           ├── TOTAL_HASHRATE         # State: Total hashrate (h/s)
+│           ├── RAW                    # State: Raw API response (advanced)
+│           └── ...                    # Additional states based on miner features
+└── pool/                               # Category folder for mining pools (future)
+    └── {pool-id}/                      # Pool device (future implementation)
+```
+
+### Object Hierarchy Levels
+
+1. **Category Level** (`miner`, `pool`)
+   - **Type**: `folder`
+   - **Purpose**: Organizes devices by category type
+   - Currently supported: `miner` (mining hardware/software)
+   - Planned: `pool` (mining pools)
+
+2. **Device Level** (`miner.{device-id}`)
+   - **Type**: `device`
+   - **Purpose**: Represents a single mining device
+   - **ID Format**: Unique device ID (UUID)
+   - **Native Data**: Encrypted device settings (credentials, host, port, miner type)
+
+3. **Channel Level** (`control`, `info`)
+   - **Type**: `channel`
+   - **Purpose**: Groups related states by functionality
+   - **control**: Writable states for device control
+   - **info**: Readable states for device information/monitoring
+
+4. **State Level** (individual features)
+   - **Type**: `state`
+   - **Purpose**: Individual data points and controls
+   - **Naming**: Feature-based IDs (e.g., `MINER_RUNNING`, `TOTAL_HASHRATE`)
+
+### Feature System
+
+The adapter uses a **feature-based system** to define what states are available for each device. Features are defined in `MinerFeatureKey` enum and mapped to ioBroker states.
+
+#### Core Feature Properties
+
+Each feature defines:
+- **category**: Which channel it belongs to (`control` or `info`)
+- **id**: Unique identifier for the state
+- **label**: Human-readable name
+- **description**: Detailed explanation
+- **type**: Data type (boolean, number, string, object)
+- **unit**: Optional unit of measurement (e.g., "h/s" for hashrate)
+- **readable/writable**: Access permissions
+- **advanced**: Whether feature is shown in expert mode only
+
+#### Currently Implemented Features
+
+| Feature | Category | Type | Unit | Description |
+|---------|----------|------|------|-------------|
+| `running` | control | boolean | - | Start/stop mining operations |
+| `version` | info | string | - | Miner software version |
+| `totalHashrate` | info | number | h/s | Total hashrate across all workers |
+| `rawStats` | info | object | - | Raw API response (advanced/expert) |
+
+#### Suggested Universal Features
+
+These features are commonly available across different miner types and should be implemented to provide consistent monitoring:
+
+**Performance Metrics (info channel)**
+| Feature | Type | Unit | Description | Available In |
+|---------|------|------|-------------|--------------|
+| `uptime` | number | seconds | Time since miner started | Most miners |
+| `acceptedShares` | number | - | Total accepted shares | GPU/ASIC miners |
+| `rejectedShares` | number | - | Total rejected shares | GPU/ASIC miners |
+| `invalidShares` | number | - | Total invalid shares | GPU/ASIC miners |
+| `shareRate` | number | shares/min | Share submission rate | GPU/ASIC miners |
+| `averageHashrate` | number | h/s | Average hashrate over time window | Most miners |
+| `currentHashrate` | number | h/s | Current/instantaneous hashrate | Most miners |
+
+**Hardware Monitoring (info channel)**
+| Feature | Type | Unit | Description | Available In |
+|---------|------|------|-------------|--------------|
+| `temperature` | number | °C | Average/main temperature | GPU/ASIC miners |
+| `maxTemperature` | number | °C | Highest temperature reading | GPU/ASIC miners |
+| `fanSpeed` | number | % | Average/main fan speed | GPU/ASIC miners |
+| `powerConsumption` | number | W | Current power draw | ASIC/some GPU miners |
+| `powerLimit` | number | W | Configured power limit | ASIC/some GPU miners |
+| `efficiency` | number | h/W | Hashrate per watt efficiency | Calculated from hashrate/power |
+
+**Pool & Network (info channel)**
+| Feature | Type | Unit | Description | Available In |
+|---------|------|------|-------------|--------------|
+| `currentPool` | string | - | Active mining pool address | Most miners |
+| `poolSwitches` | number | - | Number of pool switches/failovers | Most miners |
+| `difficulty` | number | - | Current mining difficulty | Some miners |
+| `algorithm` | string | - | Mining algorithm in use | Most miners |
+| `networkHashrate` | number | h/s | Estimated network hashrate | Some pool APIs |
+
+**Device Management (info channel)**
+| Feature | Type | Unit | Description | Available In |
+|---------|------|------|-------------|--------------|
+| `workerCount` | number | - | Number of active workers (GPUs/threads) | Most miners |
+| `workerName` | string | - | Configured worker identifier | Most miners |
+| `firmwareVersion` | string | - | Firmware/hardware version | ASIC miners |
+| `modelName` | string | - | Hardware model identifier | ASIC miners |
+| `serialNumber` | string | - | Device serial number | ASIC miners |
+
+**Control Features (control channel)**
+| Feature | Type | Unit | Description | Available In |
+|---------|------|------|-------------|--------------|
+| `running` | boolean | - | Start/stop mining (already implemented) | Most miners |
+| `restart` | boolean | - | Restart miner process | Most miners |
+| `reboot` | boolean | - | Reboot device (ASIC only) | ASIC miners |
+| `targetHashrate` | number | h/s | Target hashrate limit | Some miners |
+| `fanSpeedOverride` | number | % | Manual fan speed control | GPU/ASIC miners |
+| `powerLimitOverride` | number | W | Manual power limit | Some GPU/ASIC miners |
+
+**Per-Worker/GPU Features (info channel)**
+
+These would be organized under sub-channels like `info.gpu.0`, `info.gpu.1`, etc.:
+
+| Feature | Type | Unit | Description |
+|---------|------|------|-------------|
+| `HASHRATE` | number | h/s | Per-worker hashrate |
+| `TEMPERATURE` | number | °C | Per-worker temperature |
+| `FAN_SPEED` | number | % | Per-worker fan speed |
+| `POWER_DRAW` | number | W | Per-worker power consumption |
+| `ACCEPTED_SHARES` | number | - | Per-worker accepted shares |
+| `REJECTED_SHARES` | number | - | Per-worker rejected shares |
+| `CORE_CLOCK` | number | MHz | GPU core clock speed |
+| `MEMORY_CLOCK` | number | MHz | GPU memory clock speed |
+| `PCI_BUS_ID` | string | - | PCI bus identifier |
+
+#### Implementation Priority
+
+**High Priority** (broadly supported, high user value):
+1. `uptime`, `acceptedShares`, `rejectedShares` - Basic mining metrics
+2. `currentPool`, `algorithm` - Pool connectivity info
+3. `temperature`, `fanSpeed` - Essential hardware monitoring
+4. `workerCount` - Multi-GPU/worker setups
+
+**Medium Priority** (miner-specific but common):
+1. Per-GPU/worker stats (hashrate, temp, fan)
+2. `powerConsumption`, `efficiency` - Power monitoring
+3. `averageHashrate` - Smoothed performance metrics
+4. Additional control features (`restart`)
+
+**Low Priority** (specialized use cases):
+1. `firmwareVersion`, `serialNumber` - ASIC-specific
+2. `networkHashrate`, `difficulty` - Advanced metrics
+3. Manual overrides (fan, power) - Expert features
+
+#### Extended Features (Miner-Specific)
+
+Different miner types support additional features based on their capabilities:
+
+**GPU Miners** (Claymore, TeamRedMiner):
+- Per-GPU hashrate, temperature, fan speed
+- Share statistics (accepted, rejected, invalid)
+- Dual-algorithm support (ETH + DCR for Claymore)
+- Pool connection status and switching
+
+**CPU Miners** (XMRig):
+- CPU-specific hashrate metrics
+- Per-thread performance
+- Algorithm-specific optimizations
+
+**ASIC Miners** (BOSMiner, IceRiverOc):
+- Chip-level statistics
+- Temperature monitoring
+- Power consumption
+- Hardware health metrics
+
+### Miner Type Support Matrix
+
+| Miner Type | Version | Hashrate | Control | Temperature | Fan | Shares | Advanced Stats |
+|------------|---------|----------|---------|-------------|-----|--------|----------------|
+| XMRig | ✓ | ✓ | ✓ | - | - | - | Raw only |
+| Claymore | ✓ | ✓ (dual-algo) | ✓ | ✓ per-GPU | ✓ per-GPU | ✓ per-GPU | Pool stats |
+| TeamRedMiner | ✓ | ✓ | ✓ | ✓ per-GPU | ✓ per-GPU | ✓ per-GPU | Multi-API |
+| BOSMiner (Braiins) | Partial | Partial | ✓ | - | - | - | Raw only |
+| SGMiner/CGMiner | Partial | Partial | Partial | - | - | - | Raw only |
+| IceRiver OC | Partial | Partial | ✓ | - | - | - | Raw only |
+
+**Note**: "Partial" indicates feature parsing is not yet fully implemented, but raw API data is available for custom parsing.
+
+### Extensibility
+
+The object structure is designed for easy extension:
+
+1. **Adding New Features**: Define in `MinerFeatureKey` enum and `minerFeatures` object
+2. **New Miner Types**: Implement `Miner` interface and declare supported features
+3. **Custom Categories**: Extend `categoryKeys` array (e.g., for pool support)
+4. **Per-Device Features**: Features are dynamically created based on `getSupportedFeatures()`
+
+### Example: Complete Device Object Tree
+
+**Basic Implementation (Current)**
+```
+miner.0.miner.abc123-uuid/
+├── control/
+│   └── MINER_RUNNING (boolean, writable) = true
+└── info/
+    ├── VERSION (string, readonly) = "6.21.0"
+    ├── TOTAL_HASHRATE (number, readonly) = 245000000
+    └── RAW (object, readonly, expert) = {...}
+```
+
+**With Suggested Universal Features**
+```
+miner.0.miner.abc123-uuid/
+├── control/
+│   ├── MINER_RUNNING (boolean, writable) = true
+│   ├── RESTART (boolean, writable) = false
+│   └── FAN_SPEED_OVERRIDE (number, writable, unit: %) = null
+└── info/
+    ├── VERSION (string, readonly) = "6.21.0"
+    ├── UPTIME (number, readonly, unit: seconds) = 86400
+    ├── TOTAL_HASHRATE (number, readonly, unit: h/s) = 245000000
+    ├── AVERAGE_HASHRATE (number, readonly, unit: h/s) = 243500000
+    ├── ACCEPTED_SHARES (number, readonly) = 1543
+    ├── REJECTED_SHARES (number, readonly) = 12
+    ├── SHARE_RATE (number, readonly, unit: shares/min) = 1.8
+    ├── CURRENT_POOL (string, readonly) = "pool.example.com:4444"
+    ├── ALGORITHM (string, readonly) = "ethash"
+    ├── WORKER_COUNT (number, readonly) = 6
+    ├── TEMPERATURE (number, readonly, unit: °C) = 68
+    ├── FAN_SPEED (number, readonly, unit: %) = 72
+    ├── POWER_CONSUMPTION (number, readonly, unit: W) = 850
+    ├── EFFICIENCY (number, readonly, unit: h/W) = 288235
+    └── RAW (object, readonly, expert) = {...}
+```
+
+**Full GPU Miner with Per-Worker Stats (Future)**
+```
+miner.0.miner.abc123-uuid/
+├── control/
+│   ├── MINER_RUNNING (boolean, writable) = true
+│   ├── RESTART (boolean, writable) = false
+│   └── REBOOT (boolean, writable) = false
+└── info/
+    ├── VERSION (string, readonly) = "15.0"
+    ├── UPTIME (number, readonly, unit: seconds) = 172800
+    ├── TOTAL_HASHRATE (number, readonly, unit: h/s) = 185000000
+    ├── AVERAGE_HASHRATE (number, readonly, unit: h/s) = 184200000
+    ├── ACCEPTED_SHARES (number, readonly) = 3421
+    ├── REJECTED_SHARES (number, readonly) = 23
+    ├── INVALID_SHARES (number, readonly) = 5
+    ├── CURRENT_POOL (string, readonly) = "eth.pool.example.com:4444"
+    ├── POOL_SWITCHES (number, readonly) = 2
+    ├── ALGORITHM (string, readonly) = "ethash"
+    ├── WORKER_COUNT (number, readonly) = 6
+    ├── WORKER_NAME (string, readonly) = "rig-01"
+    ├── TEMPERATURE (number, readonly, unit: °C) = 66
+    ├── MAX_TEMPERATURE (number, readonly, unit: °C) = 71
+    ├── FAN_SPEED (number, readonly, unit: %) = 70
+    ├── POWER_CONSUMPTION (number, readonly, unit: W) = 1050
+    ├── EFFICIENCY (number, readonly, unit: h/W) = 176190
+    ├── gpu/
+    │   ├── 0/
+    │   │   ├── HASHRATE (number, readonly, unit: h/s) = 31000000
+    │   │   ├── TEMPERATURE (number, readonly, unit: °C) = 67
+    │   │   ├── FAN_SPEED (number, readonly, unit: %) = 75
+    │   │   ├── POWER_DRAW (number, readonly, unit: W) = 175
+    │   │   ├── ACCEPTED_SHARES (number, readonly) = 572
+    │   │   ├── REJECTED_SHARES (number, readonly) = 4
+    │   │   ├── CORE_CLOCK (number, readonly, unit: MHz) = 1200
+    │   │   ├── MEMORY_CLOCK (number, readonly, unit: MHz) = 8000
+    │   │   └── PCI_BUS_ID (string, readonly) = "01:00.0"
+    │   ├── 1/
+    │   │   ├── HASHRATE (number, readonly, unit: h/s) = 30500000
+    │   │   ├── TEMPERATURE (number, readonly, unit: °C) = 65
+    │   │   ├── FAN_SPEED (number, readonly, unit: %) = 72
+    │   │   ├── POWER_DRAW (number, readonly, unit: W) = 172
+    │   │   ├── ACCEPTED_SHARES (number, readonly) = 568
+    │   │   ├── REJECTED_SHARES (number, readonly) = 3
+    │   │   ├── CORE_CLOCK (number, readonly, unit: MHz) = 1200
+    │   │   ├── MEMORY_CLOCK (number, readonly, unit: MHz) = 8000
+    │   │   └── PCI_BUS_ID (string, readonly) = "02:00.0"
+    │   └── ... (GPUs 2-5)
+    └── RAW (object, readonly, expert) = {...}
+```
+
+**ASIC Miner Example**
+```
+miner.0.miner.asic-xyz789/
+├── control/
+│   ├── MINER_RUNNING (boolean, writable) = true
+│   ├── RESTART (boolean, writable) = false
+│   └── REBOOT (boolean, writable) = false
+└── info/
+    ├── VERSION (string, readonly) = "2024.11.1"
+    ├── FIRMWARE_VERSION (string, readonly) = "4.2.0"
+    ├── MODEL_NAME (string, readonly) = "Antminer S19 Pro"
+    ├── SERIAL_NUMBER (string, readonly) = "ABC123XYZ"
+    ├── UPTIME (number, readonly, unit: seconds) = 604800
+    ├── TOTAL_HASHRATE (number, readonly, unit: h/s) = 110000000000000
+    ├── AVERAGE_HASHRATE (number, readonly, unit: h/s) = 109500000000000
+    ├── ACCEPTED_SHARES (number, readonly) = 45231
+    ├── REJECTED_SHARES (number, readonly) = 89
+    ├── CURRENT_POOL (string, readonly) = "stratum.pool.com:3333"
+    ├── ALGORITHM (string, readonly) = "SHA-256"
+    ├── TEMPERATURE (number, readonly, unit: °C) = 62
+    ├── MAX_TEMPERATURE (number, readonly, unit: °C) = 68
+    ├── FAN_SPEED (number, readonly, unit: %) = 85
+    ├── POWER_CONSUMPTION (number, readonly, unit: W) = 3250
+    ├── POWER_LIMIT (number, readonly, unit: W) = 3500
+    ├── EFFICIENCY (number, readonly, unit: h/W) = 33846153846
+    └── RAW (object, readonly, expert) = {...}
+```
+
 ## Roadmap
 - [X] v0.1: device management, trm implementation
 - [X] more miners support: bos+, xmrig, ...?
@@ -22,6 +355,93 @@ Interact with different crypto miner apis
 - [ ] device discover
 - [ ] sentry
 - [ ] more: see Todo.md / issues 
+
+### Implementation Details
+
+#### Feature to Object Mapping
+
+The adapter automatically creates ioBroker objects based on declared features:
+
+1. **Feature Declaration**: Each miner class implements `getSupportedFeatures()` returning an array of `MinerFeatureKey` values
+2. **Object Creation**: During device initialization, the adapter calls `createDeviceStateObjects()` which:
+   - Creates `control` and `info` channels
+   - For each supported feature, creates a state object with properties from `minerFeatures` configuration
+3. **State Updates**: When new stats arrive via `subscribeToStats()`, the adapter maps feature keys to state IDs and updates values
+
+#### Adding New Features
+
+To add a new feature to the adapter:
+
+1. **Define the feature key** in `src/lib/miner/model/MinerFeature.ts`:
+```typescript
+export enum MinerFeatureKey {
+    // ... existing features
+    temperature = 'temperature',  // New feature
+}
+```
+
+2. **Add feature properties** in the same file:
+```typescript
+export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
+    // ... existing features
+    [MinerFeatureKey.temperature]: {
+        category: MinerFeatureCategory.info,
+        id: 'TEMPERATURE',
+        label: 'Temperature',
+        description: 'Current temperature of the miner',
+        type: 'number',
+        unit: '°C',
+        readable: true,
+        writable: false,
+    },
+};
+```
+
+3. **Extend MinerStats interface** in `src/lib/miner/model/MinerStats.ts`:
+```typescript
+export interface MinerStats {
+    // ... existing properties
+    temperature?: number;  // Add new property
+}
+```
+
+4. **Implement in miner class**:
+```typescript
+public override getSupportedFeatures(): MinerFeatureKey[] {
+    return [..., MinerFeatureKey.temperature];
+}
+
+public override async fetchStats(): Promise<MinerStats> {
+    return {
+        temperature: parsedData.temperature,
+        // ... other stats
+    };
+}
+```
+
+5. **Map to state updates** in `src/main.ts` `processNewStats()`:
+```typescript
+case MinerFeatureKey.temperature: {
+    await this.setState(
+        this.getStateFullObjectId(settings, MinerFeatureKey.temperature),
+        { val: stats.temperature, ack: true }
+    );
+    break;
+}
+```
+
+#### Supporting New Miner Types
+
+To add support for a new miner type:
+
+1. **Create miner settings interface** in `src/lib/miner/model/MinerSettings.ts`
+2. **Implement Miner class** extending `Miner` or `PollingMiner`
+3. **Declare supported features** via `getSupportedFeatures()`
+4. **Parse API responses** in `fetchStats()` to populate `MinerStats`
+5. **Add to factory** in `src/lib/miner/miner/MinerFactory.ts`
+6. **Update device management UI** in `admin/jsonConfig.json`
+
+See existing implementations (XMRig, Claymore, BOSMiner) for examples.
 
 ## Developer manual
 This section is intended for the developer. It can be deleted later.
@@ -114,6 +534,14 @@ Please refer to the [`dev-server` documentation](https://github.com/ioBroker/dev
 -->
 
 ### **WORK IN PROGRESS**
+* (SimonFischer04) **NEW**: Suggested 40+ universal features that can be implemented across all miner types
+* (SimonFischer04) **NEW**: Added comprehensive feature categorization (performance, hardware, pool, device management, control)
+* (SimonFischer04) **NEW**: Documented implementation priority levels (high/medium/low) for suggested features
+* (SimonFischer04) **NEW**: Provided detailed examples showing current vs. suggested feature implementations
+* (SimonFischer04) **NEW**: Added ASIC miner example with firmware and hardware-specific features
+* (SimonFischer04) **NEW**: Documented universal ioBroker object structure for crypto miners in README
+* (SimonFischer04) **NEW**: Added comprehensive feature system documentation with implementation guide
+* (SimonFischer04) **ENHANCED**: Documented miner type support matrix showing capabilities of each miner
 * (SimonFischer04) **FIXED**: Added missing size attributes (xs, xl) to admin configuration fields
 * (SimonFischer04) **ENHANCED**: Updated dependencies to recommended versions (admin 7.6.17, js-controller 6.0.11)
 * (SimonFischer04) **ENHANCED**: Added copyright notice to README
