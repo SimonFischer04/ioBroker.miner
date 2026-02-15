@@ -1,9 +1,7 @@
 "use strict";
-var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __export = (target, all) => {
   for (var name in all)
@@ -17,14 +15,6 @@ var __copyProps = (to, from, except, desc) => {
   }
   return to;
 };
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
-  // If the importer is in node compatibility mode or this is not an ESM
-  // file that has been converted to a CommonJS file using a Babel-
-  // compatible transform (i.e. "__esModule" has not been set), then set
-  // "default" to the CommonJS "module.exports" for node compatibility.
-  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
-  mod
-));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var AvalonMiner_exports = {};
 __export(AvalonMiner_exports, {
@@ -34,6 +24,10 @@ module.exports = __toCommonJS(AvalonMiner_exports);
 var import_PollingMiner = require("./PollingMiner");
 var import_MinerFeature = require("../model/MinerFeature");
 var import_socket_utils = require("../../utils/socket-utils");
+var import_node_net = require("node:net");
+const COMMAND_TIMESTAMP_OFFSET_SECONDS = 5;
+const SOCKET_TIMEOUT_MS = 3e3;
+const CONTROL_COMMAND_TIMEOUT_MS = 1e3;
 var AvalonMinerCommand = /* @__PURE__ */ ((AvalonMinerCommand2) => {
   AvalonMinerCommand2["stats"] = "stats";
   AvalonMinerCommand2["summary"] = "summary";
@@ -57,7 +51,7 @@ class AvalonMiner extends import_PollingMiner.PollingMiner {
    * Start/resume the miner from standby
    */
   async start() {
-    const timestamp = Math.floor(Date.now() / 1e3) + 5;
+    const timestamp = Math.floor(Date.now() / 1e3) + COMMAND_TIMESTAMP_OFFSET_SECONDS;
     await this.sendControlCommand(`${"ascset|0,softon,1:" /* softon */}${timestamp}`, false);
   }
   /**
@@ -89,7 +83,7 @@ class AvalonMiner extends import_PollingMiner.PollingMiner {
    * Stop/pause the miner (send to standby)
    */
   async stop() {
-    const timestamp = Math.floor(Date.now() / 1e3) + 5;
+    const timestamp = Math.floor(Date.now() / 1e3) + COMMAND_TIMESTAMP_OFFSET_SECONDS;
     await this.sendControlCommand(`${"ascset|0,softoff,1:" /* softoff */}${timestamp}`, false);
   }
   /**
@@ -136,8 +130,8 @@ class AvalonMiner extends import_PollingMiner.PollingMiner {
    * @param expectResponse - Whether to expect a response
    */
   async sendControlCommand(command, expectResponse = false) {
-    const { Socket } = await Promise.resolve().then(() => __toESM(require("node:net")));
-    const socket = new Socket();
+    const socket = new import_node_net.Socket();
+    let timeoutHandle;
     return new Promise((resolve, reject) => {
       socket.on("connect", () => {
         this.logger.debug(`sending control command: ${command}`);
@@ -161,12 +155,18 @@ class AvalonMiner extends import_PollingMiner.PollingMiner {
         this.logger.error(err.message);
         reject(new Error(`socket error: ${err.message}`));
       });
-      socket.setTimeout(3e3);
+      socket.setTimeout(SOCKET_TIMEOUT_MS);
       socket.connect(this.settings.port, this.settings.host);
-      setTimeout(() => {
+      timeoutHandle = setTimeout(() => {
         socket.end();
         socket.destroy();
-      }, 1e3);
+      }, CONTROL_COMMAND_TIMEOUT_MS);
+    }).finally(() => {
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+      }
+      socket.end();
+      socket.destroy();
     });
   }
 }

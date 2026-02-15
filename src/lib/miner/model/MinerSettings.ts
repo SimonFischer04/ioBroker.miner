@@ -146,11 +146,11 @@ export interface BOSMinerSettings extends PollingMinerSettings {
  */
 export interface AvalonMinerSettings extends PollingMinerSettings {
     /**
-     *
+     * Must be 'avalonMiner'
      */
-    minerType: (typeof minerTypeKeys)[6];
+    minerType: Extract<MinerType, 'avalonMiner'>;
     /**
-     *
+     * CGMiner API port (typically 4028)
      */
     port: number;
 }

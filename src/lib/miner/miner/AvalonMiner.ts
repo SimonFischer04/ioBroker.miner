@@ -3,9 +3,20 @@ import type { AvalonMinerSettings } from '../model/MinerSettings';
 import type { MinerStats } from '../model/MinerStats';
 import { MinerFeatureKey } from '../model/MinerFeature';
 import { sendSocketCommand } from '../../utils/socket-utils';
+import { Socket } from 'node:net';
 
 // Avalon miners use CGMiner-based API similar to SGMiner
 // Reference: https://github.com/c7ph3r10/ha_avalonq
+
+// Timestamp offset in seconds for Avalon control commands
+// The Avalon API requires a timestamp in the future for softon/softoff commands
+const COMMAND_TIMESTAMP_OFFSET_SECONDS = 5;
+
+// Socket timeout for control commands in milliseconds
+const SOCKET_TIMEOUT_MS = 3000;
+
+// Delay before closing socket after sending control command
+const CONTROL_COMMAND_TIMEOUT_MS = 1000;
 
 enum AvalonMinerCommand {
     stats = 'stats',
@@ -35,7 +46,7 @@ export class AvalonMiner extends PollingMiner<AvalonMinerSettings> {
      * Start/resume the miner from standby
      */
     public override async start(): Promise<void> {
-        const timestamp = Math.floor(Date.now() / 1000) + 5;
+        const timestamp = Math.floor(Date.now() / 1000) + COMMAND_TIMESTAMP_OFFSET_SECONDS;
         await this.sendControlCommand(`${AvalonMinerControlCommand.softon}${timestamp}`, false);
     }
 
@@ -71,7 +82,7 @@ export class AvalonMiner extends PollingMiner<AvalonMinerSettings> {
      * Stop/pause the miner (send to standby)
      */
     public override async stop(): Promise<void> {
-        const timestamp = Math.floor(Date.now() / 1000) + 5;
+        const timestamp = Math.floor(Date.now() / 1000) + COMMAND_TIMESTAMP_OFFSET_SECONDS;
         await this.sendControlCommand(`${AvalonMinerControlCommand.softoff}${timestamp}`, false);
     }
 
@@ -129,8 +140,8 @@ export class AvalonMiner extends PollingMiner<AvalonMinerSettings> {
     private async sendControlCommand(command: string, expectResponse: boolean = false): Promise<void> {
         // Avalon control commands are sent as raw strings, not JSON
         // We'll use a simplified socket approach here
-        const { Socket } = await import('node:net');
         const socket = new Socket();
+        let timeoutHandle: NodeJS.Timeout | undefined;
 
         return new Promise<void>((resolve, reject) => {
             socket.on('connect', () => {
@@ -157,13 +168,19 @@ export class AvalonMiner extends PollingMiner<AvalonMinerSettings> {
                 reject(new Error(`socket error: ${err.message}`));
             });
 
-            socket.setTimeout(3000);
+            socket.setTimeout(SOCKET_TIMEOUT_MS);
             socket.connect(this.settings.port, this.settings.host);
 
-            setTimeout(() => {
+            timeoutHandle = setTimeout(() => {
                 socket.end();
                 socket.destroy();
-            }, 1000);
+            }, CONTROL_COMMAND_TIMEOUT_MS);
+        }).finally(() => {
+            if (timeoutHandle) {
+                clearTimeout(timeoutHandle);
+            }
+            socket.end();
+            socket.destroy();
         });
     }
 }
