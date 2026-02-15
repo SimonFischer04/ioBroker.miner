@@ -98,6 +98,7 @@ export class AvalonMiner extends PollingMiner<AvalonMinerSettings> {
 
     /**
      * Send a CGMiner-style command
+     *
      * @param command - The command to send
      * @param parameter - Optional parameter for the command
      * @param expectResponse - Whether to expect a response
@@ -121,6 +122,7 @@ export class AvalonMiner extends PollingMiner<AvalonMinerSettings> {
 
     /**
      * Send an Avalon-specific control command (ascset)
+     *
      * @param command - The control command to send
      * @param expectResponse - Whether to expect a response
      */
