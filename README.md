@@ -114,11 +114,19 @@ Please refer to the [`dev-server` documentation](https://github.com/ioBroker/dev
 -->
 
 ### **WORK IN PROGRESS**
+* (SimonFischer04) **FIXED**: Added missing size attributes (xs, xl) to admin configuration fields
+* (SimonFischer04) **ENHANCED**: Updated dependencies to recommended versions (admin 7.6.17, js-controller 6.0.11)
+* (SimonFischer04) **ENHANCED**: Added copyright notice to README
 
 ### 0.0.1 (2026-02-15)
 * (SimonFischer04) initial release
 
 ## License
+
+Copyright (c) 2026 SimonFischer04 <simi.fischa@gmail.com>
+
+This project is licensed under the GNU General Public License v3.0 - see below for details.
+
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
