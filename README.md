@@ -91,7 +91,7 @@ Each feature defines:
 - **readable/writable**: Access permissions
 - **advanced**: Whether feature is shown in expert mode only
 
-#### Standard Features
+#### Currently Implemented Features
 
 | Feature | Category | Type | Unit | Description |
 |---------|----------|------|------|-------------|
@@ -99,6 +99,94 @@ Each feature defines:
 | `version` | info | string | - | Miner software version |
 | `totalHashrate` | info | number | h/s | Total hashrate across all workers |
 | `rawStats` | info | object | - | Raw API response (advanced/expert) |
+
+#### Suggested Universal Features
+
+These features are commonly available across different miner types and should be implemented to provide consistent monitoring:
+
+**Performance Metrics (info channel)**
+| Feature | Type | Unit | Description | Available In |
+|---------|------|------|-------------|--------------|
+| `uptime` | number | seconds | Time since miner started | Most miners |
+| `acceptedShares` | number | - | Total accepted shares | GPU/ASIC miners |
+| `rejectedShares` | number | - | Total rejected shares | GPU/ASIC miners |
+| `invalidShares` | number | - | Total invalid shares | GPU/ASIC miners |
+| `shareRate` | number | shares/min | Share submission rate | GPU/ASIC miners |
+| `averageHashrate` | number | h/s | Average hashrate over time window | Most miners |
+| `currentHashrate` | number | h/s | Current/instantaneous hashrate | Most miners |
+
+**Hardware Monitoring (info channel)**
+| Feature | Type | Unit | Description | Available In |
+|---------|------|------|-------------|--------------|
+| `temperature` | number | °C | Average/main temperature | GPU/ASIC miners |
+| `maxTemperature` | number | °C | Highest temperature reading | GPU/ASIC miners |
+| `fanSpeed` | number | % | Average/main fan speed | GPU/ASIC miners |
+| `powerConsumption` | number | W | Current power draw | ASIC/some GPU miners |
+| `powerLimit` | number | W | Configured power limit | ASIC/some GPU miners |
+| `efficiency` | number | h/W | Hashrate per watt efficiency | Calculated from hashrate/power |
+
+**Pool & Network (info channel)**
+| Feature | Type | Unit | Description | Available In |
+|---------|------|------|-------------|--------------|
+| `currentPool` | string | - | Active mining pool address | Most miners |
+| `poolSwitches` | number | - | Number of pool switches/failovers | Most miners |
+| `difficulty` | number | - | Current mining difficulty | Some miners |
+| `algorithm` | string | - | Mining algorithm in use | Most miners |
+| `networkHashrate` | number | h/s | Estimated network hashrate | Some pool APIs |
+
+**Device Management (info channel)**
+| Feature | Type | Unit | Description | Available In |
+|---------|------|------|-------------|--------------|
+| `workerCount` | number | - | Number of active workers (GPUs/threads) | Most miners |
+| `workerName` | string | - | Configured worker identifier | Most miners |
+| `firmwareVersion` | string | - | Firmware/hardware version | ASIC miners |
+| `modelName` | string | - | Hardware model identifier | ASIC miners |
+| `serialNumber` | string | - | Device serial number | ASIC miners |
+
+**Control Features (control channel)**
+| Feature | Type | Unit | Description | Available In |
+|---------|------|------|-------------|--------------|
+| `running` | boolean | - | Start/stop mining (already implemented) | Most miners |
+| `restart` | boolean | - | Restart miner process | Most miners |
+| `reboot` | boolean | - | Reboot device (ASIC only) | ASIC miners |
+| `targetHashrate` | number | h/s | Target hashrate limit | Some miners |
+| `fanSpeedOverride` | number | % | Manual fan speed control | GPU/ASIC miners |
+| `powerLimitOverride` | number | W | Manual power limit | Some GPU/ASIC miners |
+
+**Per-Worker/GPU Features (info channel)**
+
+These would be organized under sub-channels like `info.gpu.0`, `info.gpu.1`, etc.:
+
+| Feature | Type | Unit | Description |
+|---------|------|------|-------------|
+| `HASHRATE` | number | h/s | Per-worker hashrate |
+| `TEMPERATURE` | number | °C | Per-worker temperature |
+| `FAN_SPEED` | number | % | Per-worker fan speed |
+| `POWER_DRAW` | number | W | Per-worker power consumption |
+| `ACCEPTED_SHARES` | number | - | Per-worker accepted shares |
+| `REJECTED_SHARES` | number | - | Per-worker rejected shares |
+| `CORE_CLOCK` | number | MHz | GPU core clock speed |
+| `MEMORY_CLOCK` | number | MHz | GPU memory clock speed |
+| `PCI_BUS_ID` | string | - | PCI bus identifier |
+
+#### Implementation Priority
+
+**High Priority** (broadly supported, high user value):
+1. `uptime`, `acceptedShares`, `rejectedShares` - Basic mining metrics
+2. `currentPool`, `algorithm` - Pool connectivity info
+3. `temperature`, `fanSpeed` - Essential hardware monitoring
+4. `workerCount` - Multi-GPU/worker setups
+
+**Medium Priority** (miner-specific but common):
+1. Per-GPU/worker stats (hashrate, temp, fan)
+2. `powerConsumption`, `efficiency` - Power monitoring
+3. `averageHashrate` - Smoothed performance metrics
+4. Additional control features (`restart`)
+
+**Low Priority** (specialized use cases):
+1. `firmwareVersion`, `serialNumber` - ASIC-specific
+2. `networkHashrate`, `difficulty` - Advanced metrics
+3. Manual overrides (fan, power) - Expert features
 
 #### Extended Features (Miner-Specific)
 
@@ -145,6 +233,7 @@ The object structure is designed for easy extension:
 
 ### Example: Complete Device Object Tree
 
+**Basic Implementation (Current)**
 ```
 miner.0.miner.abc123-uuid/
 ├── control/
@@ -155,26 +244,106 @@ miner.0.miner.abc123-uuid/
     └── RAW (object, readonly, expert) = {...}
 ```
 
-For a Claymore miner with full GPU stats (future implementation):
+**With Suggested Universal Features**
 ```
 miner.0.miner.abc123-uuid/
 ├── control/
-│   └── MINER_RUNNING (boolean, writable) = true
+│   ├── MINER_RUNNING (boolean, writable) = true
+│   ├── RESTART (boolean, writable) = false
+│   └── FAN_SPEED_OVERRIDE (number, writable, unit: %) = null
+└── info/
+    ├── VERSION (string, readonly) = "6.21.0"
+    ├── UPTIME (number, readonly, unit: seconds) = 86400
+    ├── TOTAL_HASHRATE (number, readonly, unit: h/s) = 245000000
+    ├── AVERAGE_HASHRATE (number, readonly, unit: h/s) = 243500000
+    ├── ACCEPTED_SHARES (number, readonly) = 1543
+    ├── REJECTED_SHARES (number, readonly) = 12
+    ├── SHARE_RATE (number, readonly, unit: shares/min) = 1.8
+    ├── CURRENT_POOL (string, readonly) = "pool.example.com:4444"
+    ├── ALGORITHM (string, readonly) = "ethash"
+    ├── WORKER_COUNT (number, readonly) = 6
+    ├── TEMPERATURE (number, readonly, unit: °C) = 68
+    ├── FAN_SPEED (number, readonly, unit: %) = 72
+    ├── POWER_CONSUMPTION (number, readonly, unit: W) = 850
+    ├── EFFICIENCY (number, readonly, unit: h/W) = 288235
+    └── RAW (object, readonly, expert) = {...}
+```
+
+**Full GPU Miner with Per-Worker Stats (Future)**
+```
+miner.0.miner.abc123-uuid/
+├── control/
+│   ├── MINER_RUNNING (boolean, writable) = true
+│   ├── RESTART (boolean, writable) = false
+│   └── REBOOT (boolean, writable) = false
 └── info/
     ├── VERSION (string, readonly) = "15.0"
-    ├── TOTAL_HASHRATE (number, readonly) = 185000000
+    ├── UPTIME (number, readonly, unit: seconds) = 172800
+    ├── TOTAL_HASHRATE (number, readonly, unit: h/s) = 185000000
+    ├── AVERAGE_HASHRATE (number, readonly, unit: h/s) = 184200000
+    ├── ACCEPTED_SHARES (number, readonly) = 3421
+    ├── REJECTED_SHARES (number, readonly) = 23
+    ├── INVALID_SHARES (number, readonly) = 5
+    ├── CURRENT_POOL (string, readonly) = "eth.pool.example.com:4444"
+    ├── POOL_SWITCHES (number, readonly) = 2
+    ├── ALGORITHM (string, readonly) = "ethash"
+    ├── WORKER_COUNT (number, readonly) = 6
+    ├── WORKER_NAME (string, readonly) = "rig-01"
+    ├── TEMPERATURE (number, readonly, unit: °C) = 66
+    ├── MAX_TEMPERATURE (number, readonly, unit: °C) = 71
+    ├── FAN_SPEED (number, readonly, unit: %) = 70
+    ├── POWER_CONSUMPTION (number, readonly, unit: W) = 1050
+    ├── EFFICIENCY (number, readonly, unit: h/W) = 176190
     ├── gpu/
     │   ├── 0/
-    │   │   ├── HASHRATE (number, readonly) = 31000000
+    │   │   ├── HASHRATE (number, readonly, unit: h/s) = 31000000
     │   │   ├── TEMPERATURE (number, readonly, unit: °C) = 67
-    │   │   └── FAN_SPEED (number, readonly, unit: %) = 75
-    │   └── 1/
-    │       ├── HASHRATE (number, readonly) = 30500000
-    │       ├── TEMPERATURE (number, readonly, unit: °C) = 65
-    │       └── FAN_SPEED (number, readonly, unit: %) = 72
-    ├── pool/
-    │   ├── CURRENT (string, readonly) = "eth.pool.example.com:4444"
-    │   └── SWITCHES (number, readonly) = 3
+    │   │   ├── FAN_SPEED (number, readonly, unit: %) = 75
+    │   │   ├── POWER_DRAW (number, readonly, unit: W) = 175
+    │   │   ├── ACCEPTED_SHARES (number, readonly) = 572
+    │   │   ├── REJECTED_SHARES (number, readonly) = 4
+    │   │   ├── CORE_CLOCK (number, readonly, unit: MHz) = 1200
+    │   │   ├── MEMORY_CLOCK (number, readonly, unit: MHz) = 8000
+    │   │   └── PCI_BUS_ID (string, readonly) = "01:00.0"
+    │   ├── 1/
+    │   │   ├── HASHRATE (number, readonly, unit: h/s) = 30500000
+    │   │   ├── TEMPERATURE (number, readonly, unit: °C) = 65
+    │   │   ├── FAN_SPEED (number, readonly, unit: %) = 72
+    │   │   ├── POWER_DRAW (number, readonly, unit: W) = 172
+    │   │   ├── ACCEPTED_SHARES (number, readonly) = 568
+    │   │   ├── REJECTED_SHARES (number, readonly) = 3
+    │   │   ├── CORE_CLOCK (number, readonly, unit: MHz) = 1200
+    │   │   ├── MEMORY_CLOCK (number, readonly, unit: MHz) = 8000
+    │   │   └── PCI_BUS_ID (string, readonly) = "02:00.0"
+    │   └── ... (GPUs 2-5)
+    └── RAW (object, readonly, expert) = {...}
+```
+
+**ASIC Miner Example**
+```
+miner.0.miner.asic-xyz789/
+├── control/
+│   ├── MINER_RUNNING (boolean, writable) = true
+│   ├── RESTART (boolean, writable) = false
+│   └── REBOOT (boolean, writable) = false
+└── info/
+    ├── VERSION (string, readonly) = "2024.11.1"
+    ├── FIRMWARE_VERSION (string, readonly) = "4.2.0"
+    ├── MODEL_NAME (string, readonly) = "Antminer S19 Pro"
+    ├── SERIAL_NUMBER (string, readonly) = "ABC123XYZ"
+    ├── UPTIME (number, readonly, unit: seconds) = 604800
+    ├── TOTAL_HASHRATE (number, readonly, unit: h/s) = 110000000000000
+    ├── AVERAGE_HASHRATE (number, readonly, unit: h/s) = 109500000000000
+    ├── ACCEPTED_SHARES (number, readonly) = 45231
+    ├── REJECTED_SHARES (number, readonly) = 89
+    ├── CURRENT_POOL (string, readonly) = "stratum.pool.com:3333"
+    ├── ALGORITHM (string, readonly) = "SHA-256"
+    ├── TEMPERATURE (number, readonly, unit: °C) = 62
+    ├── MAX_TEMPERATURE (number, readonly, unit: °C) = 68
+    ├── FAN_SPEED (number, readonly, unit: %) = 85
+    ├── POWER_CONSUMPTION (number, readonly, unit: W) = 3250
+    ├── POWER_LIMIT (number, readonly, unit: W) = 3500
+    ├── EFFICIENCY (number, readonly, unit: h/W) = 33846153846
     └── RAW (object, readonly, expert) = {...}
 ```
 
@@ -365,6 +534,11 @@ Please refer to the [`dev-server` documentation](https://github.com/ioBroker/dev
 -->
 
 ### **WORK IN PROGRESS**
+* (SimonFischer04) **NEW**: Suggested 40+ universal features that can be implemented across all miner types
+* (SimonFischer04) **NEW**: Added comprehensive feature categorization (performance, hardware, pool, device management, control)
+* (SimonFischer04) **NEW**: Documented implementation priority levels (high/medium/low) for suggested features
+* (SimonFischer04) **NEW**: Provided detailed examples showing current vs. suggested feature implementations
+* (SimonFischer04) **NEW**: Added ASIC miner example with firmware and hardware-specific features
 * (SimonFischer04) **NEW**: Documented universal ioBroker object structure for crypto miners in README
 * (SimonFischer04) **NEW**: Added comprehensive feature system documentation with implementation guide
 * (SimonFischer04) **ENHANCED**: Documented miner type support matrix showing capabilities of each miner
