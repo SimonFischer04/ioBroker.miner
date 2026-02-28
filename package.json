@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.3.2",
-    "@iobroker/dm-utils": "^0.6.11",
+    "@iobroker/dm-utils": "^2.0.1",
     "type-fest": "^4.26.1"
   },
   "devDependencies": {
