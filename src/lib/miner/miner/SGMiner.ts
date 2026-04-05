@@ -6,7 +6,16 @@ import { sendSocketCommand } from '../../utils/socket-utils';
 
 // https://github.com/ckolivas/cgminer/blob/master/API-README
 enum SGMinerCommand {
-    stats = 'summary+coin',
+    summary = 'summary',
+    coin = 'coin',
+    stats = 'stats',
+    liteStats = 'litestats',
+    pools = 'pools',
+    devs = 'devs',
+    devDetails = 'devdetails',
+    version = 'version',
+    config = 'config',
+    ascSet = 'ascset',
 }
 
 /**
@@ -36,7 +45,9 @@ export class SGMiner<S extends SGMinerSettings = SGMinerSettings> extends Pollin
      */
     public override async fetchStats(): Promise<MinerStats> {
         try {
-            const response = await this.sendCommand<object>(SGMinerCommand.stats, '', true);
+            // commands can be combined with '+'. f.e. 'summary+coin'
+            const combinedCommand = [SGMinerCommand.summary, SGMinerCommand.coin].join('+');
+            const response = await this.sendCommand<object>(combinedCommand, '', true);
             // TODO: parse response => actually return stats
 
             return {

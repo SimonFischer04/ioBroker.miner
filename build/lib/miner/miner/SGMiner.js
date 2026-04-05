@@ -25,7 +25,16 @@ var import_PollingMiner = require("./PollingMiner");
 var import_MinerFeature = require("../model/MinerFeature");
 var import_socket_utils = require("../../utils/socket-utils");
 var SGMinerCommand = /* @__PURE__ */ ((SGMinerCommand2) => {
-  SGMinerCommand2["stats"] = "summary+coin";
+  SGMinerCommand2["summary"] = "summary";
+  SGMinerCommand2["coin"] = "coin";
+  SGMinerCommand2["stats"] = "stats";
+  SGMinerCommand2["liteStats"] = "litestats";
+  SGMinerCommand2["pools"] = "pools";
+  SGMinerCommand2["devs"] = "devs";
+  SGMinerCommand2["devDetails"] = "devdetails";
+  SGMinerCommand2["version"] = "version";
+  SGMinerCommand2["config"] = "config";
+  SGMinerCommand2["ascSet"] = "ascset";
   return SGMinerCommand2;
 })(SGMinerCommand || {});
 class SGMiner extends import_PollingMiner.PollingMiner {
@@ -48,7 +57,8 @@ class SGMiner extends import_PollingMiner.PollingMiner {
    */
   async fetchStats() {
     try {
-      const response = await this.sendCommand("summary+coin" /* stats */, "", true);
+      const combinedCommand = ["summary" /* summary */, "coin" /* coin */].join("+");
+      const response = await this.sendCommand(combinedCommand, "", true);
       return {
         raw: response
       };

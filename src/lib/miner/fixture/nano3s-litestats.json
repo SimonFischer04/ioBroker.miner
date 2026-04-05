@@ -1,0 +1,2 @@
+{"STATUS":[{"STATUS":"S","When":1775395705,"Code":70,"Msg":"CGMiner stats","Description":"cgminer 4.11.1"}],"STATS":[{"MM ID0":"LVer[25021401_56abae7] BVer[25021401_56abae7] MVer[0] FW[Release] STATE[1] MODE[2] LEVEL[0] GHSspd[6423.026000] ITemp[-273] OTemp[58] Limitemp[0] FanR[36%] Filter[33862] LED[0-0] LEDUser[0-100-50-0-0-255] LcdOnoff[1] LcdSwitch[2] LcdBright[0] ECHU[0] ECMM[0] SSID[WiFi15_IoT_2G] RSSI[-55] NetDevType[1]","MM Count":1,"Nonce Mask":25}],"id":1}
+
