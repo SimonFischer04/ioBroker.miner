@@ -130,15 +130,11 @@ export interface IceRiverOcMinerSettings extends PollingMinerSettings {
 /**
  *
  */
-export interface BOSMinerSettings extends PollingMinerSettings {
+export interface BOSMinerSettings extends SGMinerSettings {
     /**
      *
      */
     minerType: (typeof minerTypeKeys)[5];
-    /**
-     *
-     */
-    port: number;
 }
 
 /**

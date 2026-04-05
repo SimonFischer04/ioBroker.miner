@@ -237,7 +237,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         newLine: true,
                         min: 100,
                         label: I18n.getTranslatedObject('poll interval'),
-                        tooltip: 'interval to poll the device for new data',
+                        tooltip: 'interval to poll the device for new data (in ms)',
                         hidden: "data.category !== 'miner'",
                     },
                     password: {
@@ -248,7 +248,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         label: I18n.getTranslatedObject('password'),
                         tooltip:
                             'password used to connect to the device api. Adapter generates a random, secure and unique one for each device by default. But can of course be changed if needed.',
-                        hidden: "data.category !== 'miner'",
+                        hidden: "data.category !== 'miner' || !(data.minerType == 'claymoreMiner' || data.minerType == 'xmRig' || data.minerType == 'iceRiverOcMiner' || data.minerType == 'teamRedMiner')", // TODO: improve this
                     },
                     enabled: {
                         type: 'checkbox',
@@ -268,7 +268,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     name: existingSettings.name,
                     host: existingSettings.settings.host,
                     mac: existingSettings.mac,
-                    pollInterval: (existingSettings.settings as PollingMinerSettings).pollInterval, // TODO: implement this properly
+                    pollInterval: (existingSettings.settings as PollingMinerSettings).pollInterval ?? 10000, // TODO: implement this properly
                     password: (existingSettings.settings as TeamRedMinerSettings).claymore?.password ?? '', // TODO: implement this properly
                     enabled: existingSettings.enabled,
                 },

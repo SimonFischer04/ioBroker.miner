@@ -126,7 +126,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     return { refresh: true };
   }
   async showDeviceConfigurationForm(context, existingSettings, title) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j;
     this.adapter.log.debug(`showDeviceConfigurationForm existingSettings: ${JSON.stringify(existingSettings)}`);
     if (!(0, import_IOBrokerMinerSettings.isMiner)(existingSettings)) {
       this.adapter.log.error(
@@ -217,7 +217,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             newLine: true,
             min: 100,
             label: import_adapter_core.I18n.getTranslatedObject("poll interval"),
-            tooltip: "interval to poll the device for new data",
+            tooltip: "interval to poll the device for new data (in ms)",
             hidden: "data.category !== 'miner'"
           },
           password: {
@@ -227,7 +227,8 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             newLine: true,
             label: import_adapter_core.I18n.getTranslatedObject("password"),
             tooltip: "password used to connect to the device api. Adapter generates a random, secure and unique one for each device by default. But can of course be changed if needed.",
-            hidden: "data.category !== 'miner'"
+            hidden: "data.category !== 'miner' || !(data.minerType == 'claymoreMiner' || data.minerType == 'xmRig' || data.minerType == 'iceRiverOcMiner' || data.minerType == 'teamRedMiner')"
+            // TODO: improve this
           },
           enabled: {
             type: "checkbox",
@@ -246,9 +247,9 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
           name: existingSettings.name,
           host: existingSettings.settings.host,
           mac: existingSettings.mac,
-          pollInterval: existingSettings.settings.pollInterval,
+          pollInterval: (_a = existingSettings.settings.pollInterval) != null ? _a : 1e4,
           // TODO: implement this properly
-          password: (_b = (_a = existingSettings.settings.claymore) == null ? void 0 : _a.password) != null ? _b : "",
+          password: (_c = (_b = existingSettings.settings.claymore) == null ? void 0 : _b.password) != null ? _c : "",
           // TODO: implement this properly
           enabled: existingSettings.enabled
         },
@@ -283,7 +284,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     };
     switch (minerSettings.minerType) {
       case "teamRedMiner": {
-        const pollInterval = (_c = result.pollInterval) != null ? _c : this.adapter.config.pollInterval;
+        const pollInterval = (_d = result.pollInterval) != null ? _d : this.adapter.config.pollInterval;
         const trmSettings = {
           pollInterval,
           claymore: {
@@ -309,7 +310,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         break;
       }
       case "claymoreMiner": {
-        const pollInterval = (_d = result.pollInterval) != null ? _d : this.adapter.config.pollInterval;
+        const pollInterval = (_e = result.pollInterval) != null ? _e : this.adapter.config.pollInterval;
         const claymoreSettings = {
           pollInterval,
           port: 3333,
@@ -323,7 +324,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         break;
       }
       case "sgMiner": {
-        const pollInterval = (_e = result.pollInterval) != null ? _e : this.adapter.config.pollInterval;
+        const pollInterval = (_f = result.pollInterval) != null ? _f : this.adapter.config.pollInterval;
         const sgSettings = {
           pollInterval,
           port: 4028
@@ -336,7 +337,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         break;
       }
       case "xmRig": {
-        const pollInterval = (_f = result.pollInterval) != null ? _f : this.adapter.config.pollInterval;
+        const pollInterval = (_g = result.pollInterval) != null ? _g : this.adapter.config.pollInterval;
         const xmRigSettings = {
           pollInterval,
           port: 8420,
@@ -350,7 +351,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         break;
       }
       case "iceRiverOcMiner": {
-        const pollInterval = (_g = result.pollInterval) != null ? _g : this.adapter.config.pollInterval;
+        const pollInterval = (_h = result.pollInterval) != null ? _h : this.adapter.config.pollInterval;
         const iceRiverOcSettings = {
           pollInterval,
           port: 443,
@@ -364,7 +365,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         break;
       }
       case "bosMiner": {
-        const pollInterval = (_h = result.pollInterval) != null ? _h : this.adapter.config.pollInterval;
+        const pollInterval = (_i = result.pollInterval) != null ? _i : this.adapter.config.pollInterval;
         const bosSettings = {
           pollInterval,
           port: 4028
@@ -377,7 +378,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         break;
       }
       case "avalonMiner": {
-        const pollInterval = (_i = result.pollInterval) != null ? _i : this.adapter.config.pollInterval;
+        const pollInterval = (_j = result.pollInterval) != null ? _j : this.adapter.config.pollInterval;
         const avalonSettings = {
           pollInterval,
           port: 4028
