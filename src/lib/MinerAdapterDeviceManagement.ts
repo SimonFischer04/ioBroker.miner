@@ -493,6 +493,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
     protected async loadDevices(context: DeviceLoadContext<string>): Promise<void> {
         const devices = await this.adapter.getDevicesAsync();
 
+        context.setTotalDevices(devices.length);
+
         for (const device of devices) {
             // TODO: add more info
 
