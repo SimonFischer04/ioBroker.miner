@@ -1,0 +1,22 @@
+{
+    "Add new device": "Voeg nieuw apparaat toe",
+    "Add new device to Miner": "Voeg nieuw apparaat toe aan Miner",
+    "Can not delete device %s": "Kan apparaat %s niet verwijderen",
+    "Category": "Categorie",
+    "Delete this device": "Verwijder dit apparaat",
+    "Do you really want to delete the device %s?": "Weet u zeker dat u het apparaat %s wilt verwijderen?",
+    "IP address": "IP adres",
+    "MAC address": "MAC adres",
+    "MAC address required": "MAC adres vereist",
+    "Miner CLI parameters": "Miner CLI parameters",
+    "Miner type": "Miner type",
+    "Name": "Naam",
+    "Please enter an IP address": "Voer een IP-adres in",
+    "Refresh device list": "Vernieuw apparaatlijst",
+    "Settings": "Instellingen",
+    "enabled": "ingeschakeld",
+    "id": "ID",
+    "password": "wachtwoord",
+    "poll interval": "poll-interval"
+}
+

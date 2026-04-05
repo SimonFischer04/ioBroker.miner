@@ -32,6 +32,7 @@ __export(main_exports, {
 });
 module.exports = __toCommonJS(main_exports);
 var utils = __toESM(require("@iobroker/adapter-core"));
+var import_adapter_core = require("@iobroker/adapter-core");
 var import_MinerAdapterDeviceManagement = __toESM(require("./lib/MinerAdapterDeviceManagement"));
 var import_Category = require("./lib/miner/model/Category");
 var import_MinerManager = require("./lib/miner/miner/MinerManager");
@@ -58,6 +59,7 @@ class MinerAdapter extends utils.Adapter {
    */
   async onReady() {
     this.setupMinerLib();
+    await import_adapter_core.I18n.init(__dirname, this);
     await this.setState("info.connection", false, true);
     await this.createBasicObjectStructure();
     this.log.info(`aconfig option1: ${this.config.option1}`);

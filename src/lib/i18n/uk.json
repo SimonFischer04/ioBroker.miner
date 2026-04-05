@@ -1,0 +1,22 @@
+{
+    "Add new device": "Додати новий пристрій",
+    "Add new device to Miner": "Додати новий пристрій до Miner",
+    "Can not delete device %s": "Не вдалося видалити пристрій %s",
+    "Category": "Категорія",
+    "Delete this device": "Видалити цей пристрій",
+    "Do you really want to delete the device %s?": "Ви дійсно бажаєте видалити пристрій %s?",
+    "IP address": "IP адреса",
+    "MAC address": "MAC адреса",
+    "MAC address required": "Потрібна MAC адреса",
+    "Miner CLI parameters": "Параметри CLI майнера",
+    "Miner type": "Тип майнера",
+    "Name": "Ім'я",
+    "Please enter an IP address": "Будь ласка, введіть IP адресу",
+    "Refresh device list": "Оновити список пристроїв",
+    "Settings": "Налаштування",
+    "enabled": "увімкнути",
+    "id": "ID",
+    "password": "пароль",
+    "poll interval": "інтервал опитування"
+}
+

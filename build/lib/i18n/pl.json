@@ -1,0 +1,22 @@
+{
+    "Add new device": "Dodaj nowe urządzenie",
+    "Add new device to Miner": "Dodaj nowe urządzenie do Miner",
+    "Can not delete device %s": "Nie można usunąć urządzenia %s",
+    "Category": "Kategoria",
+    "Delete this device": "Usuń to urządzenie",
+    "Do you really want to delete the device %s?": "Czy na pewno chcesz usunąć urządzenie %s?",
+    "IP address": "Adres IP",
+    "MAC address": "Adres MAC",
+    "MAC address required": "Adres MAC wymagany",
+    "Miner CLI parameters": "Parametry CLI kopacza",
+    "Miner type": "Typ kopacza",
+    "Name": "Nazwa",
+    "Please enter an IP address": "Proszę wprowadzić adres IP",
+    "Refresh device list": "Odśwież listę urządzeń",
+    "Settings": "Ustawienia",
+    "enabled": "włączone",
+    "id": "ID",
+    "password": "hasło",
+    "poll interval": "przedział ankietowy"
+}
+

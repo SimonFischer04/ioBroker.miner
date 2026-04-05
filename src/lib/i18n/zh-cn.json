@@ -1,0 +1,23 @@
+{
+    "Add new device": "添加新设备",
+    "Add new device to Miner": "将新设备添加到Miner",
+    "Can not delete device %s": "无法删除设备 %s",
+    "Category": "类别",
+    "Delete this device": "删除此设备",
+    "Do you really want to delete the device %s?": "您真的要删除设备 %s 吗？",
+    "IP address": "IP地址",
+    "MAC address": "MAC地址",
+    "MAC address required": "需要MAC地址",
+    "Miner CLI parameters": "矿工CLI参数",
+    "Miner type": "矿工类型",
+    "Name": "名称",
+    "Please enter an IP address": "请输入IP地址",
+    "Refresh device list": "刷新设备列表",
+    "Settings": "设定值",
+    "enabled": "启用",
+    "id": "ID",
+    "password": "密码",
+    "poll interval": "民意调查间隔"
+}
+
+

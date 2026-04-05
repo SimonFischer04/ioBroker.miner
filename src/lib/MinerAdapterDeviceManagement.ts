@@ -7,6 +7,7 @@ import type {
     JsonFormData,
 } from '@iobroker/dm-utils';
 import { DeviceManagement } from '@iobroker/dm-utils';
+import { I18n } from '@iobroker/adapter-core';
 import type { MinerAdapter } from '../main';
 import { categoryKeys } from './miner/model/Category';
 import type {
@@ -36,38 +37,14 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     id: 'refresh',
                     icon: 'fas fa-redo-alt',
                     title: '',
-                    description: {
-                        en: 'Refresh device list',
-                        de: 'Geräteliste aktualisieren',
-                        ru: 'Обновить список устройств',
-                        pt: 'Atualizar lista de dispositivos',
-                        nl: 'Vernieuw apparaatlijst',
-                        fr: 'Actualiser la liste des appareils',
-                        it: 'Aggiorna elenco dispositivi',
-                        es: 'Actualizar lista de dispositivos',
-                        pl: 'Odśwież listę urządzeń',
-                        'zh-cn': '刷新设备列表',
-                        uk: 'Оновити список пристроїв',
-                    },
+                    description: I18n.getTranslatedObject('Refresh device list'),
                     handler: this.handleRefresh.bind(this),
                 },
                 {
                     id: 'newDevice',
                     icon: 'fas fa-plus',
                     title: '',
-                    description: {
-                        en: 'Add new device to Miner',
-                        de: 'Neues Gerät zu Miner hinzufügen',
-                        ru: 'Добавить новое устройство в Miner',
-                        pt: 'Adicionar novo dispositivo ao Miner',
-                        nl: 'Voeg nieuw apparaat toe aan Miner',
-                        fr: 'Ajouter un nouvel appareil à Miner',
-                        it: 'Aggiungi nuovo dispositivo a Miner',
-                        es: 'Agregar nuevo dispositivo a Miner',
-                        pl: 'Dodaj nowe urządzenie do Miner',
-                        'zh-cn': '将新设备添加到Miner',
-                        uk: 'Додати новий пристрій до Miner',
-                    },
+                    description: I18n.getTranslatedObject('Add new device to Miner'),
                     handler: this.handleNewDevice.bind(this),
                 },
                 // TODO
@@ -128,20 +105,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 mac: '',
                 enabled: true,
             } as PartialDeep<IOBrokerMinerSettings>,
-            {
-                // TODO: improve this (by making IOBrokerMinerSettings generic?, ...)
-                en: 'Add new device',
-                de: 'Neues Gerät hinzufügen',
-                ru: 'Добавить новое устройство',
-                pt: 'Adicionar novo dispositivo',
-                nl: 'Voeg nieuw apparaat toe',
-                fr: 'Ajouter un nouvel appareil',
-                it: 'Aggiungi nuovo dispositivo',
-                es: 'Agregar nuevo dispositivo',
-                pl: 'Dodaj nowe urządzenie',
-                'zh-cn': '添加新设备',
-                uk: 'Додати новий пристрій',
-            },
+            // TODO: improve this (by making IOBrokerMinerSettings generic?, ...)
+            I18n.getTranslatedObject('Add new device'),
         );
 
         this.adapter.log.debug(`handleNewDevice settings: ${JSON.stringify(settings)}`);
@@ -180,7 +145,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     category: {
                         type: 'select',
                         newLine: true,
-                        label: 'category', // TODO: translate
+                        label: I18n.getTranslatedObject('Category'),
                         tooltip: 'category of the iobroker thing (miner or pool)',
                         options: categoryKeys.map(key => {
                             return {
@@ -193,7 +158,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     minerType: {
                         type: 'select',
                         newLine: true,
-                        label: 'minerType', // TODO: translate
+                        label: I18n.getTranslatedObject('Miner type'),
                         tooltip: 'type of miner / firmware',
                         options: minerTypeKeys.map(key => {
                             return {
@@ -206,7 +171,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     id: {
                         type: 'text',
                         newLine: true,
-                        label: 'id', // TODO: translate
+                        label: I18n.getTranslatedObject('id'),
                         tooltip: 'unique id of the device, used to identify the device in the adapter',
                         readOnly: true,
                         noClearButton: true,
@@ -216,19 +181,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         type: 'text',
                         newLine: true,
                         // trim: false,
-                        label: {
-                            en: 'Name',
-                            de: 'Name',
-                            ru: 'Имя',
-                            pt: 'Nome',
-                            nl: 'Naam',
-                            fr: 'Nom',
-                            it: 'Nome',
-                            es: 'Nombre',
-                            pl: 'Nazwa',
-                            'zh-cn': '名称',
-                            uk: "Ім'я",
-                        },
+                        label: I18n.getTranslatedObject('Name'),
                         tooltip: 'name for the user to identify the device',
                     },
                     host: {
@@ -236,19 +189,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         newLine: true,
                         trim: true,
                         placeholder: 'fe80::42',
-                        label: {
-                            en: 'IP address',
-                            de: 'IP-Adresse',
-                            ru: 'IP адрес',
-                            pt: 'Endereço de IP',
-                            nl: 'IP adres',
-                            fr: 'Adresse IP',
-                            it: 'Indirizzo IP',
-                            es: 'Dirección IP',
-                            pl: 'Adres IP',
-                            'zh-cn': 'IP地址',
-                            uk: 'IP адреса',
-                        },
+                        label: I18n.getTranslatedObject('IP address'),
                         tooltip: 'IP address (or host) of the device',
                     },
                     // TODO: get by request
@@ -257,19 +198,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         newLine: true,
                         trim: true,
                         placeholder: '00:00:00:00:00:00',
-                        label: {
-                            en: 'MAC address',
-                            de: 'MAC-Adresse',
-                            ru: 'MAC адрес',
-                            pt: 'Endereço MAC',
-                            nl: 'MAC adres',
-                            fr: 'Adresse MAC',
-                            it: 'Indirizzo MAC',
-                            es: 'Dirección MAC',
-                            pl: 'Adres MAC',
-                            'zh-cn': 'MAC地址',
-                            uk: 'MAC адреса',
-                        },
+                        label: I18n.getTranslatedObject('MAC address'),
                         tooltip: 'MAC address of the device',
                     },
                     // TODO: show only if miner requires polling? possible to dynamically add fields to form?
@@ -277,19 +206,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         type: 'number',
                         newLine: true,
                         min: 100,
-                        label: {
-                            en: 'poll interval', // TODO: also fix translate in jsonConfig.json5
-                            de: 'Abrufintervall',
-                            ru: 'интервал',
-                            pt: 'intervalo de poluição',
-                            nl: 'poll-interval',
-                            fr: 'intervalle de sondage',
-                            it: 'intervallo di sondaggio',
-                            es: 'intervalo de encuesta',
-                            pl: 'przedział ankietowy',
-                            uk: 'інтервал опитування',
-                            'zh-cn': '民意调查间隔',
-                        },
+                        label: I18n.getTranslatedObject('poll interval'),
                         tooltip: 'interval to poll the device for new data',
                     },
                     password: {
@@ -297,38 +214,14 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         // type password does not allow to show the password generated as default value
                         // type: 'password',
                         newLine: true,
-                        label: {
-                            en: 'password',
-                            de: 'passwort',
-                            ru: 'пароль',
-                            pt: 'senha',
-                            nl: 'wachtwoord',
-                            fr: 'mot de passe',
-                            it: 'password',
-                            es: 'contraseña',
-                            pl: 'hasło',
-                            uk: 'увійти',
-                            'zh-cn': '密码',
-                        },
+                        label: I18n.getTranslatedObject('password'),
                         tooltip:
                             'password used to connect to the device api. Adapter generates a random, secure and unique one for each device by default. But can of course be changed if needed.',
                     },
                     enabled: {
                         type: 'checkbox',
                         newLine: true,
-                        label: {
-                            en: 'enabled',
-                            de: 'aktiviert',
-                            ru: 'включен',
-                            pt: 'habilitado',
-                            nl: 'ingeschakeld',
-                            fr: 'activé',
-                            it: 'abilitata',
-                            es: 'habilitado',
-                            pl: 'włączone',
-                            uk: 'увімкнути',
-                            'zh-cn': '启用',
-                        },
+                        label: I18n.getTranslatedObject('enabled'),
                         tooltip:
                             'whether the device is enabled or not. Disabled devices will do nothing (not get polled, control does not work, ...). Useful if you f.e. shut one off temporarily.',
                     },
@@ -361,7 +254,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         // Check if mac was entered
         // TODO: get from device
         if (result.mac === '') {
-            await context.showMessage(`MAC address required`);
+            await context.showMessage(I18n.translate('MAC address required'));
         }
 
         // Check if mac is valid
@@ -389,7 +282,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         // Check if host/ip was entered
         if (result.host === '') {
             // TODO: Objects are not valid as a React child (found: object with keys {en, de, ru, pt, nl, fr, it, es, pl, zh-cn, uk}). If you meant to render a collection of children, use an array instead.
-            await context.showMessage(`Please enter an IP address`);
+            await context.showMessage(I18n.translate('Please enter an IP address'));
             // await context.showMessage({
             //     en: `Please enter an IP address`,
             //     de: `Bitte geben Sie eine IP-Adresse ein`,
@@ -594,37 +487,13 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     {
                         id: 'delete',
                         icon: 'fa-solid fa-trash-can',
-                        description: {
-                            en: 'Delete this device',
-                            de: 'Gerät löschen',
-                            ru: 'Удалить это устройство',
-                            pt: 'Excluir este dispositivo',
-                            nl: 'Verwijder dit apparaat',
-                            fr: 'Supprimer cet appareil',
-                            it: 'Elimina questo dispositivo',
-                            es: 'Eliminar este dispositivo',
-                            pl: 'Usuń to urządzenie',
-                            'zh-cn': '删除此设备',
-                            uk: 'Видалити цей пристрій',
-                        },
+                        description: I18n.getTranslatedObject('Delete this device'),
                         handler: this.handleDeleteDevice.bind(this),
                     },
                     {
                         id: 'settings',
                         icon: 'fa-solid fa-gear',
-                        description: {
-                            en: 'Settings',
-                            de: 'Einstellungen',
-                            ru: 'Настройки',
-                            pt: 'Configurações',
-                            nl: 'Instellingen',
-                            fr: 'Paramètres',
-                            it: 'Impostazioni',
-                            es: 'Configuraciones',
-                            pl: 'Ustawienia',
-                            'zh-cn': '设定值',
-                            uk: 'Налаштування',
-                        },
+                        description: I18n.getTranslatedObject('Settings'),
                         handler: this.handleSettingsDevice.bind(this),
                     },
                 ],
@@ -635,19 +504,9 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
     }
 
     protected async handleDeleteDevice(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        const response = await context.showConfirmation({
-            en: `Do you really want to delete the device ${id}?`,
-            de: `Möchten Sie das Gerät ${id} wirklich löschen?`,
-            ru: `Вы действительно хотите удалить устройство ${id}?`,
-            pt: `Você realmente deseja excluir o dispositivo ${id}?`,
-            nl: `Weet u zeker dat u het apparaat ${id} wilt verwijderen?`,
-            fr: `Voulez-vous vraiment supprimer l'appareil ${id} ?`,
-            it: `Vuoi davvero eliminare il dispositivo ${id}?`,
-            es: `¿Realmente desea eliminar el dispositivo ${id}?`,
-            pl: `Czy na pewno chcesz usunąć urządzenie ${id}?`,
-            'zh-cn': `您真的要删除设备 ${id} 吗？`,
-            uk: `Ви дійсно бажаєте видалити пристрій ${id}?`,
-        });
+        const response = await context.showConfirmation(
+            I18n.getTranslatedObject('Do you really want to delete the device %s?', id),
+        );
 
         // delete device
         if (!response) {
@@ -655,19 +514,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         }
         const success = await this.adapter.delDevice(id);
         if (!success) {
-            await context.showMessage({
-                en: `Can not delete device ${id}`,
-                de: `Gerät ${id} kann nicht gelöscht werden`,
-                ru: `Невозможно удалить устройство ${id}`,
-                pt: `Não é possível excluir o dispositivo ${id}`,
-                nl: `Kan apparaat ${id} niet verwijderen`,
-                fr: `Impossible de supprimer l'appareil ${id}`,
-                it: `Impossibile eliminare il dispositivo ${id}`,
-                es: `No se puede eliminar el dispositivo ${id}`,
-                pl: `Nie można usunąć urządzenia ${id}`,
-                'zh-cn': `无法删除设备 ${id}`,
-                uk: `Не вдалося видалити пристрій ${id}`,
-            });
+            await context.showMessage(I18n.getTranslatedObject('Can not delete device %s', id));
             return { refresh: false };
         }
         return { refresh: true };
@@ -686,19 +533,11 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             value => this.adapter.decrypt(value),
         );
 
-        const newSettings = await this.showDeviceConfigurationForm(context, currentSettings, {
-            en: 'Settings',
-            de: 'Einstellungen',
-            ru: 'Настройки',
-            pt: 'Configurações',
-            nl: 'Instellingen',
-            fr: 'Paramètres',
-            it: 'Impostazioni',
-            es: 'Configuraciones',
-            pl: 'Ustawienia',
-            'zh-cn': '设定值',
-            uk: 'Налаштування',
-        });
+        const newSettings = await this.showDeviceConfigurationForm(
+            context,
+            currentSettings,
+            I18n.getTranslatedObject('Settings'),
+        );
 
         this.adapter.log.debug(`handleSettingsDevice newSettings: ${JSON.stringify(newSettings)}`);
 
@@ -766,7 +605,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     },
                     minerCliParams: {
                         type: 'text',
-                        label: 'Miner CLI parameters',
+                        label: I18n.translate('Miner CLI parameters'),
                         sm: 12,
                         disabled: 'true',
                     },

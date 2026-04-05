@@ -1,0 +1,22 @@
+{
+    "Add new device": "Ajouter un nouvel appareil",
+    "Add new device to Miner": "Ajouter un nouvel appareil à Miner",
+    "Can not delete device %s": "Impossible de supprimer l'appareil %s",
+    "Category": "Catégorie",
+    "Delete this device": "Supprimer cet appareil",
+    "Do you really want to delete the device %s?": "Voulez-vous vraiment supprimer l'appareil %s ?",
+    "IP address": "Adresse IP",
+    "MAC address": "Adresse MAC",
+    "MAC address required": "Adresse MAC requise",
+    "Miner CLI parameters": "Paramètres CLI du mineur",
+    "Miner type": "Type de mineur",
+    "Name": "Nom",
+    "Please enter an IP address": "Veuillez saisir une adresse IP",
+    "Refresh device list": "Actualiser la liste des appareils",
+    "Settings": "Paramètres",
+    "enabled": "activé",
+    "id": "ID",
+    "password": "mot de passe",
+    "poll interval": "intervalle de sondage"
+}
+

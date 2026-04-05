@@ -1,0 +1,22 @@
+{
+    "Add new device": "Добавить новое устройство",
+    "Add new device to Miner": "Добавить новое устройство в Miner",
+    "Can not delete device %s": "Невозможно удалить устройство %s",
+    "Category": "Категория",
+    "Delete this device": "Удалить это устройство",
+    "Do you really want to delete the device %s?": "Вы действительно хотите удалить устройство %s?",
+    "IP address": "IP адрес",
+    "MAC address": "MAC адрес",
+    "MAC address required": "Требуется MAC адрес",
+    "Miner CLI parameters": "Параметры CLI майнера",
+    "Miner type": "Тип майнера",
+    "Name": "Имя",
+    "Please enter an IP address": "Пожалуйста, введите IP адрес",
+    "Refresh device list": "Обновить список устройств",
+    "Settings": "Настройки",
+    "enabled": "включен",
+    "id": "ID",
+    "password": "пароль",
+    "poll interval": "интервал опроса"
+}
+

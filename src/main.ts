@@ -1,4 +1,5 @@
 import * as utils from '@iobroker/adapter-core';
+import { I18n } from '@iobroker/adapter-core';
 import MinerAdapterDeviceManagement from './lib/MinerAdapterDeviceManagement';
 import { categoryKeys } from './lib/miner/model/Category';
 import { MinerManager } from './lib/miner/miner/MinerManager';
@@ -40,6 +41,9 @@ export class MinerAdapter extends utils.Adapter {
      */
     private async onReady(): Promise<void> {
         this.setupMinerLib();
+
+        // Initialize i18n for device management translations
+        await I18n.init(__dirname, this);
 
         // Reset the connection indicator during startup
         await this.setState('info.connection', false, true);

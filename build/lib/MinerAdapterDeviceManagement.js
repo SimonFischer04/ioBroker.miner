@@ -22,6 +22,7 @@ __export(MinerAdapterDeviceManagement_exports, {
 });
 module.exports = __toCommonJS(MinerAdapterDeviceManagement_exports);
 var import_dm_utils = require("@iobroker/dm-utils");
+var import_adapter_core = require("@iobroker/adapter-core");
 var import_Category = require("./miner/model/Category");
 var import_MinerSettings = require("./miner/model/MinerSettings");
 var import_IOBrokerMinerSettings = require("../miner/model/IOBrokerMinerSettings");
@@ -36,38 +37,14 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
           id: "refresh",
           icon: "fas fa-redo-alt",
           title: "",
-          description: {
-            en: "Refresh device list",
-            de: "Ger\xE4teliste aktualisieren",
-            ru: "\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C \u0441\u043F\u0438\u0441\u043E\u043A \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432",
-            pt: "Atualizar lista de dispositivos",
-            nl: "Vernieuw apparaatlijst",
-            fr: "Actualiser la liste des appareils",
-            it: "Aggiorna elenco dispositivi",
-            es: "Actualizar lista de dispositivos",
-            pl: "Od\u015Bwie\u017C list\u0119 urz\u0105dze\u0144",
-            "zh-cn": "\u5237\u65B0\u8BBE\u5907\u5217\u8868",
-            uk: "\u041E\u043D\u043E\u0432\u0438\u0442\u0438 \u0441\u043F\u0438\u0441\u043E\u043A \u043F\u0440\u0438\u0441\u0442\u0440\u043E\u0457\u0432"
-          },
+          description: import_adapter_core.I18n.getTranslatedObject("Refresh device list"),
           handler: this.handleRefresh.bind(this)
         },
         {
           id: "newDevice",
           icon: "fas fa-plus",
           title: "",
-          description: {
-            en: "Add new device to Miner",
-            de: "Neues Ger\xE4t zu Miner hinzuf\xFCgen",
-            ru: "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043D\u043E\u0432\u043E\u0435 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E \u0432 Miner",
-            pt: "Adicionar novo dispositivo ao Miner",
-            nl: "Voeg nieuw apparaat toe aan Miner",
-            fr: "Ajouter un nouvel appareil \xE0 Miner",
-            it: "Aggiungi nuovo dispositivo a Miner",
-            es: "Agregar nuevo dispositivo a Miner",
-            pl: "Dodaj nowe urz\u0105dzenie do Miner",
-            "zh-cn": "\u5C06\u65B0\u8BBE\u5907\u6DFB\u52A0\u5230Miner",
-            uk: "\u0414\u043E\u0434\u0430\u0442\u0438 \u043D\u043E\u0432\u0438\u0439 \u043F\u0440\u0438\u0441\u0442\u0440\u0456\u0439 \u0434\u043E Miner"
-          },
+          description: import_adapter_core.I18n.getTranslatedObject("Add new device to Miner"),
           handler: this.handleNewDevice.bind(this)
         }
         // TODO
@@ -125,20 +102,8 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         mac: "",
         enabled: true
       },
-      {
-        // TODO: improve this (by making IOBrokerMinerSettings generic?, ...)
-        en: "Add new device",
-        de: "Neues Ger\xE4t hinzuf\xFCgen",
-        ru: "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043D\u043E\u0432\u043E\u0435 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E",
-        pt: "Adicionar novo dispositivo",
-        nl: "Voeg nieuw apparaat toe",
-        fr: "Ajouter un nouvel appareil",
-        it: "Aggiungi nuovo dispositivo",
-        es: "Agregar nuevo dispositivo",
-        pl: "Dodaj nowe urz\u0105dzenie",
-        "zh-cn": "\u6DFB\u52A0\u65B0\u8BBE\u5907",
-        uk: "\u0414\u043E\u0434\u0430\u0442\u0438 \u043D\u043E\u0432\u0438\u0439 \u043F\u0440\u0438\u0441\u0442\u0440\u0456\u0439"
-      }
+      // TODO: improve this (by making IOBrokerMinerSettings generic?, ...)
+      import_adapter_core.I18n.getTranslatedObject("Add new device")
     );
     this.adapter.log.debug(`handleNewDevice settings: ${JSON.stringify(settings)}`);
     if (settings === void 0) {
@@ -163,8 +128,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
           category: {
             type: "select",
             newLine: true,
-            label: "category",
-            // TODO: translate
+            label: import_adapter_core.I18n.getTranslatedObject("Category"),
             tooltip: "category of the iobroker thing (miner or pool)",
             options: import_Category.categoryKeys.map((key) => {
               return {
@@ -177,8 +141,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
           minerType: {
             type: "select",
             newLine: true,
-            label: "minerType",
-            // TODO: translate
+            label: import_adapter_core.I18n.getTranslatedObject("Miner type"),
             tooltip: "type of miner / firmware",
             options: import_MinerSettings.minerTypeKeys.map((key) => {
               return {
@@ -191,8 +154,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
           id: {
             type: "text",
             newLine: true,
-            label: "id",
-            // TODO: translate
+            label: import_adapter_core.I18n.getTranslatedObject("id"),
             tooltip: "unique id of the device, used to identify the device in the adapter",
             readOnly: true,
             noClearButton: true,
@@ -202,19 +164,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             type: "text",
             newLine: true,
             // trim: false,
-            label: {
-              en: "Name",
-              de: "Name",
-              ru: "\u0418\u043C\u044F",
-              pt: "Nome",
-              nl: "Naam",
-              fr: "Nom",
-              it: "Nome",
-              es: "Nombre",
-              pl: "Nazwa",
-              "zh-cn": "\u540D\u79F0",
-              uk: "\u0406\u043C'\u044F"
-            },
+            label: import_adapter_core.I18n.getTranslatedObject("Name"),
             tooltip: "name for the user to identify the device"
           },
           host: {
@@ -222,19 +172,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             newLine: true,
             trim: true,
             placeholder: "fe80::42",
-            label: {
-              en: "IP address",
-              de: "IP-Adresse",
-              ru: "IP \u0430\u0434\u0440\u0435\u0441",
-              pt: "Endere\xE7o de IP",
-              nl: "IP adres",
-              fr: "Adresse IP",
-              it: "Indirizzo IP",
-              es: "Direcci\xF3n IP",
-              pl: "Adres IP",
-              "zh-cn": "IP\u5730\u5740",
-              uk: "IP \u0430\u0434\u0440\u0435\u0441\u0430"
-            },
+            label: import_adapter_core.I18n.getTranslatedObject("IP address"),
             tooltip: "IP address (or host) of the device"
           },
           // TODO: get by request
@@ -243,19 +181,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             newLine: true,
             trim: true,
             placeholder: "00:00:00:00:00:00",
-            label: {
-              en: "MAC address",
-              de: "MAC-Adresse",
-              ru: "MAC \u0430\u0434\u0440\u0435\u0441",
-              pt: "Endere\xE7o MAC",
-              nl: "MAC adres",
-              fr: "Adresse MAC",
-              it: "Indirizzo MAC",
-              es: "Direcci\xF3n MAC",
-              pl: "Adres MAC",
-              "zh-cn": "MAC\u5730\u5740",
-              uk: "MAC \u0430\u0434\u0440\u0435\u0441\u0430"
-            },
+            label: import_adapter_core.I18n.getTranslatedObject("MAC address"),
             tooltip: "MAC address of the device"
           },
           // TODO: show only if miner requires polling? possible to dynamically add fields to form?
@@ -263,20 +189,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             type: "number",
             newLine: true,
             min: 100,
-            label: {
-              en: "poll interval",
-              // TODO: also fix translate in jsonConfig.json5
-              de: "Abrufintervall",
-              ru: "\u0438\u043D\u0442\u0435\u0440\u0432\u0430\u043B",
-              pt: "intervalo de polui\xE7\xE3o",
-              nl: "poll-interval",
-              fr: "intervalle de sondage",
-              it: "intervallo di sondaggio",
-              es: "intervalo de encuesta",
-              pl: "przedzia\u0142 ankietowy",
-              uk: "\u0456\u043D\u0442\u0435\u0440\u0432\u0430\u043B \u043E\u043F\u0438\u0442\u0443\u0432\u0430\u043D\u043D\u044F",
-              "zh-cn": "\u6C11\u610F\u8C03\u67E5\u95F4\u9694"
-            },
+            label: import_adapter_core.I18n.getTranslatedObject("poll interval"),
             tooltip: "interval to poll the device for new data"
           },
           password: {
@@ -284,37 +197,13 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             // type password does not allow to show the password generated as default value
             // type: 'password',
             newLine: true,
-            label: {
-              en: "password",
-              de: "passwort",
-              ru: "\u043F\u0430\u0440\u043E\u043B\u044C",
-              pt: "senha",
-              nl: "wachtwoord",
-              fr: "mot de passe",
-              it: "password",
-              es: "contrase\xF1a",
-              pl: "has\u0142o",
-              uk: "\u0443\u0432\u0456\u0439\u0442\u0438",
-              "zh-cn": "\u5BC6\u7801"
-            },
+            label: import_adapter_core.I18n.getTranslatedObject("password"),
             tooltip: "password used to connect to the device api. Adapter generates a random, secure and unique one for each device by default. But can of course be changed if needed."
           },
           enabled: {
             type: "checkbox",
             newLine: true,
-            label: {
-              en: "enabled",
-              de: "aktiviert",
-              ru: "\u0432\u043A\u043B\u044E\u0447\u0435\u043D",
-              pt: "habilitado",
-              nl: "ingeschakeld",
-              fr: "activ\xE9",
-              it: "abilitata",
-              es: "habilitado",
-              pl: "w\u0142\u0105czone",
-              uk: "\u0443\u0432\u0456\u043C\u043A\u043D\u0443\u0442\u0438",
-              "zh-cn": "\u542F\u7528"
-            },
+            label: import_adapter_core.I18n.getTranslatedObject("enabled"),
             tooltip: "whether the device is enabled or not. Disabled devices will do nothing (not get polled, control does not work, ...). Useful if you f.e. shut one off temporarily."
           }
         }
@@ -341,12 +230,12 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
       return void 0;
     }
     if (result.mac === "") {
-      await context.showMessage(`MAC address required`);
+      await context.showMessage(import_adapter_core.I18n.translate("MAC address required"));
     }
     if (result.mac !== "") {
     }
     if (result.host === "") {
-      await context.showMessage(`Please enter an IP address`);
+      await context.showMessage(import_adapter_core.I18n.translate("Please enter an IP address"));
       return void 0;
     }
     if (result.host !== "") {
@@ -498,37 +387,13 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
           {
             id: "delete",
             icon: "fa-solid fa-trash-can",
-            description: {
-              en: "Delete this device",
-              de: "Ger\xE4t l\xF6schen",
-              ru: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u044D\u0442\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E",
-              pt: "Excluir este dispositivo",
-              nl: "Verwijder dit apparaat",
-              fr: "Supprimer cet appareil",
-              it: "Elimina questo dispositivo",
-              es: "Eliminar este dispositivo",
-              pl: "Usu\u0144 to urz\u0105dzenie",
-              "zh-cn": "\u5220\u9664\u6B64\u8BBE\u5907",
-              uk: "\u0412\u0438\u0434\u0430\u043B\u0438\u0442\u0438 \u0446\u0435\u0439 \u043F\u0440\u0438\u0441\u0442\u0440\u0456\u0439"
-            },
+            description: import_adapter_core.I18n.getTranslatedObject("Delete this device"),
             handler: this.handleDeleteDevice.bind(this)
           },
           {
             id: "settings",
             icon: "fa-solid fa-gear",
-            description: {
-              en: "Settings",
-              de: "Einstellungen",
-              ru: "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
-              pt: "Configura\xE7\xF5es",
-              nl: "Instellingen",
-              fr: "Param\xE8tres",
-              it: "Impostazioni",
-              es: "Configuraciones",
-              pl: "Ustawienia",
-              "zh-cn": "\u8BBE\u5B9A\u503C",
-              uk: "\u041D\u0430\u043B\u0430\u0448\u0442\u0443\u0432\u0430\u043D\u043D\u044F"
-            },
+            description: import_adapter_core.I18n.getTranslatedObject("Settings"),
             handler: this.handleSettingsDevice.bind(this)
           }
         ]
@@ -537,37 +402,15 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     return arrDevices;
   }
   async handleDeleteDevice(id, context) {
-    const response = await context.showConfirmation({
-      en: `Do you really want to delete the device ${id}?`,
-      de: `M\xF6chten Sie das Ger\xE4t ${id} wirklich l\xF6schen?`,
-      ru: `\u0412\u044B \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u044C\u043D\u043E \u0445\u043E\u0442\u0438\u0442\u0435 \u0443\u0434\u0430\u043B\u0438\u0442\u044C \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E ${id}?`,
-      pt: `Voc\xEA realmente deseja excluir o dispositivo ${id}?`,
-      nl: `Weet u zeker dat u het apparaat ${id} wilt verwijderen?`,
-      fr: `Voulez-vous vraiment supprimer l'appareil ${id} ?`,
-      it: `Vuoi davvero eliminare il dispositivo ${id}?`,
-      es: `\xBFRealmente desea eliminar el dispositivo ${id}?`,
-      pl: `Czy na pewno chcesz usun\u0105\u0107 urz\u0105dzenie ${id}?`,
-      "zh-cn": `\u60A8\u771F\u7684\u8981\u5220\u9664\u8BBE\u5907 ${id} \u5417\uFF1F`,
-      uk: `\u0412\u0438 \u0434\u0456\u0439\u0441\u043D\u043E \u0431\u0430\u0436\u0430\u0454\u0442\u0435 \u0432\u0438\u0434\u0430\u043B\u0438\u0442\u0438 \u043F\u0440\u0438\u0441\u0442\u0440\u0456\u0439 ${id}?`
-    });
+    const response = await context.showConfirmation(
+      import_adapter_core.I18n.getTranslatedObject("Do you really want to delete the device %s?", id)
+    );
     if (!response) {
       return { refresh: false };
     }
     const success = await this.adapter.delDevice(id);
     if (!success) {
-      await context.showMessage({
-        en: `Can not delete device ${id}`,
-        de: `Ger\xE4t ${id} kann nicht gel\xF6scht werden`,
-        ru: `\u041D\u0435\u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E \u0443\u0434\u0430\u043B\u0438\u0442\u044C \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E ${id}`,
-        pt: `N\xE3o \xE9 poss\xEDvel excluir o dispositivo ${id}`,
-        nl: `Kan apparaat ${id} niet verwijderen`,
-        fr: `Impossible de supprimer l'appareil ${id}`,
-        it: `Impossibile eliminare il dispositivo ${id}`,
-        es: `No se puede eliminar el dispositivo ${id}`,
-        pl: `Nie mo\u017Cna usun\u0105\u0107 urz\u0105dzenia ${id}`,
-        "zh-cn": `\u65E0\u6CD5\u5220\u9664\u8BBE\u5907 ${id}`,
-        uk: `\u041D\u0435 \u0432\u0434\u0430\u043B\u043E\u0441\u044F \u0432\u0438\u0434\u0430\u043B\u0438\u0442\u0438 \u043F\u0440\u0438\u0441\u0442\u0440\u0456\u0439 ${id}`
-      });
+      await context.showMessage(import_adapter_core.I18n.getTranslatedObject("Can not delete device %s", id));
       return { refresh: false };
     }
     return { refresh: true };
@@ -582,19 +425,11 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
       obj.native,
       (value) => this.adapter.decrypt(value)
     );
-    const newSettings = await this.showDeviceConfigurationForm(context, currentSettings, {
-      en: "Settings",
-      de: "Einstellungen",
-      ru: "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
-      pt: "Configura\xE7\xF5es",
-      nl: "Instellingen",
-      fr: "Param\xE8tres",
-      it: "Impostazioni",
-      es: "Configuraciones",
-      pl: "Ustawienia",
-      "zh-cn": "\u8BBE\u5B9A\u503C",
-      uk: "\u041D\u0430\u043B\u0430\u0448\u0442\u0443\u0432\u0430\u043D\u043D\u044F"
-    });
+    const newSettings = await this.showDeviceConfigurationForm(
+      context,
+      currentSettings,
+      import_adapter_core.I18n.getTranslatedObject("Settings")
+    );
     this.adapter.log.debug(`handleSettingsDevice newSettings: ${JSON.stringify(newSettings)}`);
     if (newSettings === void 0) {
       return { refresh: false };
@@ -641,7 +476,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
           },
           minerCliParams: {
             type: "text",
-            label: "Miner CLI parameters",
+            label: import_adapter_core.I18n.translate("Miner CLI parameters"),
             sm: 12,
             disabled: "true"
           }

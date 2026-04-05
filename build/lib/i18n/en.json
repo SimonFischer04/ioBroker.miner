@@ -1,0 +1,22 @@
+{
+    "Add new device": "Add new device",
+    "Add new device to Miner": "Add new device to Miner",
+    "Can not delete device %s": "Can not delete device %s",
+    "Category": "Category",
+    "Delete this device": "Delete this device",
+    "Do you really want to delete the device %s?": "Do you really want to delete the device %s?",
+    "IP address": "IP address",
+    "MAC address": "MAC address",
+    "MAC address required": "MAC address required",
+    "Miner CLI parameters": "Miner CLI parameters",
+    "Miner type": "Miner type",
+    "Name": "Name",
+    "Please enter an IP address": "Please enter an IP address",
+    "Refresh device list": "Refresh device list",
+    "Settings": "Settings",
+    "enabled": "enabled",
+    "id": "id",
+    "password": "password",
+    "poll interval": "poll interval"
+}
+
