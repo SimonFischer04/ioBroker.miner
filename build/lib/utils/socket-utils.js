@@ -26,6 +26,7 @@ async function sendSocketCommand(logger, host, port, data, expectResponse = true
   logger.debug(`sendCommand: ${JSON.stringify(data)}`);
   let handled = false;
   const socket = new import_node_net.Socket();
+  let buffer = "";
   return new Promise((resolve, reject) => {
     socket.on("connect", () => {
       const cmd = `${JSON.stringify(data)}
@@ -46,10 +47,16 @@ async function sendSocketCommand(logger, host, port, data, expectResponse = true
       logger.warn("socket timeout");
       reject(new Error("socket timeout"));
     });
-    socket.on("data", (data2) => {
-      logger.debug(`received: ${data2.toString()}`);
+    socket.on("data", (chunk) => {
+      buffer += chunk.toString();
+    });
+    socket.on("end", () => {
+      if (!expectResponse) {
+        return;
+      }
+      logger.debug(`received: ${buffer}`);
       try {
-        const jsonString = data2.toString().replace(/[^\x00-\x7F]/g, "").trim().replace(/[^}\]]*$/, "");
+        const jsonString = buffer.replace(/[^\x00-\x7F]/g, "").trim().replace(/[^}\]]*$/, "");
         const d = JSON.parse(jsonString);
         resolve(d);
       } catch (e) {

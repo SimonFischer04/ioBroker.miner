@@ -22,6 +22,7 @@ export async function sendSocketCommand<T = void>(
 
     let handled = false;
     const socket: Socket = new Socket();
+    let buffer = '';
 
     return new Promise<T>((resolve, reject) => {
         socket.on('connect', () => {
@@ -44,13 +45,20 @@ export async function sendSocketCommand<T = void>(
             reject(new Error('socket timeout'));
         });
 
-        socket.on('data', data => {
-            logger.debug(`received: ${data.toString()}`);
+        socket.on('data', chunk => {
+            buffer += chunk.toString();
+        });
+
+        socket.on('end', () => {
+            if (!expectResponse) {
+                return;
+            }
+
+            logger.debug(`received: ${buffer}`);
             try {
                 // BOS would create error while parsing JSON: uncaught exception: Unexpected non-whitespace character after JSON at position 932
                 // Convert buffer to string, remove all non-ASCII characters, trim whitespace, and remove unexpected characters after JSON data
-                const jsonString = data
-                    .toString()
+                const jsonString = buffer
                     // eslint-disable-next-line no-control-regex
                     .replace(/[^\x00-\x7F]/g, '')
                     .trim()

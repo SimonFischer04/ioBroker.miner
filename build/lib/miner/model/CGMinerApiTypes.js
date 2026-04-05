@@ -16,23 +16,25 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-var parse_utils_exports = {};
-__export(parse_utils_exports, {
-  safeParseFloat: () => safeParseFloat,
-  safeParseInt: () => safeParseInt
+var CGMinerApiTypes_exports = {};
+__export(CGMinerApiTypes_exports, {
+  CGMinerCommand: () => CGMinerCommand
 });
-module.exports = __toCommonJS(parse_utils_exports);
-function safeParseInt(value) {
-  const parsed = parseInt(value, 10);
-  return isNaN(parsed) ? 0 : parsed;
-}
-function safeParseFloat(value) {
-  const parsed = parseFloat(value);
-  return isNaN(parsed) ? 0 : parsed;
-}
+module.exports = __toCommonJS(CGMinerApiTypes_exports);
+var CGMinerCommand = /* @__PURE__ */ ((CGMinerCommand2) => {
+  CGMinerCommand2["summary"] = "summary";
+  CGMinerCommand2["coin"] = "coin";
+  CGMinerCommand2["version"] = "version";
+  CGMinerCommand2["config"] = "config";
+  CGMinerCommand2["pools"] = "pools";
+  CGMinerCommand2["devs"] = "devs";
+  CGMinerCommand2["devDetails"] = "devdetails";
+  CGMinerCommand2["stats"] = "stats";
+  CGMinerCommand2["liteStats"] = "litestats";
+  return CGMinerCommand2;
+})(CGMinerCommand || {});
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  safeParseFloat,
-  safeParseInt
+  CGMinerCommand
 });
-//# sourceMappingURL=parse-utils.js.map
+//# sourceMappingURL=CGMinerApiTypes.js.map
