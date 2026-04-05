@@ -485,7 +485,7 @@ Use JSON-Config format for modern ioBroker admin interfaces.
 ```javascript
 const fs = require('fs');
 const path = require('path');
-const jsonConfig = JSON.parse(fs.readFileSync('admin/jsonConfig.json', 'utf8'));
+const jsonConfig = JSON.parse(fs.readFileSync('admin/jsonConfig.json5', 'utf8'));
 
 function extractTexts(obj, texts = new Set()) {
     if (typeof obj === 'object' && obj !== null) {

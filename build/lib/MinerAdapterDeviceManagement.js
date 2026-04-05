@@ -265,7 +265,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             min: 100,
             label: {
               en: "poll interval",
-              // TODO: also fix translate in jsonConfig.json
+              // TODO: also fix translate in jsonConfig.json5
               de: "Abrufintervall",
               ru: "\u0438\u043D\u0442\u0435\u0440\u0432\u0430\u043B",
               pt: "intervalo de polui\xE7\xE3o",

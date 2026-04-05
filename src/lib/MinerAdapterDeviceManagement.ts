@@ -278,7 +278,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         newLine: true,
                         min: 100,
                         label: {
-                            en: 'poll interval', // TODO: also fix translate in jsonConfig.json
+                            en: 'poll interval', // TODO: also fix translate in jsonConfig.json5
                             de: 'Abrufintervall',
                             ru: 'интервал',
                             pt: 'intervalo de poluição',
