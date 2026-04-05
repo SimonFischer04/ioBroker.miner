@@ -10,9 +10,10 @@ enum SGMinerCommand {
 }
 
 /**
- *
+ * Base class for miners that communicate via the CGMiner-compatible socket API.
+ * Provides shared socket command infrastructure for SGMiner, AvalonMiner, and similar devices.
  */
-export class SGMiner extends PollingMiner<SGMinerSettings> {
+export class SGMiner<S extends SGMinerSettings = SGMinerSettings> extends PollingMiner<S> {
     /**
      *
      */
@@ -76,8 +77,15 @@ export class SGMiner extends PollingMiner<SGMinerSettings> {
         return [`--api_listen=0.0.0.0:${this.settings.port}`];
     }
 
-    private async sendCommand<T = void>(
-        command: SGMinerCommand,
+    /**
+     * Send a command to the miner via the CGMiner-compatible socket API.
+     *
+     * @param command - the command to send
+     * @param parameter - optional parameter string
+     * @param expectResponse - whether to wait for and return a response
+     */
+    protected async sendCommand<T = void>(
+        command: SGMinerCommand | string,
         parameter: string = '',
         expectResponse: boolean = true,
     ): Promise<T> {

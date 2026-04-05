@@ -78,7 +78,7 @@ export interface ClaymoreMinerSettings extends PollingMinerSettings {
 }
 
 /**
- *
+ * Common settings for miners communicating via the CGMiner-compatible socket API.
  */
 export interface SGMinerSettings extends PollingMinerSettings {
     /**
@@ -144,13 +144,9 @@ export interface BOSMinerSettings extends PollingMinerSettings {
 /**
  *
  */
-export interface AvalonMinerSettings extends PollingMinerSettings {
+export interface AvalonMinerSettings extends SGMinerSettings {
     /**
      *
      */
     minerType: (typeof minerTypeKeys)[6];
-    /**
-     *
-     */
-    port: number;
 }
