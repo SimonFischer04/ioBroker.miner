@@ -1,4 +1,12 @@
-export const minerTypeKeys = ['teamRedMiner', 'claymoreMiner', 'sgMiner', 'xmRig', 'iceRiverOcMiner', 'bosMiner'];
+export const minerTypeKeys = [
+    'teamRedMiner',
+    'claymoreMiner',
+    'sgMiner',
+    'xmRig',
+    'iceRiverOcMiner',
+    'bosMiner',
+    'avalonMiner',
+];
 
 export type MinerType = (typeof minerTypeKeys)[number];
 
@@ -127,6 +135,20 @@ export interface BOSMinerSettings extends PollingMinerSettings {
      *
      */
     minerType: (typeof minerTypeKeys)[5];
+    /**
+     *
+     */
+    port: number;
+}
+
+/**
+ *
+ */
+export interface AvalonMinerSettings extends PollingMinerSettings {
+    /**
+     *
+     */
+    minerType: (typeof minerTypeKeys)[6];
     /**
      *
      */
