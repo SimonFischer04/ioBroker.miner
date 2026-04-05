@@ -13,10 +13,12 @@
     "Name": "Nom",
     "Please enter an IP address": "Veuillez saisir une adresse IP",
     "Refresh device list": "Actualiser la liste des appareils",
+    "Pool support is not yet available": "La prise en charge des pools n'est pas encore disponible. En cours de développement.",
     "Settings": "Paramètres",
     "enabled": "activé",
     "id": "ID",
     "password": "mot de passe",
     "poll interval": "intervalle de sondage"
 }
+
 

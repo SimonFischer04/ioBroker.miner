@@ -152,12 +152,20 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
               };
             })
           },
+          poolWip: {
+            type: "staticText",
+            newLine: true,
+            text: import_adapter_core.I18n.getTranslatedObject("Pool support is not yet available"),
+            hidden: "data.category === 'miner'",
+            style: { color: "#ff9800", fontWeight: "bold" }
+          },
           minerType: {
             type: "select",
             format: "dropdown",
             newLine: true,
             label: import_adapter_core.I18n.getTranslatedObject("Miner type"),
             tooltip: "type of miner / firmware",
+            hidden: "data.category !== 'miner'",
             options: import_MinerSettings.minerTypeKeys.map((key) => {
               return {
                 value: key,
@@ -173,14 +181,16 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             tooltip: "unique id of the device, used to identify the device in the adapter",
             readOnly: true,
             noClearButton: true,
-            disabled: true
+            disabled: true,
+            hidden: "data.category !== 'miner'"
           },
           name: {
             type: "text",
             newLine: true,
             // trim: false,
             label: import_adapter_core.I18n.getTranslatedObject("Name"),
-            tooltip: "name for the user to identify the device"
+            tooltip: "name for the user to identify the device",
+            hidden: "data.category !== 'miner'"
           },
           host: {
             type: "text",
@@ -188,7 +198,8 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             trim: true,
             placeholder: "fe80::42",
             label: import_adapter_core.I18n.getTranslatedObject("IP address"),
-            tooltip: "IP address (or host) of the device"
+            tooltip: "IP address (or host) of the device",
+            hidden: "data.category !== 'miner'"
           },
           // TODO: get by request
           mac: {
@@ -197,7 +208,8 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             trim: true,
             placeholder: "00:00:00:00:00:00",
             label: import_adapter_core.I18n.getTranslatedObject("MAC address"),
-            tooltip: "MAC address of the device"
+            tooltip: "MAC address of the device",
+            hidden: "data.category !== 'miner'"
           },
           // TODO: show only if miner requires polling? possible to dynamically add fields to form?
           pollInterval: {
@@ -205,7 +217,8 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             newLine: true,
             min: 100,
             label: import_adapter_core.I18n.getTranslatedObject("poll interval"),
-            tooltip: "interval to poll the device for new data"
+            tooltip: "interval to poll the device for new data",
+            hidden: "data.category !== 'miner'"
           },
           password: {
             type: "text",
@@ -213,13 +226,15 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             // type: 'password',
             newLine: true,
             label: import_adapter_core.I18n.getTranslatedObject("password"),
-            tooltip: "password used to connect to the device api. Adapter generates a random, secure and unique one for each device by default. But can of course be changed if needed."
+            tooltip: "password used to connect to the device api. Adapter generates a random, secure and unique one for each device by default. But can of course be changed if needed.",
+            hidden: "data.category !== 'miner'"
           },
           enabled: {
             type: "checkbox",
             newLine: true,
             label: import_adapter_core.I18n.getTranslatedObject("enabled"),
-            tooltip: "whether the device is enabled or not. Disabled devices will do nothing (not get polled, control does not work, ...). Useful if you f.e. shut one off temporarily."
+            tooltip: "whether the device is enabled or not. Disabled devices will do nothing (not get polled, control does not work, ...). Useful if you f.e. shut one off temporarily.",
+            hidden: "data.category !== 'miner'"
           }
         }
       },

@@ -172,12 +172,20 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                             };
                         }),
                     },
+                    poolWip: {
+                        type: 'staticText',
+                        newLine: true,
+                        text: I18n.getTranslatedObject('Pool support is not yet available'),
+                        hidden: "data.category === 'miner'",
+                        style: { color: '#ff9800', fontWeight: 'bold' },
+                    },
                     minerType: {
                         type: 'select',
                         format: 'dropdown',
                         newLine: true,
                         label: I18n.getTranslatedObject('Miner type'),
                         tooltip: 'type of miner / firmware',
+                        hidden: "data.category !== 'miner'",
                         options: minerTypeKeys.map(key => {
                             return {
                                 value: key,
@@ -194,6 +202,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         readOnly: true,
                         noClearButton: true,
                         disabled: true,
+                        hidden: "data.category !== 'miner'",
                     },
                     name: {
                         type: 'text',
@@ -201,6 +210,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         // trim: false,
                         label: I18n.getTranslatedObject('Name'),
                         tooltip: 'name for the user to identify the device',
+                        hidden: "data.category !== 'miner'",
                     },
                     host: {
                         type: 'text',
@@ -209,6 +219,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         placeholder: 'fe80::42',
                         label: I18n.getTranslatedObject('IP address'),
                         tooltip: 'IP address (or host) of the device',
+                        hidden: "data.category !== 'miner'",
                     },
                     // TODO: get by request
                     mac: {
@@ -218,6 +229,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         placeholder: '00:00:00:00:00:00',
                         label: I18n.getTranslatedObject('MAC address'),
                         tooltip: 'MAC address of the device',
+                        hidden: "data.category !== 'miner'",
                     },
                     // TODO: show only if miner requires polling? possible to dynamically add fields to form?
                     pollInterval: {
@@ -226,6 +238,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         min: 100,
                         label: I18n.getTranslatedObject('poll interval'),
                         tooltip: 'interval to poll the device for new data',
+                        hidden: "data.category !== 'miner'",
                     },
                     password: {
                         type: 'text',
@@ -235,6 +248,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         label: I18n.getTranslatedObject('password'),
                         tooltip:
                             'password used to connect to the device api. Adapter generates a random, secure and unique one for each device by default. But can of course be changed if needed.',
+                        hidden: "data.category !== 'miner'",
                     },
                     enabled: {
                         type: 'checkbox',
@@ -242,6 +256,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         label: I18n.getTranslatedObject('enabled'),
                         tooltip:
                             'whether the device is enabled or not. Disabled devices will do nothing (not get polled, control does not work, ...). Useful if you f.e. shut one off temporarily.',
+                        hidden: "data.category !== 'miner'",
                     },
                 },
             },
