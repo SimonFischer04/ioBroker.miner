@@ -29,21 +29,23 @@ var import_IOBrokerMinerSettings = require("../miner/model/IOBrokerMinerSettings
 var import_MinerFactory = require("./miner/miner/MinerFactory");
 var import_MinerFeature = require("./miner/model/MinerFeature");
 class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
+  /**
+   *
+   */
   async getInstanceInfo() {
     const baseInfo = await super.getInstanceInfo();
     const data = {
       ...baseInfo,
+      apiVersion: "v3",
       actions: [
         {
           id: "refresh",
-          icon: "fas fa-redo-alt",
           title: "",
           description: import_adapter_core.I18n.getTranslatedObject("Refresh device list"),
           handler: this.handleRefresh.bind(this)
         },
         {
           id: "newDevice",
-          icon: "fas fa-plus",
           title: "",
           description: import_adapter_core.I18n.getTranslatedObject("Add new device to Miner"),
           handler: this.handleNewDevice.bind(this)
@@ -72,10 +74,20 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     };
     return data;
   }
+  /**
+   * Refreshes the device list.
+   *
+   * @param _context - the action context
+   */
   handleRefresh(_context) {
     this.adapter.log.info("handleRefresh");
     return { refresh: true };
   }
+  /**
+   * Shows the new device form and adds the device.
+   *
+   * @param context - the action context for showing forms and messages
+   */
   async handleNewDevice(context) {
     this.adapter.log.info("handleNewDevice");
     const settings = await this.showDeviceConfigurationForm(
@@ -128,6 +140,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         items: {
           category: {
             type: "select",
+            format: "dropdown",
             newLine: true,
             label: import_adapter_core.I18n.getTranslatedObject("Category"),
             tooltip: "category of the iobroker thing (miner or pool)",
@@ -141,6 +154,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
           },
           minerType: {
             type: "select",
+            format: "dropdown",
             newLine: true,
             label: import_adapter_core.I18n.getTranslatedObject("Miner type"),
             tooltip: "type of miner / firmware",
@@ -376,51 +390,47 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     };
     return settings;
   }
-  async listDevices() {
+  async loadDevices(context) {
     const devices = await this.adapter.getDevicesAsync();
-    const arrDevices = [];
     for (const device of devices) {
-      arrDevices.push({
+      context.addDevice({
         id: device._id,
         name: device.common.name,
         hasDetails: true,
         actions: [
           {
             id: "delete",
-            icon: "fa-solid fa-trash-can",
             description: import_adapter_core.I18n.getTranslatedObject("Delete this device"),
             handler: this.handleDeleteDevice.bind(this)
           },
           {
             id: "settings",
-            icon: "fa-solid fa-gear",
             description: import_adapter_core.I18n.getTranslatedObject("Settings"),
             handler: this.handleSettingsDevice.bind(this)
           }
         ]
       });
     }
-    return arrDevices;
   }
   async handleDeleteDevice(id, context) {
     const response = await context.showConfirmation(
       import_adapter_core.I18n.getTranslatedObject("Do you really want to delete the device %s?", id)
     );
     if (!response) {
-      return { refresh: false };
+      return { refresh: "none" };
     }
     const success = await this.adapter.delDevice(id);
     if (!success) {
       await context.showMessage(import_adapter_core.I18n.getTranslatedObject("Can not delete device %s", id));
-      return { refresh: false };
+      return { refresh: "none" };
     }
-    return { refresh: true };
+    return { refresh: "all" };
   }
   async handleSettingsDevice(id, context) {
     const obj = await this.adapter.getObjectAsync(id);
     if (obj == null) {
       this.adapter.log.error(`MinerAdapterDeviceManagement/handleSettingsDevice object ${id} not found`);
-      return { refresh: false };
+      return { refresh: "none" };
     }
     const currentSettings = (0, import_IOBrokerMinerSettings.decryptDeviceSettings)(
       obj.native,
@@ -433,18 +443,23 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     );
     this.adapter.log.debug(`handleSettingsDevice newSettings: ${JSON.stringify(newSettings)}`);
     if (newSettings === void 0) {
-      return { refresh: false };
+      return { refresh: "none" };
     }
     await this.adapter.updateDevice(newSettings);
     if (!(0, import_IOBrokerMinerSettings.isMiner)(currentSettings) || !(0, import_IOBrokerMinerSettings.isMiner)(newSettings)) {
       this.adapter.log.error(`MinerAdapterDeviceManagement/handleSettingsDevice settings are not miners`);
-      return { refresh: false };
+      return { refresh: "none" };
     }
     if (currentSettings.name != newSettings.name) {
-      return { refresh: true };
+      return { refresh: "all" };
     }
-    return { refresh: "device" };
+    return { refresh: "devices" };
   }
+  /**
+   * Returns the device details panel for the given device.
+   *
+   * @param id - the ioBroker object id of the device
+   */
   async getDeviceDetails(id) {
     this.adapter.log.info(`Get device details ${id}`);
     const obj = await this.adapter.getObjectAsync(id);
@@ -492,6 +507,9 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
       }
     };
   }
+  /**
+   *
+   */
   async close() {
   }
 }

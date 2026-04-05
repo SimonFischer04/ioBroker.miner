@@ -1,12 +1,12 @@
-import type {
-    ActionContext,
-    DeviceDetails,
-    DeviceInfo,
-    DeviceRefresh,
-    InstanceDetails,
-    JsonFormData,
+import {
+    DeviceManagement,
+    type ActionContext,
+    type DeviceDetails,
+    type DeviceLoadContext,
+    type DeviceRefresh,
+    type InstanceDetails,
+    type JsonFormData,
 } from '@iobroker/dm-utils';
-import { DeviceManagement } from '@iobroker/dm-utils';
 import { I18n } from '@iobroker/adapter-core';
 import type { MinerAdapter } from '../main';
 import { categoryKeys } from './miner/model/Category';
@@ -26,24 +26,29 @@ import type { IOBrokerDeviceSettings, IOBrokerMinerSettings } from '../miner/mod
 import { decryptDeviceSettings, isMiner } from '../miner/model/IOBrokerMinerSettings';
 import type { PartialDeep } from 'type-fest';
 import { createMiner } from './miner/miner/MinerFactory';
-import {MinerFeatureKey} from './miner/model/MinerFeature';
+import { MinerFeatureKey } from './miner/model/MinerFeature';
 
+/**
+ *
+ */
 class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
+    /**
+     *
+     */
     async getInstanceInfo(): Promise<InstanceDetails> {
         const baseInfo = await super.getInstanceInfo();
         const data = {
             ...baseInfo,
+            apiVersion: 'v3' as const,
             actions: [
                 {
                     id: 'refresh',
-                    icon: 'fas fa-redo-alt',
                     title: '',
                     description: I18n.getTranslatedObject('Refresh device list'),
                     handler: this.handleRefresh.bind(this),
                 },
                 {
                     id: 'newDevice',
-                    icon: 'fas fa-plus',
                     title: '',
                     description: I18n.getTranslatedObject('Add new device to Miner'),
                     handler: this.handleNewDevice.bind(this),
@@ -73,11 +78,21 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         return data;
     }
 
+    /**
+     * Refreshes the device list.
+     *
+     * @param _context - the action context
+     */
     handleRefresh(_context: ActionContext): { refresh: boolean } {
         this.adapter.log.info('handleRefresh');
         return { refresh: true };
     }
 
+    /**
+     * Shows the new device form and adds the device.
+     *
+     * @param context - the action context for showing forms and messages
+     */
     async handleNewDevice(context: ActionContext): Promise<{ refresh: boolean }> {
         this.adapter.log.info('handleNewDevice');
 
@@ -145,6 +160,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 items: {
                     category: {
                         type: 'select',
+                        format: 'dropdown',
                         newLine: true,
                         label: I18n.getTranslatedObject('Category'),
                         tooltip: 'category of the iobroker thing (miner or pool)',
@@ -158,6 +174,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     },
                     minerType: {
                         type: 'select',
+                        format: 'dropdown',
                         newLine: true,
                         label: I18n.getTranslatedObject('Miner type'),
                         tooltip: 'type of miner / firmware',
@@ -473,35 +490,30 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         return settings;
     }
 
-    protected async listDevices(): Promise<DeviceInfo[]> {
+    protected async loadDevices(context: DeviceLoadContext<string>): Promise<void> {
         const devices = await this.adapter.getDevicesAsync();
-        const arrDevices: DeviceInfo[] = [];
 
         for (const device of devices) {
             // TODO: add more info
 
-            arrDevices.push({
+            context.addDevice({
                 id: device._id,
                 name: device.common.name,
                 hasDetails: true,
                 actions: [
                     {
                         id: 'delete',
-                        icon: 'fa-solid fa-trash-can',
                         description: I18n.getTranslatedObject('Delete this device'),
                         handler: this.handleDeleteDevice.bind(this),
                     },
                     {
                         id: 'settings',
-                        icon: 'fa-solid fa-gear',
                         description: I18n.getTranslatedObject('Settings'),
                         handler: this.handleSettingsDevice.bind(this),
                     },
                 ],
             });
         }
-
-        return arrDevices;
     }
 
     protected async handleDeleteDevice(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
@@ -511,14 +523,14 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
 
         // delete device
         if (!response) {
-            return { refresh: false };
+            return { refresh: 'none' };
         }
         const success = await this.adapter.delDevice(id);
         if (!success) {
             await context.showMessage(I18n.getTranslatedObject('Can not delete device %s', id));
-            return { refresh: false };
+            return { refresh: 'none' };
         }
-        return { refresh: true };
+        return { refresh: 'all' };
     }
 
     protected async handleSettingsDevice(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
@@ -526,7 +538,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
 
         if (obj == null) {
             this.adapter.log.error(`MinerAdapterDeviceManagement/handleSettingsDevice object ${id} not found`);
-            return { refresh: false };
+            return { refresh: 'none' };
         }
 
         const currentSettings: IOBrokerDeviceSettings = decryptDeviceSettings(
@@ -543,7 +555,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         this.adapter.log.debug(`handleSettingsDevice newSettings: ${JSON.stringify(newSettings)}`);
 
         if (newSettings === undefined) {
-            return { refresh: false };
+            return { refresh: 'none' };
         }
 
         await this.adapter.updateDevice(newSettings);
@@ -551,20 +563,23 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         if (!isMiner(currentSettings) || !isMiner(newSettings)) {
             // TODO: pool support (#deal with miner -> pool change: just disable category dropdown on settings)
             this.adapter.log.error(`MinerAdapterDeviceManagement/handleSettingsDevice settings are not miners`);
-            return { refresh: false };
+            return { refresh: 'none' };
         }
 
         // name change requires full instance refresh, not just device - to display correct name in the devices header in the device list
         if (currentSettings.name != newSettings.name) {
-            // PS: I don't know why this doesn't work
-            // return {refresh: 'instance'};
-            return { refresh: true };
+            return { refresh: 'all' };
         }
 
-        return { refresh: 'device' };
+        return { refresh: 'devices' };
     }
 
-    async getDeviceDetails(id: string): Promise<DeviceDetails | null | { error: string }> {
+    /**
+     * Returns the device details panel for the given device.
+     *
+     * @param id - the ioBroker object id of the device
+     */
+    async getDeviceDetails(id: string): Promise<DeviceDetails<string> | null | { error: string }> {
         this.adapter.log.info(`Get device details ${id}`);
 
         // TODO: cleanup all this boilerplate
@@ -622,6 +637,9 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         };
     }
 
+    /**
+     *
+     */
     async close(): Promise<void> {
         // do nothing
     }
