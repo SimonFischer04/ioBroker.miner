@@ -81,6 +81,13 @@ class SGMiner extends import_PollingMiner.PollingMiner {
   getCliArgs() {
     return [`--api_listen=0.0.0.0:${this.settings.port}`];
   }
+  /**
+   * Send a command to the miner via the CGMiner-compatible socket API.
+   *
+   * @param command - the command to send
+   * @param parameter - optional parameter string
+   * @param expectResponse - whether to wait for and return a response
+   */
   async sendCommand(command, parameter = "", expectResponse = true) {
     return (0, import_socket_utils.sendSocketCommand)(
       this.logger,

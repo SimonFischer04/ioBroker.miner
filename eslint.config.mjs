@@ -27,6 +27,7 @@ export default [
         rules: {
             // Disable JSDoc empty blocks rule as many existing JSDoc comments don't have descriptions
             // This can be gradually improved over time
+            // TODO: FixMeLater
             'jsdoc/no-blank-blocks': 'off',
         },
     },
