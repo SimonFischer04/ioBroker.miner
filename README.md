@@ -16,7 +16,7 @@ Interact with different crypto miner apis
 
 ## Roadmap
 - [X] v0.1: device management, trm implementation
-- [X] more miners support: bos+, xmrig, ...?
+- [X] more miners support: bos+, xmrig, avalon, ...?
 - [ ] implement more features (controls + info from devices)
 - [ ] pools support
 - [ ] device discover
@@ -117,6 +117,7 @@ Please refer to the [`dev-server` documentation](https://github.com/ioBroker/dev
 * (SimonFischer04) **FIXED**: Added missing size attributes (xs, xl) to admin configuration fields
 * (SimonFischer04) **ENHANCED**: Updated dependencies to recommended versions (admin 7.6.17, js-controller 6.0.11)
 * (SimonFischer04) **ENHANCED**: Added copyright notice to README
+* (SimonFischer04) **NEW**: Added support for Avalon (Canaan) devices via CGMiner-compatible socket API (port 4028), including start/stop (softon/softoff) and stats polling
 
 ### 0.0.1 (2026-02-15)
 * (SimonFischer04) initial release

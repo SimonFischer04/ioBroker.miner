@@ -148,7 +148,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     return { refresh: true };
   }
   async showDeviceConfigurationForm(context, existingSettings, title) {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
     this.adapter.log.debug(`showDeviceConfigurationForm existingSettings: ${JSON.stringify(existingSettings)}`);
     if (!(0, import_IOBrokerMinerSettings.isMiner)(existingSettings)) {
       this.adapter.log.error(
@@ -454,6 +454,19 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         minerSettings = {
           ...minerSettings,
           ...bosSettings
+        };
+        break;
+      }
+      case "avalonMiner": {
+        const pollInterval = (_i = result.pollInterval) != null ? _i : this.adapter.config.pollInterval;
+        const avalonSettings = {
+          pollInterval,
+          port: 4028
+          // TODO: make configurable
+        };
+        minerSettings = {
+          ...minerSettings,
+          ...avalonSettings
         };
         break;
       }
