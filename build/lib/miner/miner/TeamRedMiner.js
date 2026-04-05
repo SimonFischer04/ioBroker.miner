@@ -88,7 +88,11 @@ class TeamRedMiner extends import_PollingMiner.PollingMiner {
    *
    */
   getCliArgs() {
-    return [...this.claymoreMiner.getCliArgs(), ...this.sgMiner.getCliArgs()];
+    return [
+      ...this.claymoreMiner.getCliArgs(),
+      // cgminer official syntax is '--api-listen', but teamRedMiner uses '--api_listen'
+      ...this.sgMiner.getCliArgs().map((arg) => arg.replace("--api-listen", "--api_listen"))
+    ];
   }
 }
 // Annotate the CommonJS export names for ESM import in node:

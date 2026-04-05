@@ -82,7 +82,13 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
    *
    */
   getSupportedFeatures() {
-    return [import_MinerFeature.MinerFeatureKey.running, import_MinerFeature.MinerFeatureKey.version, import_MinerFeature.MinerFeatureKey.stats, import_MinerFeature.MinerFeatureKey.rawStats];
+    return [
+      import_MinerFeature.MinerFeatureKey.running,
+      import_MinerFeature.MinerFeatureKey.version,
+      import_MinerFeature.MinerFeatureKey.stats,
+      import_MinerFeature.MinerFeatureKey.rawStats,
+      import_MinerFeature.MinerFeatureKey.cliArgs
+    ];
   }
   /**
    *

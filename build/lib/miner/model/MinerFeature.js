@@ -30,6 +30,7 @@ var MinerFeatureKey = /* @__PURE__ */ ((MinerFeatureKey2) => {
   MinerFeatureKey2["version"] = "version";
   MinerFeatureKey2["stats"] = "stats";
   MinerFeatureKey2["rawStats"] = "rawStats";
+  MinerFeatureKey2["cliArgs"] = "cliArgs";
   return MinerFeatureKey2;
 })(MinerFeatureKey || {});
 var MinerFeatureCategory = /* @__PURE__ */ ((MinerFeatureCategory2) => {
@@ -71,6 +72,18 @@ const minerFeatures = {
     id: "version",
     label: "Miner Version",
     description: "The version of the miner software.",
+    type: "string",
+    readable: true,
+    writable: false
+  },
+  /*
+      info – CLI arguments
+   */
+  ["cliArgs" /* cliArgs */]: {
+    category: "info" /* info */,
+    id: "cliArgs",
+    label: "CLI Arguments",
+    description: "Command line arguments needed to enable API access on the miner.",
     type: "string",
     readable: true,
     writable: false

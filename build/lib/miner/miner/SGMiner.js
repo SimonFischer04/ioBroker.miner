@@ -67,7 +67,7 @@ class SGMiner extends import_PollingMiner.PollingMiner {
    *
    */
   getSupportedFeatures() {
-    return [import_MinerFeature.MinerFeatureKey.version, import_MinerFeature.MinerFeatureKey.stats, import_MinerFeature.MinerFeatureKey.rawStats];
+    return [import_MinerFeature.MinerFeatureKey.version, import_MinerFeature.MinerFeatureKey.stats, import_MinerFeature.MinerFeatureKey.rawStats, import_MinerFeature.MinerFeatureKey.cliArgs];
   }
   /**
    *
@@ -79,7 +79,7 @@ class SGMiner extends import_PollingMiner.PollingMiner {
    *
    */
   getCliArgs() {
-    return [`--api_listen=0.0.0.0:${this.settings.port}`];
+    return [`--api-listen=0.0.0.0:${this.settings.port}`];
   }
   /**
    * Send a command to the miner via the CGMiner-compatible socket API.
