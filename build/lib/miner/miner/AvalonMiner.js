@@ -22,7 +22,6 @@ __export(AvalonMiner_exports, {
 });
 module.exports = __toCommonJS(AvalonMiner_exports);
 var import_SGMiner = require("./SGMiner");
-var import_MinerFeature = require("../model/MinerFeature");
 var AvalonMinerCommand = /* @__PURE__ */ ((AvalonMinerCommand2) => {
   AvalonMinerCommand2["ascset"] = "ascset";
   return AvalonMinerCommand2;
@@ -48,8 +47,8 @@ class AvalonMiner extends import_SGMiner.SGMiner {
    */
   getSupportedFeatures() {
     return [
+      ...super.getSupportedFeatures()
       // MinerFeatureKey.running,
-      import_MinerFeature.MinerFeatureKey.rawStats
     ];
   }
   /**

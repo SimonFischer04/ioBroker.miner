@@ -583,18 +583,58 @@ export interface LiteStatsResponse {
 }
 
 // ---------------------------------------------------------------------------
-// summary+coin (combined)
+// Commands
 // ---------------------------------------------------------------------------
 
 /**
- * Full response for the combined "summary+coin" command.
- * Wraps individual summary and coin responses in lowercase-keyed arrays.
+ * CGMiner API query commands that return typed responses.
+ *
+ * @see https://github.com/ckolivas/cgminer/blob/master/API-README
  */
-export interface SummaryCoinResponse {
-    /** Wrapped summary responses */
-    summary: [SummaryResponse];
-    /** Wrapped coin responses */
-    coin: [CoinResponse];
-    /** Request id */
-    id: number;
+export enum CGMinerCommand {
+    summary = 'summary',
+    coin = 'coin',
+    version = 'version',
+    config = 'config',
+    pools = 'pools',
+    devs = 'devs',
+    devDetails = 'devdetails',
+    stats = 'stats',
+    liteStats = 'litestats',
 }
+
+// ---------------------------------------------------------------------------
+// Combined commands
+// ---------------------------------------------------------------------------
+
+/**
+ * Maps a {@link CGMinerCommand} value to its response type.
+ * Used by {@link CombinedResponse} to derive the shape of multi-command
+ * responses (e.g. "summary+version").
+ */
+type CGMinerCommandResponseMap = {
+    [CGMinerCommand.summary]: SummaryResponse;
+    [CGMinerCommand.coin]: CoinResponse;
+    [CGMinerCommand.version]: VersionResponse;
+    [CGMinerCommand.config]: ConfigResponse;
+    [CGMinerCommand.pools]: PoolsResponse;
+    [CGMinerCommand.devs]: DevsResponse;
+    [CGMinerCommand.devDetails]: DevDetailsResponse;
+    [CGMinerCommand.stats]: StatsResponse;
+    [CGMinerCommand.liteStats]: LiteStatsResponse;
+};
+
+/**
+ * Generic response type for combined CGMiner API commands (e.g. "summary+version").
+ *
+ * Each requested command key is wrapped in a single-element array,
+ * plus a top-level `id` field.
+ *
+ * @example
+ * // Type for "summary+version" combined response:
+ * type SummaryVersionResponse = CombinedResponse<CGMinerCommand.summary | CGMinerCommand.version>;
+ * // → { summary: [SummaryResponse]; version: [VersionResponse]; id: number }
+ */
+export type CombinedResponse<K extends keyof CGMinerCommandResponseMap> = {
+    [P in K]: [CGMinerCommandResponseMap[P]];
+} & { id: number };

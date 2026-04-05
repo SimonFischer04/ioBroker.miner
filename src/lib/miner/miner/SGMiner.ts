@@ -3,20 +3,13 @@ import { PollingMiner } from './PollingMiner';
 import type { MinerStats } from '../model/MinerStats';
 import { MinerFeatureKey } from '../model/MinerFeature';
 import { sendSocketCommand } from '../../utils/socket-utils';
+import { CGMinerCommand, type CombinedResponse } from '../model/CGMinerApiTypes';
 
-// https://github.com/ckolivas/cgminer/blob/master/API-README
-enum SGMinerCommand {
-    summary = 'summary',
-    coin = 'coin',
-    stats = 'stats',
-    liteStats = 'litestats',
-    pools = 'pools',
-    devs = 'devs',
-    devDetails = 'devdetails',
-    version = 'version',
-    config = 'config',
-    ascSet = 'ascset',
-}
+/** MH/s → H/s multiplier */
+const MHS_TO_HS = 1_000_000;
+
+/** Type alias for the summary+version combined response. */
+export type SummaryVersionResponse = CombinedResponse<CGMinerCommand.summary | CGMinerCommand.version>;
 
 /**
  * Base class for miners that communicate via the CGMiner-compatible socket API.
@@ -45,14 +38,10 @@ export class SGMiner<S extends SGMinerSettings = SGMinerSettings> extends Pollin
      */
     public override async fetchStats(): Promise<MinerStats> {
         try {
-            // commands can be combined with '+'. f.e. 'summary+coin'
-            const combinedCommand = [SGMinerCommand.summary, SGMinerCommand.coin].join('+');
-            const response = await this.sendCommand<object>(combinedCommand, '', true);
-            // TODO: parse response => actually return stats
+            const combinedCommand = [CGMinerCommand.summary, CGMinerCommand.version].join('+');
+            const response = await this.sendCommand<SummaryVersionResponse>(combinedCommand, '', true);
 
-            return {
-                raw: response,
-            };
+            return this.parseSummaryVersionResponse(response);
         } catch (e) {
             // forward error
             return Promise.reject(e instanceof Error ? e : new Error(String(e)));
@@ -71,7 +60,7 @@ export class SGMiner<S extends SGMinerSettings = SGMinerSettings> extends Pollin
      *
      */
     public override getSupportedFeatures(): MinerFeatureKey[] {
-        return [MinerFeatureKey.rawStats];
+        return [MinerFeatureKey.version, MinerFeatureKey.stats, MinerFeatureKey.rawStats];
     }
 
     /**
@@ -96,7 +85,7 @@ export class SGMiner<S extends SGMinerSettings = SGMinerSettings> extends Pollin
      * @param expectResponse - whether to wait for and return a response
      */
     protected async sendCommand<T = void>(
-        command: SGMinerCommand | string,
+        command: CGMinerCommand | string,
         parameter: string = '',
         expectResponse: boolean = true,
     ): Promise<T> {
@@ -110,5 +99,29 @@ export class SGMiner<S extends SGMinerSettings = SGMinerSettings> extends Pollin
             },
             expectResponse,
         );
+    }
+
+    // public to allow unit tests
+    /**
+     * Parse a CGMiner "summary+version" combined response into {@link MinerStats}.
+     *
+     * @param response - raw combined API response
+     * @returns parsed miner statistics
+     */
+    public parseSummaryVersionResponse(response: SummaryVersionResponse): MinerStats {
+        const summary = response.summary?.[0]?.SUMMARY?.[0];
+        const version = response.version?.[0]?.VERSION?.[0];
+
+        const totalHashrate = summary ? summary['MHS 5s'] * MHS_TO_HS : undefined;
+        const acceptedShares = summary?.Accepted;
+        const rejectedShares = summary?.Rejected;
+
+        return {
+            raw: response,
+            version: version?.CGMiner,
+            totalHashrate,
+            acceptedShares,
+            rejectedShares,
+        };
     }
 }

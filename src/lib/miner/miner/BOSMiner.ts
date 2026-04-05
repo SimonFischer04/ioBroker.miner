@@ -3,14 +3,13 @@ import type { BOSMinerSettings } from '../model/MinerSettings';
 import type { MinerStats } from '../model/MinerStats';
 import { MinerFeatureKey } from '../model/MinerFeature';
 import { sendSocketCommand } from '../../utils/socket-utils';
+import { CGMinerCommand } from '../model/CGMinerApiTypes';
 
 // based on cgminer, but with different commands
 // TODO: inherit?
 
 // old braains api (pre grpc): https://academy.braiins.com/en/braiins-os/papi-bosminer/
 enum BOSMinerCommand {
-    stats = 'summary+coin',
-
     // BOS only commands
     pause = 'pause',
     resume = 'resume',
@@ -32,7 +31,8 @@ export class BOSMiner extends PollingMiner<BOSMinerSettings> {
      */
     public override async fetchStats(): Promise<MinerStats> {
         try {
-            const response = await this.sendCommand<object>(BOSMinerCommand.stats, '', true);
+            const combinedCommand = [CGMinerCommand.summary, CGMinerCommand.coin].join('+');
+            const response = await this.sendCommand<object>(combinedCommand, '', true);
             // TODO: parse response => actually return stats
 
             return {
@@ -73,7 +73,7 @@ export class BOSMiner extends PollingMiner<BOSMinerSettings> {
     }
 
     private async sendCommand<T = void>(
-        command: BOSMinerCommand,
+        command: BOSMinerCommand | CGMinerCommand | string,
         parameter: string = '',
         expectResponse: boolean = true,
     ): Promise<T> {

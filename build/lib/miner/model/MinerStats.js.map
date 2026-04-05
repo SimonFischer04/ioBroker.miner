@@ -1,7 +1,7 @@
 {
   "version": 3,
   "sources": ["../../../../src/lib/miner/model/MinerStats.ts"],
-  "sourcesContent": ["/**\n *\n */\nexport interface MinerStats {\n    /**\n     *\n     */\n    version?: string;\n    /**\n     *\n     */\n    totalHashrate?: number;\n    /**\n     *\n     */\n    raw?: object;\n}\n"],
+  "sourcesContent": ["/**\n *\n */\nexport interface MinerStats {\n    /**\n     * Miner software version string.\n     */\n    version?: string;\n    /**\n     * Total hashrate in H/s.\n     */\n    totalHashrate?: number;\n    /**\n     * Current power consumption in watts.\n     */\n    power?: number;\n    /**\n     * Energy efficiency in H/W.\n     */\n    efficiency?: number;\n    /**\n     * Total number of accepted shares.\n     */\n    acceptedShares?: number;\n    /**\n     * Total number of rejected shares.\n     */\n    rejectedShares?: number;\n    /**\n     * Raw API response payload.\n     */\n    raw?: object;\n}\n"],
   "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
   "names": []
 }

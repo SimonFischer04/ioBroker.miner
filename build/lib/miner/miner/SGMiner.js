@@ -24,19 +24,8 @@ module.exports = __toCommonJS(SGMiner_exports);
 var import_PollingMiner = require("./PollingMiner");
 var import_MinerFeature = require("../model/MinerFeature");
 var import_socket_utils = require("../../utils/socket-utils");
-var SGMinerCommand = /* @__PURE__ */ ((SGMinerCommand2) => {
-  SGMinerCommand2["summary"] = "summary";
-  SGMinerCommand2["coin"] = "coin";
-  SGMinerCommand2["stats"] = "stats";
-  SGMinerCommand2["liteStats"] = "litestats";
-  SGMinerCommand2["pools"] = "pools";
-  SGMinerCommand2["devs"] = "devs";
-  SGMinerCommand2["devDetails"] = "devdetails";
-  SGMinerCommand2["version"] = "version";
-  SGMinerCommand2["config"] = "config";
-  SGMinerCommand2["ascSet"] = "ascset";
-  return SGMinerCommand2;
-})(SGMinerCommand || {});
+var import_CGMinerApiTypes = require("../model/CGMinerApiTypes");
+const MHS_TO_HS = 1e6;
 class SGMiner extends import_PollingMiner.PollingMiner {
   /**
    *
@@ -57,11 +46,9 @@ class SGMiner extends import_PollingMiner.PollingMiner {
    */
   async fetchStats() {
     try {
-      const combinedCommand = ["summary" /* summary */, "coin" /* coin */].join("+");
+      const combinedCommand = [import_CGMinerApiTypes.CGMinerCommand.summary, import_CGMinerApiTypes.CGMinerCommand.version].join("+");
       const response = await this.sendCommand(combinedCommand, "", true);
-      return {
-        raw: response
-      };
+      return this.parseSummaryVersionResponse(response);
     } catch (e) {
       return Promise.reject(e instanceof Error ? e : new Error(String(e)));
     }
@@ -77,7 +64,7 @@ class SGMiner extends import_PollingMiner.PollingMiner {
    *
    */
   getSupportedFeatures() {
-    return [import_MinerFeature.MinerFeatureKey.rawStats];
+    return [import_MinerFeature.MinerFeatureKey.version, import_MinerFeature.MinerFeatureKey.stats, import_MinerFeature.MinerFeatureKey.rawStats];
   }
   /**
    *
@@ -109,6 +96,28 @@ class SGMiner extends import_PollingMiner.PollingMiner {
       },
       expectResponse
     );
+  }
+  // public to allow unit tests
+  /**
+   * Parse a CGMiner "summary+version" combined response into {@link MinerStats}.
+   *
+   * @param response - raw combined API response
+   * @returns parsed miner statistics
+   */
+  parseSummaryVersionResponse(response) {
+    var _a, _b, _c, _d, _e, _f;
+    const summary = (_c = (_b = (_a = response.summary) == null ? void 0 : _a[0]) == null ? void 0 : _b.SUMMARY) == null ? void 0 : _c[0];
+    const version = (_f = (_e = (_d = response.version) == null ? void 0 : _d[0]) == null ? void 0 : _e.VERSION) == null ? void 0 : _f[0];
+    const totalHashrate = summary ? summary["MHS 5s"] * MHS_TO_HS : void 0;
+    const acceptedShares = summary == null ? void 0 : summary.Accepted;
+    const rejectedShares = summary == null ? void 0 : summary.Rejected;
+    return {
+      raw: response,
+      version: version == null ? void 0 : version.CGMiner,
+      totalHashrate,
+      acceptedShares,
+      rejectedShares
+    };
   }
 }
 // Annotate the CommonJS export names for ESM import in node:

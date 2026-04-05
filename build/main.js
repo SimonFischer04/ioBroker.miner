@@ -140,6 +140,19 @@ class MinerAdapter extends utils.Adapter {
           await this.setState(id, { val: state.val, ack: true });
           break;
         }
+        case (0, import_MinerFeature.getMinerFeatureFullId)(import_MinerFeature.MinerFeatureKey.reboot): {
+          if (!state.val) {
+            return;
+          }
+          this.log.info(`reboot requested for device ${deviceSettings.name}`);
+          if (deviceSettings.settings.id === void 0) {
+            this.log.error(`device ${deviceSettings.name} has no id`);
+            return;
+          }
+          this.log.warn("reboot is not yet implemented");
+          await this.setState(id, { val: false, ack: true });
+          break;
+        }
         default: {
           this.log.warn(`unknown handling of state ${id}`);
         }
@@ -286,6 +299,7 @@ class MinerAdapter extends utils.Adapter {
       return;
     }
     await this.createDeviceStateObjects(settings);
+    await this.writeStaticInfoStates(settings);
     if (!settings.enabled) {
       this.log.info(`device ${settings.name} is disabled`);
       return;
@@ -296,32 +310,47 @@ class MinerAdapter extends utils.Adapter {
       await this.processNewStats(miner, settings, stats);
     });
   }
+  /**
+   * Write static info states that come from the device configuration, not from API polling.
+   *
+   * @param settings - the device settings
+   */
+  async writeStaticInfoStates(settings) {
+    const deviceId = this.getDeviceObjectId(settings);
+    await this.setState(`${deviceId}.info.minerType`, { val: settings.settings.minerType, ack: true });
+    await this.setState(`${deviceId}.info.host`, { val: settings.settings.host, ack: true });
+  }
   async processNewStats(miner, settings, stats) {
-    for (const feature of miner.getSupportedFeatures()) {
-      switch (feature) {
-        case import_MinerFeature.MinerFeatureKey.rawStats: {
-          await this.setState(this.getStateFullObjectId(settings, import_MinerFeature.MinerFeatureKey.rawStats), {
-            val: JSON.stringify(stats.raw),
-            ack: true
-          });
-          break;
-        }
-        case import_MinerFeature.MinerFeatureKey.version: {
-          await this.setState(this.getStateFullObjectId(settings, import_MinerFeature.MinerFeatureKey.version), {
-            val: stats.version,
-            ack: true
-          });
-          break;
-        }
-        case import_MinerFeature.MinerFeatureKey.totalHashrate: {
-          await this.setState(this.getStateFullObjectId(settings, import_MinerFeature.MinerFeatureKey.totalHashrate), {
-            val: stats.totalHashrate,
-            ack: true
-          });
-          break;
+    const supported = miner.getSupportedFeatures();
+    const deviceId = this.getDeviceObjectId(settings);
+    if (supported.includes(import_MinerFeature.MinerFeatureKey.version) && stats.version !== void 0) {
+      await this.setState(this.getStateFullObjectId(settings, import_MinerFeature.MinerFeatureKey.version), {
+        val: stats.version,
+        ack: true
+      });
+    }
+    if (supported.includes(import_MinerFeature.MinerFeatureKey.rawStats) && stats.raw !== void 0) {
+      await this.setState(this.getStateFullObjectId(settings, import_MinerFeature.MinerFeatureKey.rawStats), {
+        val: JSON.stringify(stats.raw),
+        ack: true
+      });
+    }
+    if (supported.includes(import_MinerFeature.MinerFeatureKey.stats)) {
+      const statsValues = {
+        totalHashrate: stats.totalHashrate,
+        power: stats.power,
+        efficiency: stats.efficiency,
+        acceptedShares: stats.acceptedShares,
+        rejectedShares: stats.rejectedShares
+      };
+      for (const [key, val] of Object.entries(statsValues)) {
+        if (val !== void 0) {
+          await this.setState(`${deviceId}.stats.${key}`, { val, ack: true });
         }
       }
     }
+    await this.setState(`${deviceId}.info.online`, { val: true, ack: true });
+    await this.setState(`${deviceId}.info.lastSeen`, { val: Date.now(), ack: true });
   }
   async createDeviceStateObjects(settings) {
     if (!(0, import_IOBrokerMinerSettings.isMiner)(settings)) {
@@ -344,14 +373,46 @@ class MinerAdapter extends utils.Adapter {
       });
     }
     await this.cleanupLegacyStates(deviceId);
+    const infoStates = {
+      minerType: { name: "Miner Type", type: "string", read: true, write: false },
+      host: { name: "Host", type: "string", read: true, write: false },
+      online: { name: "Online", type: "boolean", role: "indicator.reachable", read: true, write: false },
+      lastSeen: { name: "Last Seen", type: "number", role: "date", read: true, write: false }
+    };
+    for (const [id, common] of Object.entries(infoStates)) {
+      await this.extendObject(`${deviceId}.info.${id}`, {
+        type: "state",
+        common
+      });
+    }
     const dummyMiner = (0, import_MinerFactory.createMiner)(settings.settings);
-    for (const featureKey of dummyMiner.getSupportedFeatures()) {
+    const supportedFeatures = dummyMiner.getSupportedFeatures();
+    if (supportedFeatures.includes(import_MinerFeature.MinerFeatureKey.stats)) {
+      const statsStates = {
+        totalHashrate: { name: "Total Hashrate", type: "number", unit: "h/s", read: true, write: false },
+        power: { name: "Power", type: "number", unit: "W", read: true, write: false },
+        efficiency: { name: "Efficiency", type: "number", unit: "H/W", read: true, write: false },
+        acceptedShares: { name: "Accepted Shares", type: "number", read: true, write: false },
+        rejectedShares: { name: "Rejected Shares", type: "number", read: true, write: false }
+      };
+      for (const [id, common] of Object.entries(statsStates)) {
+        await this.extendObject(`${deviceId}.stats.${id}`, {
+          type: "state",
+          common
+        });
+      }
+    }
+    for (const featureKey of supportedFeatures) {
+      if (featureKey === import_MinerFeature.MinerFeatureKey.stats) {
+        continue;
+      }
       const feature = import_MinerFeature.minerFeatures[featureKey];
       await this.extendObject(`${this.getStateFullObjectId(settings, featureKey)}`, {
         type: "state",
         common: {
           name: `${feature.label} - ${feature.description}`,
           type: feature.type,
+          role: feature.role,
           read: feature.readable,
           write: feature.writable,
           unit: feature.unit,

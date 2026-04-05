@@ -26,9 +26,10 @@ __export(MinerFeature_exports, {
 module.exports = __toCommonJS(MinerFeature_exports);
 var MinerFeatureKey = /* @__PURE__ */ ((MinerFeatureKey2) => {
   MinerFeatureKey2["running"] = "running";
-  MinerFeatureKey2["rawStats"] = "rawStats";
+  MinerFeatureKey2["reboot"] = "reboot";
   MinerFeatureKey2["version"] = "version";
-  MinerFeatureKey2["totalHashrate"] = "totalHashrate";
+  MinerFeatureKey2["stats"] = "stats";
+  MinerFeatureKey2["rawStats"] = "rawStats";
   return MinerFeatureKey2;
 })(MinerFeatureKey || {});
 var MinerFeatureCategory = /* @__PURE__ */ ((MinerFeatureCategory2) => {
@@ -48,7 +49,18 @@ const minerFeatures = {
     label: "Running",
     description: "Whether the miner is running.",
     type: "boolean",
+    role: "switch",
     readable: true,
+    writable: true
+  },
+  ["reboot" /* reboot */]: {
+    category: "control" /* control */,
+    id: "reboot",
+    label: "Reboot",
+    description: "Trigger a device reboot.",
+    type: "boolean",
+    role: "button",
+    readable: false,
     writable: true
   },
   /*
@@ -64,15 +76,17 @@ const minerFeatures = {
     writable: false
   },
   /*
-      stats – live performance metrics
+      stats – live performance metrics.
+      When a miner declares this feature it will get all stats sub-states
+      (totalHashrate, power, efficiency, acceptedShares, rejectedShares).
+      The miner fills whatever values it can in MinerStats.
    */
-  ["totalHashrate" /* totalHashrate */]: {
+  ["stats" /* stats */]: {
     category: "stats" /* stats */,
-    id: "totalHashrate",
-    label: "Total Hashrate",
-    description: "The total hashrate of the miner.",
-    type: "number",
-    unit: "h/s",
+    id: "stats",
+    label: "Statistics",
+    description: "Live performance metrics are available.",
+    type: "mixed",
     readable: true,
     writable: false
   },

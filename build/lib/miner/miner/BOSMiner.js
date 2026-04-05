@@ -24,8 +24,8 @@ module.exports = __toCommonJS(BOSMiner_exports);
 var import_PollingMiner = require("./PollingMiner");
 var import_MinerFeature = require("../model/MinerFeature");
 var import_socket_utils = require("../../utils/socket-utils");
+var import_CGMinerApiTypes = require("../model/CGMinerApiTypes");
 var BOSMinerCommand = /* @__PURE__ */ ((BOSMinerCommand2) => {
-  BOSMinerCommand2["stats"] = "summary+coin";
   BOSMinerCommand2["pause"] = "pause";
   BOSMinerCommand2["resume"] = "resume";
   return BOSMinerCommand2;
@@ -42,7 +42,8 @@ class BOSMiner extends import_PollingMiner.PollingMiner {
    */
   async fetchStats() {
     try {
-      const response = await this.sendCommand("summary+coin" /* stats */, "", true);
+      const combinedCommand = [import_CGMinerApiTypes.CGMinerCommand.summary, import_CGMinerApiTypes.CGMinerCommand.coin].join("+");
+      const response = await this.sendCommand(combinedCommand, "", true);
       return {
         raw: response
       };

@@ -36,13 +36,22 @@ var ClaymoreCommandMethod = /* @__PURE__ */ ((ClaymoreCommandMethod2) => {
   return ClaymoreCommandMethod2;
 })(ClaymoreCommandMethod || {});
 class ClaymoreMiner extends import_PollingMiner.PollingMiner {
+  /**
+   *
+   */
   async init() {
     await super.init();
     return Promise.resolve();
   }
+  /**
+   *
+   */
   async start() {
     await this.sendCommand("control_gpu" /* controlGpu */, ["-1", "1"], false);
   }
+  /**
+   *
+   */
   async fetchStats() {
     try {
       const response = await this.sendCommand(
@@ -55,26 +64,35 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
       return {
         raw: response,
         version: parsedResponse.minerVersion,
-        totalHashrate: parsedResponse.ethTotal.hashrate * 1e3
+        totalHashrate: parsedResponse.ethTotal.hashrate * 1e3,
+        acceptedShares: parsedResponse.ethTotal.shares,
+        rejectedShares: parsedResponse.ethTotal.rejectedShares
       };
     } catch (e) {
       return Promise.reject(e instanceof Error ? e : new Error(String(e)));
     }
   }
+  /**
+   *
+   */
   async stop() {
     await this.sendCommand("control_gpu" /* controlGpu */, ["-1", "0"], false);
   }
+  /**
+   *
+   */
   getSupportedFeatures() {
-    return [
-      import_MinerFeature.MinerFeatureKey.running,
-      import_MinerFeature.MinerFeatureKey.rawStats,
-      import_MinerFeature.MinerFeatureKey.version,
-      import_MinerFeature.MinerFeatureKey.totalHashrate
-    ];
+    return [import_MinerFeature.MinerFeatureKey.running, import_MinerFeature.MinerFeatureKey.version, import_MinerFeature.MinerFeatureKey.stats, import_MinerFeature.MinerFeatureKey.rawStats];
   }
+  /**
+   *
+   */
   getLoggerName() {
     return `${super.getLoggerName()}ClaymoreMiner[${this.settings.host}:${this.settings.port}]`;
   }
+  /**
+   *
+   */
   getCliArgs() {
     return [`--cm_api_listen=0.0.0.0:${this.settings.port}`, `--cm_api_password=${this.settings.password}`];
   }
@@ -94,6 +112,10 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
     );
   }
   // public to allow unit tests
+  /**
+   *
+   * @param response
+   */
   parseMinerGetStat1(response) {
     const [
       minerVersion,
@@ -145,6 +167,10 @@ class ClaymoreMiner extends import_PollingMiner.PollingMiner {
     };
   }
   // public to allow unit tests
+  /**
+   *
+   * @param response
+   */
   parseMinerGetStat2(response) {
     const parsedStat1 = this.parseMinerGetStat1(response);
     const [
