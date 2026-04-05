@@ -34,15 +34,17 @@ var MinerFeatureKey = /* @__PURE__ */ ((MinerFeatureKey2) => {
 var MinerFeatureCategory = /* @__PURE__ */ ((MinerFeatureCategory2) => {
   MinerFeatureCategory2["control"] = "control";
   MinerFeatureCategory2["info"] = "info";
+  MinerFeatureCategory2["stats"] = "stats";
+  MinerFeatureCategory2["raw"] = "raw";
   return MinerFeatureCategory2;
 })(MinerFeatureCategory || {});
 const minerFeatures = {
   /*
-     controls
+     control
   */
   ["running" /* running */]: {
     category: "control" /* control */,
-    id: "MINER_RUNNING",
+    id: "running",
     label: "Running",
     description: "Whether the miner is running.",
     type: "boolean",
@@ -50,36 +52,42 @@ const minerFeatures = {
     writable: true
   },
   /*
-      info
+      info – identity / config / firmware / connection meta
    */
-  ["rawStats" /* rawStats */]: {
-    category: "info" /* info */,
-    id: "RAW",
-    label: "RAW Miner Stats",
-    description: "Raw info returned by the miner.",
-    type: "object",
-    readable: true,
-    writable: false,
-    advanced: true
-  },
   ["version" /* version */]: {
     category: "info" /* info */,
-    id: "VERSION",
+    id: "version",
     label: "Miner Version",
     description: "The version of the miner software.",
     type: "string",
     readable: true,
     writable: false
   },
+  /*
+      stats – live performance metrics
+   */
   ["totalHashrate" /* totalHashrate */]: {
-    category: "info" /* info */,
-    id: "TOTAL_HASHRATE",
+    category: "stats" /* stats */,
+    id: "totalHashrate",
     label: "Total Hashrate",
     description: "The total hashrate of the miner.",
     type: "number",
     unit: "h/s",
     readable: true,
     writable: false
+  },
+  /*
+      raw – raw API payloads (expert)
+   */
+  ["rawStats" /* rawStats */]: {
+    category: "raw" /* raw */,
+    id: "stats",
+    label: "RAW Miner Stats",
+    description: "Raw info returned by the miner.",
+    type: "object",
+    readable: true,
+    writable: false,
+    advanced: true
   }
 };
 function getMinerFeatureFullId(key) {

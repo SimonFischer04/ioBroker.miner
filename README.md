@@ -23,6 +23,82 @@ Interact with different crypto miner apis
 - [ ] sentry
 - [ ] more: see Todo.md / issues 
 
+## Object model
+
+All objects are created under:
+
+`miner.<instance>.miner.<minerId>`
+
+`<minerId>` is the stable ID from the device configuration (`settings.id`). This allows multiple miner processes on the same host.
+
+### Groups (channels)
+- `info`: identity/config/firmware/connection meta
+- `stats`: live performance metrics (hashrate, shares, power, temps, ...)
+- `control`: writable controls (start/stop, reboot, ...)
+- `raw`: raw API payloads (expert)
+
+### Entities (optional subtrees)
+Some miners expose sub-entities. If available, they are placed below the miner:
+- `pools.<index>...`
+- `hardware.gpus.<index>...`
+- `hardware.hashboards.<index>...`
+
+### Examples
+- `miner.0.miner.<minerId>.control.running`
+- `miner.0.miner.<minerId>.stats.totalHashrate`
+- `miner.0.miner.<minerId>.hardware.gpus.0.stats.temp`
+- `miner.0.miner.<minerId>.raw.stats`
+
+### Example tree
+```
+miner.0
+  miner
+    <minerId>                        (device)
+      info                           (channel)
+        minerType                    (string)   e.g. xmRig / teamRedMiner / bosMiner
+        host                         (string)
+        version                      (string)   (maps to feature: version)
+        online                        (boolean)  derived from lastSeen
+        lastSeen                     (number)   unix ms
+      stats                          (channel)
+        totalHashrate                (number)   H/s (maps to feature: totalHashrate)
+        power                        (number)   W
+        efficiency                   (number)   H/W
+        acceptedShares               (number)
+        rejectedShares               (number)
+      control                        (channel)  (writable states only here, top-level)
+        running                      (boolean)  start/stop (maps to feature: running)
+        reboot                       (boolean)  “button”
+      pools                          (channel)
+        0                            (channel)
+          info
+            url                      (string)
+            user                     (string)
+          stats
+            status                   (string)
+            acceptedShares           (number)
+            rejectedShares           (number)
+        1 ...
+      hardware                       (channel)
+        gpus                         (channel)
+          0                          (channel)
+            info
+              name                   (string)
+            stats
+              hashrate               (number)
+              temp                   (number)   °C
+              fanRpm                 (number)
+              power                  (number)
+          1 ...
+        hashboards                   (channel)  (ASICs)
+          0
+            stats
+              hashrate               (number)
+              temp                   (number)
+      raw                            (channel)
+        stats                        (object/string) raw miner payload (maps to feature: rawStats)
+```
+
 ## Developer manual
 This section is intended for the developer. It can be deleted later.
 
@@ -118,6 +194,7 @@ Please refer to the [`dev-server` documentation](https://github.com/ioBroker/dev
 * (SimonFischer04) **ENHANCED**: Updated dependencies to recommended versions (admin 7.6.17, js-controller 6.0.11)
 * (SimonFischer04) **ENHANCED**: Added copyright notice to README
 * (SimonFischer04) **NEW**: Added support for Avalon (Canaan) devices via CGMiner-compatible socket API (port 4028), including start/stop (softon/softoff) and stats polling
+* (SimonFischer04) **ENHANCED**: Restructured object model with dedicated channels for control, info, stats, and raw data (**breaking change** – legacy state paths are auto-cleaned on startup)
 
 ### 0.0.1 (2026-02-15)
 * (SimonFischer04) initial release

@@ -387,19 +387,27 @@ export class MinerAdapter extends utils.Adapter {
             return;
         }
 
-        await this.extendObject(`${this.getDeviceObjectId(settings)}.${MinerFeatureCategory.control}`, {
-            type: 'channel',
-            common: {
-                name: 'device controls',
-            },
-        });
+        const deviceId = this.getDeviceObjectId(settings);
 
-        await this.extendObject(`${this.getDeviceObjectId(settings)}.${MinerFeatureCategory.info}`, {
-            type: 'channel',
-            common: {
-                name: 'device information',
-            },
-        });
+        // Create channels for all feature categories
+        const categoryLabels: Record<MinerFeatureCategory, string> = {
+            [MinerFeatureCategory.control]: 'device controls',
+            [MinerFeatureCategory.info]: 'device information',
+            [MinerFeatureCategory.stats]: 'mining statistics',
+            [MinerFeatureCategory.raw]: 'raw API data',
+        };
+
+        for (const category of Object.values(MinerFeatureCategory)) {
+            await this.extendObject(`${deviceId}.${category}`, {
+                type: 'channel',
+                common: {
+                    name: categoryLabels[category],
+                },
+            });
+        }
+
+        // Clean up legacy state paths from pre-restructure versions
+        await this.cleanupLegacyStates(deviceId);
 
         const dummyMiner = createMiner(settings.settings);
         for (const featureKey of dummyMiner.getSupportedFeatures()) {
@@ -415,6 +423,33 @@ export class MinerAdapter extends utils.Adapter {
                     expert: feature.advanced === true ? true : undefined, // false needs to be passed in as undefined
                 },
             });
+        }
+    }
+
+    /**
+     * Remove orphaned state objects from legacy object model (before category restructure).
+     * Old paths: control.MINER_RUNNING, info.RAW, info.VERSION, info.TOTAL_HASHRATE
+     *
+     * @param deviceId - the device object id prefix
+     */
+    private async cleanupLegacyStates(deviceId: string): Promise<void> {
+        const legacyPaths = [
+            `${deviceId}.control.MINER_RUNNING`,
+            `${deviceId}.info.RAW`,
+            `${deviceId}.info.VERSION`,
+            `${deviceId}.info.TOTAL_HASHRATE`,
+        ];
+
+        for (const legacyPath of legacyPaths) {
+            try {
+                const obj = await this.getObjectAsync(legacyPath);
+                if (obj) {
+                    this.log.info(`Removing legacy state object: ${legacyPath}`);
+                    await this.delObjectAsync(legacyPath);
+                }
+            } catch {
+                // Object doesn't exist or can't be deleted — ignore
+            }
         }
     }
 

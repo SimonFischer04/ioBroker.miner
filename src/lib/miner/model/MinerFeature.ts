@@ -8,6 +8,8 @@ export enum MinerFeatureKey {
 export enum MinerFeatureCategory {
     control = 'control',
     info = 'info',
+    stats = 'stats',
+    raw = 'raw',
 }
 
 /**
@@ -57,11 +59,11 @@ export interface MinerFeatureProperties {
 
 export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
     /*
-       controls
+       control
     */
     [MinerFeatureKey.running]: {
         category: MinerFeatureCategory.control,
-        id: 'MINER_RUNNING',
+        id: 'running',
         label: 'Running',
         description: 'Whether the miner is running.',
         type: 'boolean',
@@ -70,22 +72,11 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
     },
 
     /*
-        info
+        info – identity / config / firmware / connection meta
      */
-    [MinerFeatureKey.rawStats]: {
-        category: MinerFeatureCategory.info,
-        id: 'RAW',
-        label: 'RAW Miner Stats',
-        description: 'Raw info returned by the miner.',
-        type: 'object',
-        readable: true,
-        writable: false,
-        advanced: true,
-    },
-
     [MinerFeatureKey.version]: {
         category: MinerFeatureCategory.info,
-        id: 'VERSION',
+        id: 'version',
         label: 'Miner Version',
         description: 'The version of the miner software.',
         type: 'string',
@@ -93,15 +84,32 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
         writable: false,
     },
 
+    /*
+        stats – live performance metrics
+     */
     [MinerFeatureKey.totalHashrate]: {
-        category: MinerFeatureCategory.info,
-        id: 'TOTAL_HASHRATE',
+        category: MinerFeatureCategory.stats,
+        id: 'totalHashrate',
         label: 'Total Hashrate',
         description: 'The total hashrate of the miner.',
         type: 'number',
         unit: 'h/s',
         readable: true,
         writable: false,
+    },
+
+    /*
+        raw – raw API payloads (expert)
+     */
+    [MinerFeatureKey.rawStats]: {
+        category: MinerFeatureCategory.raw,
+        id: 'stats',
+        label: 'RAW Miner Stats',
+        description: 'Raw info returned by the miner.',
+        type: 'object',
+        readable: true,
+        writable: false,
+        advanced: true,
     },
 } as const;
 

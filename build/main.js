@@ -328,18 +328,22 @@ class MinerAdapter extends utils.Adapter {
       this.log.error(`createDeviceStateObjects category ${settings.category} not yet supported`);
       return;
     }
-    await this.extendObject(`${this.getDeviceObjectId(settings)}.${import_MinerFeature.MinerFeatureCategory.control}`, {
-      type: "channel",
-      common: {
-        name: "device controls"
-      }
-    });
-    await this.extendObject(`${this.getDeviceObjectId(settings)}.${import_MinerFeature.MinerFeatureCategory.info}`, {
-      type: "channel",
-      common: {
-        name: "device information"
-      }
-    });
+    const deviceId = this.getDeviceObjectId(settings);
+    const categoryLabels = {
+      [import_MinerFeature.MinerFeatureCategory.control]: "device controls",
+      [import_MinerFeature.MinerFeatureCategory.info]: "device information",
+      [import_MinerFeature.MinerFeatureCategory.stats]: "mining statistics",
+      [import_MinerFeature.MinerFeatureCategory.raw]: "raw API data"
+    };
+    for (const category of Object.values(import_MinerFeature.MinerFeatureCategory)) {
+      await this.extendObject(`${deviceId}.${category}`, {
+        type: "channel",
+        common: {
+          name: categoryLabels[category]
+        }
+      });
+    }
+    await this.cleanupLegacyStates(deviceId);
     const dummyMiner = (0, import_MinerFactory.createMiner)(settings.settings);
     for (const featureKey of dummyMiner.getSupportedFeatures()) {
       const feature = import_MinerFeature.minerFeatures[featureKey];
@@ -355,6 +359,30 @@ class MinerAdapter extends utils.Adapter {
           // false needs to be passed in as undefined
         }
       });
+    }
+  }
+  /**
+   * Remove orphaned state objects from legacy object model (before category restructure).
+   * Old paths: control.MINER_RUNNING, info.RAW, info.VERSION, info.TOTAL_HASHRATE
+   *
+   * @param deviceId - the device object id prefix
+   */
+  async cleanupLegacyStates(deviceId) {
+    const legacyPaths = [
+      `${deviceId}.control.MINER_RUNNING`,
+      `${deviceId}.info.RAW`,
+      `${deviceId}.info.VERSION`,
+      `${deviceId}.info.TOTAL_HASHRATE`
+    ];
+    for (const legacyPath of legacyPaths) {
+      try {
+        const obj = await this.getObjectAsync(legacyPath);
+        if (obj) {
+          this.log.info(`Removing legacy state object: ${legacyPath}`);
+          await this.delObjectAsync(legacyPath);
+        }
+      } catch {
+      }
     }
   }
   getDeviceObjectId(settings) {
