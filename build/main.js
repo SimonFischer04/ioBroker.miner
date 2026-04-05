@@ -331,6 +331,12 @@ class MinerAdapter extends utils.Adapter {
         ack: true
       });
     }
+    if (supported.includes(import_MinerFeature.MinerFeatureKey.firmwareVersion) && stats.firmwareVersion !== void 0) {
+      await this.setState(this.getStateFullObjectId(settings, import_MinerFeature.MinerFeatureKey.firmwareVersion), {
+        val: stats.firmwareVersion,
+        ack: true
+      });
+    }
     if (supported.includes(import_MinerFeature.MinerFeatureKey.rawStats) && stats.raw !== void 0) {
       await this.setState(this.getStateFullObjectId(settings, import_MinerFeature.MinerFeatureKey.rawStats), {
         val: JSON.stringify(stats.raw),

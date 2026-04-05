@@ -65,7 +65,13 @@ export class SGMiner<
      *
      */
     public override getSupportedFeatures(): MinerFeatureKey[] {
-        return [MinerFeatureKey.version, MinerFeatureKey.stats, MinerFeatureKey.rawStats, MinerFeatureKey.cliArgs];
+        return [
+            MinerFeatureKey.version,
+            MinerFeatureKey.firmwareVersion,
+            MinerFeatureKey.stats,
+            MinerFeatureKey.rawStats,
+            MinerFeatureKey.cliArgs,
+        ];
     }
 
     /**
@@ -127,6 +133,7 @@ export class SGMiner<
         return {
             raw: response,
             version: version?.CGMiner,
+            firmwareVersion: version?.LVERSION,
             totalHashrate,
             acceptedShares,
             rejectedShares,

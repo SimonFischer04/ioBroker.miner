@@ -13,10 +13,12 @@
     "Name": "Имя",
     "Please enter an IP address": "Пожалуйста, введите IP адрес",
     "Refresh device list": "Обновить список устройств",
+    "Pool support is not yet available": "Поддержка пулов ещё не доступна. В разработке.",
     "Settings": "Настройки",
     "enabled": "включен",
     "id": "ID",
     "password": "пароль",
     "poll interval": "интервал опроса"
 }
+
 

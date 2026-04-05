@@ -28,6 +28,7 @@ var MinerFeatureKey = /* @__PURE__ */ ((MinerFeatureKey2) => {
   MinerFeatureKey2["running"] = "running";
   MinerFeatureKey2["reboot"] = "reboot";
   MinerFeatureKey2["version"] = "version";
+  MinerFeatureKey2["firmwareVersion"] = "firmwareVersion";
   MinerFeatureKey2["stats"] = "stats";
   MinerFeatureKey2["rawStats"] = "rawStats";
   MinerFeatureKey2["cliArgs"] = "cliArgs";
@@ -73,6 +74,16 @@ const minerFeatures = {
     label: "Miner Version",
     description: "The version of the miner software.",
     type: "string",
+    readable: true,
+    writable: false
+  },
+  ["firmwareVersion" /* firmwareVersion */]: {
+    category: "info" /* info */,
+    id: "firmwareVersion",
+    label: "Firmware Version",
+    description: "The firmware version of the miner hardware.",
+    type: "string",
+    role: "info.firmware",
     readable: true,
     writable: false
   },

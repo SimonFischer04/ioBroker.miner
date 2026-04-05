@@ -391,10 +391,16 @@ export class MinerAdapter extends utils.Adapter {
         const supported = miner.getSupportedFeatures();
         const deviceId = this.getDeviceObjectId(settings);
 
-        // Feature-driven states (version, raw)
+        // Feature-driven states (version, firmwareVersion, raw)
         if (supported.includes(MinerFeatureKey.version) && stats.version !== undefined) {
             await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.version), {
                 val: stats.version,
+                ack: true,
+            });
+        }
+        if (supported.includes(MinerFeatureKey.firmwareVersion) && stats.firmwareVersion !== undefined) {
+            await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.firmwareVersion), {
+                val: stats.firmwareVersion,
                 ack: true,
             });
         }

@@ -67,7 +67,13 @@ class SGMiner extends import_PollingMiner.PollingMiner {
    *
    */
   getSupportedFeatures() {
-    return [import_MinerFeature.MinerFeatureKey.version, import_MinerFeature.MinerFeatureKey.stats, import_MinerFeature.MinerFeatureKey.rawStats, import_MinerFeature.MinerFeatureKey.cliArgs];
+    return [
+      import_MinerFeature.MinerFeatureKey.version,
+      import_MinerFeature.MinerFeatureKey.firmwareVersion,
+      import_MinerFeature.MinerFeatureKey.stats,
+      import_MinerFeature.MinerFeatureKey.rawStats,
+      import_MinerFeature.MinerFeatureKey.cliArgs
+    ];
   }
   /**
    *
@@ -118,6 +124,7 @@ class SGMiner extends import_PollingMiner.PollingMiner {
     return {
       raw: response,
       version: version == null ? void 0 : version.CGMiner,
+      firmwareVersion: version == null ? void 0 : version.LVERSION,
       totalHashrate,
       acceptedShares,
       rejectedShares

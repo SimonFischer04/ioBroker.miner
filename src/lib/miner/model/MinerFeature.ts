@@ -5,6 +5,7 @@ export enum MinerFeatureKey {
 
     // info
     version = 'version',
+    firmwareVersion = 'firmwareVersion',
 
     // stats – indicates the miner provides live performance metrics
     stats = 'stats',
@@ -108,6 +109,17 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
         label: 'Miner Version',
         description: 'The version of the miner software.',
         type: 'string',
+        readable: true,
+        writable: false,
+    },
+
+    [MinerFeatureKey.firmwareVersion]: {
+        category: MinerFeatureCategory.info,
+        id: 'firmwareVersion',
+        label: 'Firmware Version',
+        description: 'The firmware version of the miner hardware.',
+        type: 'string',
+        role: 'info.firmware',
         readable: true,
         writable: false,
     },

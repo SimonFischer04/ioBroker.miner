@@ -7,6 +7,10 @@ export interface MinerStats {
      */
     version?: string;
     /**
+     * Firmware version string (e.g. LVERSION from CGMiner API).
+     */
+    firmwareVersion?: string;
+    /**
      * Total hashrate in H/s.
      */
     totalHashrate?: number;

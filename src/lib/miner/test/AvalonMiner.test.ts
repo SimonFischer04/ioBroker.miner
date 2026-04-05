@@ -51,6 +51,7 @@ describe('AvalonMiner', () => {
 
             // Base stats from summary+version (inherited from SGMiner)
             expect(stats.version).to.equal('4.11.1');
+            expect(stats.firmwareVersion).to.equal('25021401_56abae7');
             expect(stats.totalHashrate).to.be.a('number');
             expect(stats.totalHashrate).to.be.closeTo(8263805.05 * 1_000_000, 1);
             expect(stats.acceptedShares).to.equal(188);
@@ -79,6 +80,7 @@ describe('AvalonMiner', () => {
             const stats = miner.parseSummaryVersionStatsResponse(noStats);
 
             expect(stats.version).to.be.undefined;
+            expect(stats.firmwareVersion).to.be.undefined;
             expect(stats.totalHashrate).to.be.undefined;
             expect(stats.power).to.be.undefined;
             expect(stats.efficiency).to.be.undefined;

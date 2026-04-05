@@ -20,6 +20,7 @@ describe('SGMiner', () => {
             const stats = miner.parseSummaryVersionResponse(fixture);
 
             expect(stats.version).to.equal('4.11.1');
+            expect(stats.firmwareVersion).to.equal('25021401_56abae7');
 
             // totalHashrate: MHS 5s * 1_000_000 = 9894526.54 * 1_000_000
             expect(stats.totalHashrate).to.be.a('number');
@@ -43,6 +44,7 @@ describe('SGMiner', () => {
             const stats = miner.parseSummaryVersionResponse(empty);
 
             expect(stats.version).to.be.undefined;
+            expect(stats.firmwareVersion).to.be.undefined;
             expect(stats.totalHashrate).to.be.undefined;
             expect(stats.acceptedShares).to.be.undefined;
             expect(stats.rejectedShares).to.be.undefined;
