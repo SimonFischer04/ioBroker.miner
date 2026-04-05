@@ -616,7 +616,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 items: {
                     name: {
                         type: 'text',
-                        label: `<b>Name:</b> ${typeof obj.common.name === 'string' ? obj.common.name : JSON.stringify(obj.common.name)}`,
+                        label: I18n.getTranslatedObject('Name'),
                         newLine: true,
                         sm: 12,
                         disabled: 'true',
@@ -634,6 +634,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 },
             },
             data: {
+                name: obj.common.name,
                 minerCliParams: dummyMiner.getCliArgs().join(' '),
             },
         };

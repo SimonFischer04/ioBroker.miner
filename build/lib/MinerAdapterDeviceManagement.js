@@ -392,6 +392,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
   }
   async loadDevices(context) {
     const devices = await this.adapter.getDevicesAsync();
+    context.setTotalDevices(devices.length);
     for (const device of devices) {
       context.addDevice({
         id: device._id,
@@ -485,7 +486,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         items: {
           name: {
             type: "text",
-            label: `<b>Name:</b> ${typeof obj.common.name === "string" ? obj.common.name : JSON.stringify(obj.common.name)}`,
+            label: import_adapter_core.I18n.getTranslatedObject("Name"),
             newLine: true,
             sm: 12,
             disabled: "true"
@@ -503,6 +504,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         }
       },
       data: {
+        name: obj.common.name,
         minerCliParams: dummyMiner.getCliArgs().join(" ")
       }
     };
