@@ -65,7 +65,7 @@ export class SGMiner<
      *
      */
     public override getSupportedFeatures(): MinerFeatureKey[] {
-        return [MinerFeatureKey.version, MinerFeatureKey.stats, MinerFeatureKey.rawStats];
+        return [MinerFeatureKey.version, MinerFeatureKey.stats, MinerFeatureKey.rawStats, MinerFeatureKey.cliArgs];
     }
 
     /**
@@ -79,7 +79,9 @@ export class SGMiner<
      *
      */
     public override getCliArgs(): string[] {
-        return [`--api_listen=0.0.0.0:${this.settings.port}`];
+        // '--api-listen' is official standard. (SEE: https://github.com/ckolivas/cgminer/blob/master/API-README)
+        // but some 'cgminer api compatible miners' may use different args (see f.e. teamRedMiner)
+        return [`--api-listen=0.0.0.0:${this.settings.port}`];
     }
 
     /**

@@ -90,6 +90,10 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
      *
      */
     public override getCliArgs(): string[] {
-        return [...this.claymoreMiner.getCliArgs(), ...this.sgMiner.getCliArgs()];
+        return [
+            ...this.claymoreMiner.getCliArgs(),
+            // cgminer official syntax is '--api-listen', but teamRedMiner uses '--api_listen'
+            ...this.sgMiner.getCliArgs().map(arg => arg.replace('--api-listen', '--api_listen')),
+        ];
     }
 }

@@ -11,6 +11,9 @@ export enum MinerFeatureKey {
 
     // raw
     rawStats = 'rawStats',
+
+    // info – CLI arguments needed for the miner to expose its API
+    cliArgs = 'cliArgs',
 }
 
 export enum MinerFeatureCategory {
@@ -104,6 +107,19 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
         id: 'version',
         label: 'Miner Version',
         description: 'The version of the miner software.',
+        type: 'string',
+        readable: true,
+        writable: false,
+    },
+
+    /*
+        info – CLI arguments
+     */
+    [MinerFeatureKey.cliArgs]: {
+        category: MinerFeatureCategory.info,
+        id: 'cliArgs',
+        label: 'CLI Arguments',
+        description: 'Command line arguments needed to enable API access on the miner.',
         type: 'string',
         readable: true,
         writable: false,
