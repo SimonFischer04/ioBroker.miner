@@ -70,12 +70,7 @@ export class XMRigMiner extends PollingMiner<XMRigSettings> {
      *
      */
     public override getSupportedFeatures(): MinerFeatureKey[] {
-        return [
-            MinerFeatureKey.running,
-            MinerFeatureKey.rawStats,
-            MinerFeatureKey.version,
-            MinerFeatureKey.totalHashrate,
-        ];
+        return [MinerFeatureKey.running, MinerFeatureKey.version, MinerFeatureKey.stats, MinerFeatureKey.rawStats];
     }
 
     /**

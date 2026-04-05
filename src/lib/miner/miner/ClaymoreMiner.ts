@@ -23,17 +23,29 @@ enum ClaymoreCommandMethod {
     controlGpu = 'control_gpu',
 }
 
+/**
+ *
+ */
 export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
+    /**
+     *
+     */
     public override async init(): Promise<void> {
         await super.init();
         // claymore api does not support persistent connections (socket is closed after each command), so don't need to init any connection here
         return Promise.resolve();
     }
 
+    /**
+     *
+     */
     public override async start(): Promise<void> {
         await this.sendCommand(ClaymoreCommandMethod.controlGpu, ['-1', '1'], false);
     }
 
+    /**
+     *
+     */
     public override async fetchStats(): Promise<MinerStats> {
         try {
             const response: MinerGetStat2Response = await this.sendCommand(
@@ -48,6 +60,8 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
                 raw: response,
                 version: parsedResponse.minerVersion,
                 totalHashrate: parsedResponse.ethTotal.hashrate * 1000,
+                acceptedShares: parsedResponse.ethTotal.shares,
+                rejectedShares: parsedResponse.ethTotal.rejectedShares,
             };
         } catch (e) {
             // forward error
@@ -55,23 +69,30 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
         }
     }
 
+    /**
+     *
+     */
     public override async stop(): Promise<void> {
         await this.sendCommand(ClaymoreCommandMethod.controlGpu, ['-1', '0'], false);
     }
 
+    /**
+     *
+     */
     public override getSupportedFeatures(): MinerFeatureKey[] {
-        return [
-            MinerFeatureKey.running,
-            MinerFeatureKey.rawStats,
-            MinerFeatureKey.version,
-            MinerFeatureKey.totalHashrate,
-        ];
+        return [MinerFeatureKey.running, MinerFeatureKey.version, MinerFeatureKey.stats, MinerFeatureKey.rawStats];
     }
 
+    /**
+     *
+     */
     public override getLoggerName(): string {
         return `${super.getLoggerName()}ClaymoreMiner[${this.settings.host}:${this.settings.port}]`;
     }
 
+    /**
+     *
+     */
     public override getCliArgs(): string[] {
         return [`--cm_api_listen=0.0.0.0:${this.settings.port}`, `--cm_api_password=${this.settings.password}`];
     }
@@ -97,6 +118,10 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
     }
 
     // public to allow unit tests
+    /**
+     *
+     * @param response
+     */
     public parseMinerGetStat1(response: MinerGetStat1Response): ParsedMinerGetStat1Response {
         const [
             minerVersion,
@@ -120,7 +145,13 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
 
         const gpuInfo = (temperatureAndFanSpeed || '').split(';').reduce<
             Array<{
+                /**
+                 *
+                 */
                 temperature: number;
+                /**
+                 *
+                 */
                 fanSpeed: number;
             }>
         >((acc, value, index, array) => {
@@ -161,6 +192,10 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
     }
 
     // public to allow unit tests
+    /**
+     *
+     * @param response
+     */
     public parseMinerGetStat2(response: MinerGetStat2Response): ParsedMinerGetStat2Response {
         const parsedStat1 = this.parseMinerGetStat1(response as unknown as MinerGetStat1Response);
         const [
@@ -197,9 +232,21 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
     }
 }
 
+/**
+ *
+ */
 export interface MinerGetStat1Response {
+    /**
+     *
+     */
     id: number;
+    /**
+     *
+     */
     jsonrpc: string;
+    /**
+     *
+     */
     result: [
         string, // Miner version
         string, // Running time in minutes
@@ -213,9 +260,21 @@ export interface MinerGetStat1Response {
     ];
 }
 
+/**
+ *
+ */
 export interface MinerGetStat2Response {
+    /**
+     *
+     */
     id: number;
+    /**
+     *
+     */
     jsonrpc: string;
+    /**
+     *
+     */
     result: [
         ...MinerGetStat1Response['result'],
         string, // ETH accepted shares for every GPU

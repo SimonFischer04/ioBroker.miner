@@ -195,6 +195,8 @@ Please refer to the [`dev-server` documentation](https://github.com/ioBroker/dev
 * (SimonFischer04) **ENHANCED**: Added copyright notice to README
 * (SimonFischer04) **NEW**: Added support for Avalon (Canaan) devices via CGMiner-compatible socket API (port 4028), including start/stop (softon/softoff) and stats polling
 * (SimonFischer04) **ENHANCED**: Restructured object model with dedicated channels for control, info, stats, and raw data (**breaking change** – legacy state paths are auto-cleaned on startup)
+* (SimonFischer04) **NEW**: Added info states (minerType, host, online, lastSeen) and stats states (power, efficiency, acceptedShares, rejectedShares) to match the documented object model
+* (SimonFischer04) **NEW**: Added reboot control state (button) with wiring in state change handler
 
 ### 0.0.1 (2026-02-15)
 * (SimonFischer04) initial release

@@ -149,6 +149,23 @@ export class MinerAdapter extends utils.Adapter {
                     break;
                 }
 
+                case getMinerFeatureFullId(MinerFeatureKey.reboot): {
+                    if (!state.val) {
+                        return;
+                    }
+                    this.log.info(`reboot requested for device ${deviceSettings.name}`);
+
+                    if (deviceSettings.settings.id === undefined) {
+                        this.log.error(`device ${deviceSettings.name} has no id`);
+                        return;
+                    }
+
+                    // TODO: implement reboot in MinerManager / Miner base class
+                    this.log.warn('reboot is not yet implemented');
+                    await this.setState(id, { val: false, ack: true });
+                    break;
+                }
+
                 default: {
                     this.log.warn(`unknown handling of state ${id}`);
                 }
@@ -333,6 +350,7 @@ export class MinerAdapter extends utils.Adapter {
         }
 
         await this.createDeviceStateObjects(settings);
+        await this.writeStaticInfoStates(settings);
 
         if (!settings.enabled) {
             this.log.info(`device ${settings.name} is disabled`);
@@ -347,38 +365,61 @@ export class MinerAdapter extends utils.Adapter {
         });
     }
 
+    /**
+     * Write static info states that come from the device configuration, not from API polling.
+     *
+     * @param settings - the device settings
+     */
+    private async writeStaticInfoStates(settings: IOBrokerMinerSettings): Promise<void> {
+        const deviceId = this.getDeviceObjectId(settings);
+        await this.setState(`${deviceId}.info.minerType`, { val: settings.settings.minerType, ack: true });
+        await this.setState(`${deviceId}.info.host`, { val: settings.settings.host, ack: true });
+    }
+
     private async processNewStats(
         miner: Miner<MinerSettings>,
         settings: IOBrokerDeviceSettings,
         stats: MinerStats,
     ): Promise<void> {
-        for (const feature of miner.getSupportedFeatures()) {
-            // TODO: cleanup, just filter for info features and then directly infer object id from there somehow
-            // change MinerStates to Record<MinerFeatureKey, val>?
-            switch (feature) {
-                case MinerFeatureKey.rawStats: {
-                    await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.rawStats), {
-                        val: JSON.stringify(stats.raw),
-                        ack: true,
-                    });
-                    break;
-                }
-                case MinerFeatureKey.version: {
-                    await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.version), {
-                        val: stats.version,
-                        ack: true,
-                    });
-                    break;
-                }
-                case MinerFeatureKey.totalHashrate: {
-                    await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.totalHashrate), {
-                        val: stats.totalHashrate,
-                        ack: true,
-                    });
-                    break;
+        // TODO: cleanup, just filter for info features and then directly infer object id from there somehow
+        // change MinerStates to Record<MinerFeatureKey, val>?
+
+        const supported = miner.getSupportedFeatures();
+        const deviceId = this.getDeviceObjectId(settings);
+
+        // Feature-driven states (version, raw)
+        if (supported.includes(MinerFeatureKey.version) && stats.version !== undefined) {
+            await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.version), {
+                val: stats.version,
+                ack: true,
+            });
+        }
+        if (supported.includes(MinerFeatureKey.rawStats) && stats.raw !== undefined) {
+            await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.rawStats), {
+                val: JSON.stringify(stats.raw),
+                ack: true,
+            });
+        }
+
+        // Stats sub-states: write whatever the miner provides
+        if (supported.includes(MinerFeatureKey.stats)) {
+            const statsValues: Record<string, ioBroker.StateValue | undefined> = {
+                totalHashrate: stats.totalHashrate,
+                power: stats.power,
+                efficiency: stats.efficiency,
+                acceptedShares: stats.acceptedShares,
+                rejectedShares: stats.rejectedShares,
+            };
+            for (const [key, val] of Object.entries(statsValues)) {
+                if (val !== undefined) {
+                    await this.setState(`${deviceId}.stats.${key}`, { val, ack: true });
                 }
             }
         }
+
+        // Always update online / lastSeen
+        await this.setState(`${deviceId}.info.online`, { val: true, ack: true });
+        await this.setState(`${deviceId}.info.lastSeen`, { val: Date.now(), ack: true });
     }
 
     private async createDeviceStateObjects(settings: IOBrokerDeviceSettings): Promise<void> {
@@ -409,14 +450,53 @@ export class MinerAdapter extends utils.Adapter {
         // Clean up legacy state paths from pre-restructure versions
         await this.cleanupLegacyStates(deviceId);
 
+        // --- Always-present info states (not feature-gated) ---
+        const infoStates: Record<string, Partial<ioBroker.StateCommon>> = {
+            minerType: { name: 'Miner Type', type: 'string', read: true, write: false },
+            host: { name: 'Host', type: 'string', read: true, write: false },
+            online: { name: 'Online', type: 'boolean', role: 'indicator.reachable', read: true, write: false },
+            lastSeen: { name: 'Last Seen', type: 'number', role: 'date', read: true, write: false },
+        };
+        for (const [id, common] of Object.entries(infoStates)) {
+            await this.extendObject(`${deviceId}.info.${id}`, {
+                type: 'state',
+                common: common as ioBroker.StateCommon,
+            });
+        }
+
+        // --- Always-present stats sub-states (created when miner declares MinerFeatureKey.stats) ---
         const dummyMiner = createMiner(settings.settings);
-        for (const featureKey of dummyMiner.getSupportedFeatures()) {
+        const supportedFeatures = dummyMiner.getSupportedFeatures();
+
+        if (supportedFeatures.includes(MinerFeatureKey.stats)) {
+            const statsStates: Record<string, Partial<ioBroker.StateCommon>> = {
+                totalHashrate: { name: 'Total Hashrate', type: 'number', unit: 'h/s', read: true, write: false },
+                power: { name: 'Power', type: 'number', unit: 'W', read: true, write: false },
+                efficiency: { name: 'Efficiency', type: 'number', unit: 'H/W', read: true, write: false },
+                acceptedShares: { name: 'Accepted Shares', type: 'number', read: true, write: false },
+                rejectedShares: { name: 'Rejected Shares', type: 'number', read: true, write: false },
+            };
+            for (const [id, common] of Object.entries(statsStates)) {
+                await this.extendObject(`${deviceId}.stats.${id}`, {
+                    type: 'state',
+                    common: common as ioBroker.StateCommon,
+                });
+            }
+        }
+
+        // --- Feature-driven states (control, info.version, raw) ---
+        for (const featureKey of supportedFeatures) {
+            // Skip the 'stats' capability marker — sub-states handled above
+            if (featureKey === MinerFeatureKey.stats) {
+                continue;
+            }
             const feature = minerFeatures[featureKey];
             await this.extendObject(`${this.getStateFullObjectId(settings, featureKey)}`, {
                 type: 'state',
                 common: {
                     name: `${feature.label} - ${feature.description}`,
                     type: feature.type as ioBroker.CommonType,
+                    role: feature.role,
                     read: feature.readable,
                     write: feature.writable,
                     unit: feature.unit,

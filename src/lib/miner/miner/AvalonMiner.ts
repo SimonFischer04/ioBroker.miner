@@ -1,6 +1,6 @@
 import { SGMiner } from './SGMiner';
 import type { AvalonMinerSettings } from '../model/MinerSettings';
-import { MinerFeatureKey } from '../model/MinerFeature';
+import type { MinerFeatureKey } from '../model/MinerFeature';
 
 // Avalon devices use the CGMiner-compatible socket API on port 4028
 // Control commands use the 'ascset' command with different parameters
@@ -54,8 +54,8 @@ export class AvalonMiner extends SGMiner<AvalonMinerSettings> {
      */
     public override getSupportedFeatures(): MinerFeatureKey[] {
         return [
+            ...super.getSupportedFeatures(),
             // MinerFeatureKey.running,
-            MinerFeatureKey.rawStats,
         ];
     }
 

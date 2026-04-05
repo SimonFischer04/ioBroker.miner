@@ -1,8 +1,16 @@
 export enum MinerFeatureKey {
+    // control
     running = 'running',
-    rawStats = 'rawStats',
+    reboot = 'reboot',
+
+    // info
     version = 'version',
-    totalHashrate = 'totalHashrate',
+
+    // stats – indicates the miner provides live performance metrics
+    stats = 'stats',
+
+    // raw
+    rawStats = 'rawStats',
 }
 
 export enum MinerFeatureCategory {
@@ -49,6 +57,12 @@ export interface MinerFeatureProperties {
      */
     writable?: boolean;
 
+    /**
+     * TODO: how to handle this when moving to lib
+     * ioBroker state role (e.g. 'button', 'indicator.reachable', 'value', 'switch').
+     */
+    role?: string;
+
     // whether this feature is considered advanced. could be used to f.e. hide it in the UI by default
     // (f.e. sets the "expert" flag in ioBroker)
     /**
@@ -67,7 +81,18 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
         label: 'Running',
         description: 'Whether the miner is running.',
         type: 'boolean',
+        role: 'switch',
         readable: true,
+        writable: true,
+    },
+    [MinerFeatureKey.reboot]: {
+        category: MinerFeatureCategory.control,
+        id: 'reboot',
+        label: 'Reboot',
+        description: 'Trigger a device reboot.',
+        type: 'boolean',
+        role: 'button',
+        readable: false,
         writable: true,
     },
 
@@ -85,15 +110,17 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
     },
 
     /*
-        stats – live performance metrics
+        stats – live performance metrics.
+        When a miner declares this feature it will get all stats sub-states
+        (totalHashrate, power, efficiency, acceptedShares, rejectedShares).
+        The miner fills whatever values it can in MinerStats.
      */
-    [MinerFeatureKey.totalHashrate]: {
+    [MinerFeatureKey.stats]: {
         category: MinerFeatureCategory.stats,
-        id: 'totalHashrate',
-        label: 'Total Hashrate',
-        description: 'The total hashrate of the miner.',
-        type: 'number',
-        unit: 'h/s',
+        id: 'stats',
+        label: 'Statistics',
+        description: 'Live performance metrics are available.',
+        type: 'mixed',
         readable: true,
         writable: false,
     },
