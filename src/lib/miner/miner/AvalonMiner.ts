@@ -52,8 +52,11 @@ export class AvalonMiner extends SGMiner<AvalonMinerSettings> {
      */
     public override async fetchStats(): Promise<MinerStats> {
         try {
-            const combinedCommand = [CGMinerCommand.summary, CGMinerCommand.version, CGMinerCommand.stats].join('+');
-            const response = await this.sendCommand<SummaryVersionStatsResponse>(combinedCommand, '', true);
+            const response = await this.sendCommand<SummaryVersionStatsResponse>(
+                [CGMinerCommand.summary, CGMinerCommand.version, CGMinerCommand.stats],
+                '',
+                true,
+            );
 
             return this.parseSummaryVersionStatsResponse(response);
         } catch (e) {

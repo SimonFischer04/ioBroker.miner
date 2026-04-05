@@ -15,7 +15,10 @@ export type SummaryVersionResponse = CombinedResponse<CGMinerCommand.summary | C
  * Base class for miners that communicate via the CGMiner-compatible socket API.
  * Provides shared socket command infrastructure for SGMiner, AvalonMiner, and similar devices.
  */
-export class SGMiner<S extends SGMinerSettings = SGMinerSettings> extends PollingMiner<S> {
+export class SGMiner<
+    S extends SGMinerSettings = SGMinerSettings,
+    CMD extends CGMinerCommand = CGMinerCommand,
+> extends PollingMiner<S> {
     /**
      *
      */
@@ -38,9 +41,11 @@ export class SGMiner<S extends SGMinerSettings = SGMinerSettings> extends Pollin
      */
     public override async fetchStats(): Promise<MinerStats> {
         try {
-            const combinedCommand = [CGMinerCommand.summary, CGMinerCommand.version].join('+');
-            const response = await this.sendCommand<SummaryVersionResponse>(combinedCommand, '', true);
-
+            const response = await this.sendCommand<SummaryVersionResponse>(
+                [CGMinerCommand.summary, CGMinerCommand.version] as CMD[],
+                '',
+                true,
+            );
             return this.parseSummaryVersionResponse(response);
         } catch (e) {
             // forward error
@@ -85,16 +90,17 @@ export class SGMiner<S extends SGMinerSettings = SGMinerSettings> extends Pollin
      * @param expectResponse - whether to wait for and return a response
      */
     protected async sendCommand<T = void>(
-        command: CGMinerCommand | string,
+        command: CMD | CMD[],
         parameter: string = '',
         expectResponse: boolean = true,
     ): Promise<T> {
+        const combinedCommand: string = !Array.isArray(command) ? command : command.join('+'); // cgminer api does allow joining multiple commands using '+'
         return sendSocketCommand(
             this.logger,
             this.settings.host,
             this.settings.port,
             {
-                command,
+                command: combinedCommand,
                 parameter,
             },
             expectResponse,

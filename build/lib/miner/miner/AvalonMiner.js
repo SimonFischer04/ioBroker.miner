@@ -43,8 +43,11 @@ class AvalonMiner extends import_SGMiner.SGMiner {
    */
   async fetchStats() {
     try {
-      const combinedCommand = [import_CGMinerApiTypes.CGMinerCommand.summary, import_CGMinerApiTypes.CGMinerCommand.version, import_CGMinerApiTypes.CGMinerCommand.stats].join("+");
-      const response = await this.sendCommand(combinedCommand, "", true);
+      const response = await this.sendCommand(
+        [import_CGMinerApiTypes.CGMinerCommand.summary, import_CGMinerApiTypes.CGMinerCommand.version, import_CGMinerApiTypes.CGMinerCommand.stats],
+        "",
+        true
+      );
       return this.parseSummaryVersionStatsResponse(response);
     } catch (e) {
       return Promise.reject(e instanceof Error ? e : new Error(String(e)));

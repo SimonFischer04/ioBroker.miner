@@ -46,8 +46,11 @@ class SGMiner extends import_PollingMiner.PollingMiner {
    */
   async fetchStats() {
     try {
-      const combinedCommand = [import_CGMinerApiTypes.CGMinerCommand.summary, import_CGMinerApiTypes.CGMinerCommand.version].join("+");
-      const response = await this.sendCommand(combinedCommand, "", true);
+      const response = await this.sendCommand(
+        [import_CGMinerApiTypes.CGMinerCommand.summary, import_CGMinerApiTypes.CGMinerCommand.version],
+        "",
+        true
+      );
       return this.parseSummaryVersionResponse(response);
     } catch (e) {
       return Promise.reject(e instanceof Error ? e : new Error(String(e)));
@@ -86,12 +89,13 @@ class SGMiner extends import_PollingMiner.PollingMiner {
    * @param expectResponse - whether to wait for and return a response
    */
   async sendCommand(command, parameter = "", expectResponse = true) {
+    const combinedCommand = !Array.isArray(command) ? command : command.join("+");
     return (0, import_socket_utils.sendSocketCommand)(
       this.logger,
       this.settings.host,
       this.settings.port,
       {
-        command,
+        command: combinedCommand,
         parameter
       },
       expectResponse
