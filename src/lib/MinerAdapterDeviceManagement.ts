@@ -26,6 +26,7 @@ import type { IOBrokerDeviceSettings, IOBrokerMinerSettings } from '../miner/mod
 import { decryptDeviceSettings, isMiner } from '../miner/model/IOBrokerMinerSettings';
 import type { PartialDeep } from 'type-fest';
 import { createMiner } from './miner/miner/MinerFactory';
+import {MinerFeatureKey} from './miner/model/MinerFeature';
 
 class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
     async getInstanceInfo(): Promise<InstanceDetails> {
@@ -608,6 +609,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         label: I18n.translate('Miner CLI parameters'),
                         sm: 12,
                         disabled: 'true',
+                        hidden: !dummyMiner.getSupportedFeatures().includes(MinerFeatureKey.cliArgs),
                     },
                 },
                 style: {

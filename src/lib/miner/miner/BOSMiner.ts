@@ -32,7 +32,13 @@ export class BOSMiner extends SGMiner<BOSMinerSettings, BOSMinerCommand> {
      *
      */
     public override getSupportedFeatures(): MinerFeatureKey[] {
-        return [...super.getSupportedFeatures(), MinerFeatureKey.running];
+        // features supported by plain cgMiner base but not here
+        const unsupportedFeatures = [MinerFeatureKey.cliArgs];
+
+        return [
+            ...super.getSupportedFeatures().filter(feature => !unsupportedFeatures.includes(feature)),
+            MinerFeatureKey.running,
+        ];
     }
 
     /**

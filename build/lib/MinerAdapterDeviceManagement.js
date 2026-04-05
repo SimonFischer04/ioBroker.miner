@@ -27,6 +27,7 @@ var import_Category = require("./miner/model/Category");
 var import_MinerSettings = require("./miner/model/MinerSettings");
 var import_IOBrokerMinerSettings = require("../miner/model/IOBrokerMinerSettings");
 var import_MinerFactory = require("./miner/miner/MinerFactory");
+var import_MinerFeature = require("./miner/model/MinerFeature");
 class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
   async getInstanceInfo() {
     const baseInfo = await super.getInstanceInfo();
@@ -478,7 +479,8 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             type: "text",
             label: import_adapter_core.I18n.translate("Miner CLI parameters"),
             sm: 12,
-            disabled: "true"
+            disabled: "true",
+            hidden: !dummyMiner.getSupportedFeatures().includes(import_MinerFeature.MinerFeatureKey.cliArgs)
           }
         },
         style: {

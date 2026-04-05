@@ -1,6 +1,6 @@
 import { SGMiner } from './SGMiner';
 import type { AvalonMinerSettings } from '../model/MinerSettings';
-import type { MinerFeatureKey } from '../model/MinerFeature';
+import { MinerFeatureKey } from '../model/MinerFeature';
 import type { MinerStats } from '../model/MinerStats';
 import { CGMinerCommand, type CombinedResponse, type StatsDeviceData } from '../model/CGMinerApiTypes';
 import { safeParseFloat } from '../../utils/parse-utils';
@@ -78,8 +78,11 @@ export class AvalonMiner extends SGMiner<AvalonMinerSettings> {
      *
      */
     public override getSupportedFeatures(): MinerFeatureKey[] {
+        // features supported by plain cgMiner base but not here
+        const unsupportedFeatures = [MinerFeatureKey.cliArgs];
+
         return [
-            ...super.getSupportedFeatures(),
+            ...super.getSupportedFeatures().filter(feature => !unsupportedFeatures.includes(feature)),
             // MinerFeatureKey.running,
         ];
     }

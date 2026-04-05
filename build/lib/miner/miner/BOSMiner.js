@@ -45,7 +45,11 @@ class BOSMiner extends import_SGMiner.SGMiner {
    *
    */
   getSupportedFeatures() {
-    return [...super.getSupportedFeatures(), import_MinerFeature.MinerFeatureKey.running];
+    const unsupportedFeatures = [import_MinerFeature.MinerFeatureKey.cliArgs];
+    return [
+      ...super.getSupportedFeatures().filter((feature) => !unsupportedFeatures.includes(feature)),
+      import_MinerFeature.MinerFeatureKey.running
+    ];
   }
   /**
    *

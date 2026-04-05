@@ -22,6 +22,7 @@ __export(AvalonMiner_exports, {
 });
 module.exports = __toCommonJS(AvalonMiner_exports);
 var import_SGMiner = require("./SGMiner");
+var import_MinerFeature = require("../model/MinerFeature");
 var import_CGMinerApiTypes = require("../model/CGMinerApiTypes");
 var import_parse_utils = require("../../utils/parse-utils");
 var AvalonMinerCommand = /* @__PURE__ */ ((AvalonMinerCommand2) => {
@@ -63,8 +64,9 @@ class AvalonMiner extends import_SGMiner.SGMiner {
    *
    */
   getSupportedFeatures() {
+    const unsupportedFeatures = [import_MinerFeature.MinerFeatureKey.cliArgs];
     return [
-      ...super.getSupportedFeatures()
+      ...super.getSupportedFeatures().filter((feature) => !unsupportedFeatures.includes(feature))
       // MinerFeatureKey.running,
     ];
   }
