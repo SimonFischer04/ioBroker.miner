@@ -21,35 +21,19 @@ __export(BOSMiner_exports, {
   BOSMiner: () => BOSMiner
 });
 module.exports = __toCommonJS(BOSMiner_exports);
-var import_PollingMiner = require("./PollingMiner");
 var import_MinerFeature = require("../model/MinerFeature");
-var import_socket_utils = require("../../utils/socket-utils");
-var import_CGMinerApiTypes = require("../model/CGMinerApiTypes");
+var import_SGMiner = require("./SGMiner");
 var BOSMinerCommand = /* @__PURE__ */ ((BOSMinerCommand2) => {
   BOSMinerCommand2["pause"] = "pause";
   BOSMinerCommand2["resume"] = "resume";
   return BOSMinerCommand2;
 })(BOSMinerCommand || {});
-class BOSMiner extends import_PollingMiner.PollingMiner {
+class BOSMiner extends import_SGMiner.SGMiner {
   /**
    *
    */
   async start() {
     await this.sendCommand("resume" /* resume */, "", false);
-  }
-  /**
-   *
-   */
-  async fetchStats() {
-    try {
-      const combinedCommand = [import_CGMinerApiTypes.CGMinerCommand.summary, import_CGMinerApiTypes.CGMinerCommand.coin].join("+");
-      const response = await this.sendCommand(combinedCommand, "", true);
-      return {
-        raw: response
-      };
-    } catch (e) {
-      return Promise.reject(e instanceof Error ? e : new Error(String(e)));
-    }
   }
   /**
    *
@@ -61,7 +45,7 @@ class BOSMiner extends import_PollingMiner.PollingMiner {
    *
    */
   getSupportedFeatures() {
-    return [import_MinerFeature.MinerFeatureKey.running, import_MinerFeature.MinerFeatureKey.rawStats];
+    return [...super.getSupportedFeatures(), import_MinerFeature.MinerFeatureKey.running];
   }
   /**
    *
@@ -74,18 +58,6 @@ class BOSMiner extends import_PollingMiner.PollingMiner {
    */
   getCliArgs() {
     return [];
-  }
-  async sendCommand(command, parameter = "", expectResponse = true) {
-    return (0, import_socket_utils.sendSocketCommand)(
-      this.logger,
-      this.settings.host,
-      this.settings.port,
-      {
-        command,
-        parameter
-      },
-      expectResponse
-    );
   }
 }
 // Annotate the CommonJS export names for ESM import in node:

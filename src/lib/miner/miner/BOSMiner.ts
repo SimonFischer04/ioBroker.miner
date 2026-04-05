@@ -1,16 +1,11 @@
-import { PollingMiner } from './PollingMiner';
 import type { BOSMinerSettings } from '../model/MinerSettings';
-import type { MinerStats } from '../model/MinerStats';
 import { MinerFeatureKey } from '../model/MinerFeature';
-import { sendSocketCommand } from '../../utils/socket-utils';
-import { CGMinerCommand } from '../model/CGMinerApiTypes';
-
-// based on cgminer, but with different commands
-// TODO: inherit?
+import { SGMiner } from './SGMiner';
 
 // old braains api (pre grpc): https://academy.braiins.com/en/braiins-os/papi-bosminer/
+// based on cgminer, but adds some extra commands
+// Note: TypeScript enums cannot extend other enums. BOS-specific commands are defined separately; CGMinerCommand values are used directly where needed.
 enum BOSMinerCommand {
-    // BOS only commands
     pause = 'pause',
     resume = 'resume',
 }
@@ -18,30 +13,12 @@ enum BOSMinerCommand {
 /**
  *
  */
-export class BOSMiner extends PollingMiner<BOSMinerSettings> {
+export class BOSMiner extends SGMiner<BOSMinerSettings, BOSMinerCommand> {
     /**
      *
      */
     public override async start(): Promise<void> {
         await this.sendCommand(BOSMinerCommand.resume, '', false);
-    }
-
-    /**
-     *
-     */
-    public override async fetchStats(): Promise<MinerStats> {
-        try {
-            const combinedCommand = [CGMinerCommand.summary, CGMinerCommand.coin].join('+');
-            const response = await this.sendCommand<object>(combinedCommand, '', true);
-            // TODO: parse response => actually return stats
-
-            return {
-                raw: response,
-            };
-        } catch (e) {
-            // forward error
-            return Promise.reject(e instanceof Error ? e : new Error(String(e)));
-        }
     }
 
     /**
@@ -55,7 +32,7 @@ export class BOSMiner extends PollingMiner<BOSMinerSettings> {
      *
      */
     public override getSupportedFeatures(): MinerFeatureKey[] {
-        return [MinerFeatureKey.running, MinerFeatureKey.rawStats];
+        return [...super.getSupportedFeatures(), MinerFeatureKey.running];
     }
 
     /**
@@ -70,22 +47,5 @@ export class BOSMiner extends PollingMiner<BOSMinerSettings> {
      */
     public override getCliArgs(): string[] {
         return [];
-    }
-
-    private async sendCommand<T = void>(
-        command: BOSMinerCommand | CGMinerCommand | string,
-        parameter: string = '',
-        expectResponse: boolean = true,
-    ): Promise<T> {
-        return sendSocketCommand(
-            this.logger,
-            this.settings.host,
-            this.settings.port,
-            {
-                command,
-                parameter,
-            },
-            expectResponse,
-        );
     }
 }

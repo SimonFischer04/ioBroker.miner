@@ -17,7 +17,7 @@ export type SummaryVersionResponse = CombinedResponse<CGMinerCommand.summary | C
  */
 export class SGMiner<
     S extends SGMinerSettings = SGMinerSettings,
-    CMD extends CGMinerCommand = CGMinerCommand,
+    ExtraCMD extends string = never, // additional commands to allow besides base CGMinerCommand
 > extends PollingMiner<S> {
     /**
      *
@@ -42,7 +42,7 @@ export class SGMiner<
     public override async fetchStats(): Promise<MinerStats> {
         try {
             const response = await this.sendCommand<SummaryVersionResponse>(
-                [CGMinerCommand.summary, CGMinerCommand.version] as CMD[],
+                [CGMinerCommand.summary, CGMinerCommand.version],
                 '',
                 true,
             );
@@ -90,7 +90,7 @@ export class SGMiner<
      * @param expectResponse - whether to wait for and return a response
      */
     protected async sendCommand<T = void>(
-        command: CMD | CMD[],
+        command: (CGMinerCommand | ExtraCMD) | (CGMinerCommand | ExtraCMD)[],
         parameter: string = '',
         expectResponse: boolean = true,
     ): Promise<T> {
