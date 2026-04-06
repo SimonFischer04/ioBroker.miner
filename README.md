@@ -76,7 +76,8 @@ miner.0
         rejectedShares               (number)
       control                        (channel)  (writable states only here, top-level)
         running                      (boolean)  start/stop (maps to feature: running)
-        reboot                       (boolean)  “button”
+        reboot                       (boolean)  "button"
+        profile                      (string)   performance profile (e.g. low/medium/high)
       pools                          (channel)
         0                            (channel)
           info
@@ -121,6 +122,10 @@ miner.0
 * (SimonFischer04) **ENHANCED**: Restructured object model with dedicated channels for control, info, stats, and raw data (**breaking change** – legacy state paths are auto-cleaned on startup)
 * (SimonFischer04) **NEW**: Added info states (minerType, host, online, lastSeen) and stats states (power, efficiency, acceptedShares, rejectedShares) to match the documented object model
 * (SimonFischer04) **NEW**: Added reboot control state (button) with wiring in state change handler
+* (SimonFischer04) **NEW**: Added running switch control to Device Manager for devices supporting the running feature
+* (SimonFischer04) **NEW**: Added performance profile feature with control.profile state and Device Manager dropdown (low/medium/high) — initially for Avalon miners via ascset workmode command
+* (SimonFischer04) **ENHANCED**: Renamed SGMiner to CGMiner throughout the codebase to better reflect the underlying API
+* (SimonFischer04) **FIXED**: Fixed copyright formatting in README to satisfy ioBroker repository checker (fixes #95)
 
 ### 0.0.1 (2026-02-15)
 * (SimonFischer04) initial release
@@ -130,14 +135,14 @@ miner.0
 
 ## License
 
-Copyright (c) 2026 SimonFischer04 <simi.fischa@gmail.com>
+Copyright (c) 2026 SimonFischer04 <simi.fischa@gmail.com>  
 
 This project is licensed under the GNU General Public License v3.0 - see below for details.
 
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
- Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+ Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>  
  Everyone is permitted to copy and distribute verbatim copies
  of this license document, but changing it is not allowed.
 
