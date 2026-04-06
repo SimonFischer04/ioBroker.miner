@@ -410,10 +410,59 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     const devices = await this.adapter.getDevicesAsync();
     context.setTotalDevices(devices.length);
     for (const device of devices) {
+      const customInfoItems = {};
+      const settings = (0, import_IOBrokerMinerSettings.decryptDeviceSettings)(
+        device.native,
+        (value) => this.adapter.decrypt(value)
+      );
+      if ((0, import_IOBrokerMinerSettings.isMiner)(settings) && settings.settings.minerType) {
+        const dummyMiner = (0, import_MinerFactory.createMiner)(settings.settings);
+        const supportedFeatures = dummyMiner.getSupportedFeatures();
+        if (supportedFeatures.includes(import_MinerFeature.MinerFeatureKey.running)) {
+          const stateId = `${device._id}.${(0, import_MinerFeature.getMinerFeatureFullId)(import_MinerFeature.MinerFeatureKey.running)}`;
+          customInfoItems.running = {
+            type: "state",
+            oid: stateId,
+            foreign: true,
+            control: "switch",
+            trueTextStyle: { color: "green" },
+            falseTextStyle: { color: "red" },
+            label: import_adapter_core.I18n.getTranslatedObject("Running"),
+            trueText: import_adapter_core.I18n.getTranslatedObject("ON"),
+            falseText: import_adapter_core.I18n.getTranslatedObject("OFF")
+          };
+        }
+      }
       context.addDevice({
         id: device._id,
         name: device.common.name,
         hasDetails: true,
+        // Connection type using live state binding:
+        // Instead of a static value, we bind to a state. The DM UI will read the
+        // current value from the state and update in real-time.
+        // TODO
+        // connectionType: {
+        //     stateId: `${device._id}.type`,
+        // },
+        // Status with live state binding and value mapping:
+        // The `online` state is a boolean, but the DM UI expects 'connected'/'disconnected'.
+        // The `mapping` object translates boolean values to the expected strings.
+        status: {
+          connection: {
+            stateId: `${device._id}.info.online`,
+            mapping: {
+              true: "connected",
+              false: "disconnected"
+            }
+          }
+        },
+        customInfo: {
+          id: device._id,
+          schema: {
+            type: "panel",
+            items: customInfoItems
+          }
+        },
         actions: [
           {
             id: "delete",

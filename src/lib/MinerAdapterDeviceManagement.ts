@@ -1,5 +1,6 @@
 import {
     DeviceManagement,
+    type ConfigItemAny,
     type ActionContext,
     type DeviceDetails,
     type DeviceLoadContext,
@@ -26,7 +27,7 @@ import type { IOBrokerDeviceSettings, IOBrokerMinerSettings } from '../miner/mod
 import { decryptDeviceSettings, isMiner } from '../miner/model/IOBrokerMinerSettings';
 import type { PartialDeep } from 'type-fest';
 import { createMiner } from './miner/miner/MinerFactory';
-import { MinerFeatureKey } from './miner/model/MinerFeature';
+import { getMinerFeatureFullId, MinerFeatureKey } from './miner/model/MinerFeature';
 
 /**
  *
@@ -513,10 +514,68 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         for (const device of devices) {
             // TODO: add more info
 
+            const customInfoItems: Record<string, ConfigItemAny> = {};
+
+            const settings: IOBrokerDeviceSettings = decryptDeviceSettings(
+                device.native as IOBrokerDeviceSettings,
+                value => this.adapter.decrypt(value),
+            );
+
+            if (isMiner(settings) && settings.settings.minerType) {
+                const dummyMiner = createMiner(settings.settings);
+
+                const supportedFeatures = dummyMiner.getSupportedFeatures();
+
+                if (supportedFeatures.includes(MinerFeatureKey.running)) {
+                    const stateId = `${device._id}.${getMinerFeatureFullId(MinerFeatureKey.running)}`;
+                    customInfoItems.running = {
+                        type: 'state',
+                        oid: stateId,
+                        foreign: true,
+                        control: 'switch',
+                        trueTextStyle: { color: 'green' },
+                        falseTextStyle: { color: 'red' },
+                        label: I18n.getTranslatedObject('Running'),
+                        trueText: I18n.getTranslatedObject('ON'),
+                        falseText: I18n.getTranslatedObject('OFF'),
+                    };
+                }
+            }
+
             context.addDevice({
                 id: device._id,
                 name: device.common.name,
                 hasDetails: true,
+
+                // Connection type using live state binding:
+                // Instead of a static value, we bind to a state. The DM UI will read the
+                // current value from the state and update in real-time.
+                // TODO
+                // connectionType: {
+                //     stateId: `${device._id}.type`,
+                // },
+
+                // Status with live state binding and value mapping:
+                // The `online` state is a boolean, but the DM UI expects 'connected'/'disconnected'.
+                // The `mapping` object translates boolean values to the expected strings.
+                status: {
+                    connection: {
+                        stateId: `${device._id}.info.online`,
+                        mapping: {
+                            true: 'connected',
+                            false: 'disconnected',
+                        },
+                    },
+                },
+
+                customInfo: {
+                    id: device._id,
+                    schema: {
+                        type: 'panel',
+                        items: customInfoItems,
+                    },
+                },
+
                 actions: [
                     {
                         id: 'delete',
