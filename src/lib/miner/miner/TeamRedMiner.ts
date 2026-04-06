@@ -15,6 +15,7 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
 
     /**
      *
+     * @param settings - TeamRedMiner-specific configuration
      */
     constructor(settings: TeamRedMinerSettings) {
         super(settings);

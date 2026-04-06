@@ -19,6 +19,7 @@ import { AvalonMiner } from './AvalonMiner';
 
 /**
  *
+ * @param settings - the miner configuration
  */
 export function createMiner(settings: MinerSettings): Miner<MinerSettings> {
     switch (settings.minerType) {

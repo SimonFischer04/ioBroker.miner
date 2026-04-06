@@ -69,6 +69,7 @@ export interface IOBrokerPoolSettings extends IOBrokerDeviceSettings {
 // TODO: check everywhere this is used
 /**
  *
+ * @param settings - the device settings to check
  */
 export function isMiner(settings?: Partial<IOBrokerDeviceSettings>): settings is IOBrokerMinerSettings {
     return settings?.category === 'miner';

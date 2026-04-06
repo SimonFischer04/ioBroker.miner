@@ -1,11 +1,16 @@
 /**
  *
- * @param ms
+ * @param ms - the delay in milliseconds
  */
 export async function delay(ms: number): Promise<unknown> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/**
+ *
+ * @param asyncCallback - the async callback to execute
+ * @param executeEveryMs - the interval in milliseconds
+ */
 export function asyncIntervalNoWait(asyncCallback: () => Promise<void>, executeEveryMs?: number): NodeJS.Timeout {
     return setInterval(() => {
         // make eslint not complain about no-misused-promises
@@ -16,7 +21,13 @@ export function asyncIntervalNoWait(asyncCallback: () => Promise<void>, executeE
     }, executeEveryMs);
 }
 
+/**
+ *
+ */
 export interface AsyncIntervalReturnType {
+    /**
+     *
+     */
     clear: () => void;
 }
 
@@ -60,6 +71,11 @@ export function asyncInterval(
     };
 }
 
+/**
+ *
+ * @param asyncCallback - the async callback to execute
+ * @param ms - the timeout in milliseconds
+ */
 export function asyncTimeout(asyncCallback: () => Promise<void>, ms: number): NodeJS.Timeout {
     return setTimeout(() => {
         // make eslint not complain about no-misused-promises

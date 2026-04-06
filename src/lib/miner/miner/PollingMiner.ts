@@ -4,11 +4,17 @@ import type { AsyncIntervalReturnType } from '../../utils/delay';
 import { asyncInterval } from '../../utils/delay';
 import type { MinerStats } from '../model/MinerStats';
 
+/**
+ *
+ */
 export abstract class PollingMiner<S extends PollingMinerSettings> extends Miner<S> {
     private pollInterval: AsyncIntervalReturnType | undefined;
 
     public abstract fetchStats(): Promise<MinerStats>;
 
+    /**
+     *
+     */
     public override init(): Promise<void> {
         this.logger.info(`initializing with interval ${this.settings.pollInterval}`);
 
@@ -34,11 +40,17 @@ export abstract class PollingMiner<S extends PollingMinerSettings> extends Miner
         return Promise.resolve();
     }
 
+    /**
+     *
+     */
     public override async close(): Promise<void> {
         await super.close();
         this.pollInterval?.clear();
     }
 
+    /**
+     *
+     */
     public override getLoggerName(): string {
         return `${super.getLoggerName()}PollingMiner[${this.settings.pollInterval}]`;
     }

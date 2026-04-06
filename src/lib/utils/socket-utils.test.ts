@@ -12,6 +12,9 @@ const logger = Logger.getLogger('socket-utils.test');
 /**
  * Create a mock TCP server that responds with the given data.
  * Optionally splits the response into chunks to simulate real-world TCP behaviour.
+ *
+ * @param responseData - the full response string to send
+ * @param chunkSize - optional size of each chunk to split the response into
  */
 function createMockServer(responseData: string, chunkSize?: number): Promise<{ server: Server; port: number }> {
     return new Promise((resolve, reject) => {
@@ -110,4 +113,3 @@ describe('socket-utils', () => {
         });
     });
 });
-

@@ -1,6 +1,6 @@
 /**
  *
- * @param value
+ * @param value - the string to parse as an integer
  */
 export function safeParseInt(value: string): number {
     const parsed = parseInt(value, 10);

@@ -126,7 +126,7 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
     // public to allow unit tests
     /**
      *
-     * @param response
+     * @param response - raw miner_getstat1 API response
      */
     public parseMinerGetStat1(response: MinerGetStat1Response): ParsedMinerGetStat1Response {
         const [
@@ -200,7 +200,7 @@ export class ClaymoreMiner extends PollingMiner<ClaymoreMinerSettings> {
     // public to allow unit tests
     /**
      *
-     * @param response
+     * @param response - raw miner_getstat2 API response
      */
     public parseMinerGetStat2(response: MinerGetStat2Response): ParsedMinerGetStat2Response {
         const parsedStat1 = this.parseMinerGetStat1(response as unknown as MinerGetStat1Response);

@@ -170,6 +170,7 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
 
 /**
  *
+ * @param key - the miner feature key to get the full id for
  */
 export function getMinerFeatureFullId(key: MinerFeatureKey): string {
     return `${minerFeatures[key].category}.${minerFeatures[key].id}`;

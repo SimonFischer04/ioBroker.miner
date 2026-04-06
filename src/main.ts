@@ -18,10 +18,17 @@ import type { Miner } from './lib/miner/miner/Miner';
 import type { MinerSettings } from './lib/miner/model/MinerSettings';
 import type { MinerStats } from './lib/miner/model/MinerStats';
 
+/**
+ *
+ */
 export class MinerAdapter extends utils.Adapter {
     private readonly deviceManagement: MinerAdapterDeviceManagement;
     public readonly minerManager: MinerManager = new MinerManager();
 
+    /**
+     *
+     * @param options - adapter options
+     */
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
             ...options,
@@ -66,7 +73,7 @@ export class MinerAdapter extends utils.Adapter {
     /**
      * Is called when adapter shuts down - callback has to be called under any circumstances!
      *
-     * @param callback
+     * @param callback - callback to signal completion
      */
     private async onUnload(callback: () => void): Promise<void> {
         try {
@@ -100,8 +107,8 @@ export class MinerAdapter extends utils.Adapter {
     /**
      * Is called if a subscribed state changes
      *
-     * @param id
-     * @param state
+     * @param id - the state id
+     * @param state - the new state value
      */
     private async onStateChange(id: string, state: ioBroker.State | null | undefined): Promise<void> {
         if (state) {
@@ -256,6 +263,10 @@ export class MinerAdapter extends utils.Adapter {
         return obj;
     }
 
+    /**
+     *
+     * @param settings - the device settings to add
+     */
     public async addDevice(settings: IOBrokerDeviceSettings): Promise<void> {
         const obj = await this.configureDeviceObject(settings);
 
@@ -267,6 +278,10 @@ export class MinerAdapter extends utils.Adapter {
         await this.initDevice(obj);
     }
 
+    /**
+     *
+     * @param settings - the updated device settings
+     */
     public async updateDevice(settings: IOBrokerDeviceSettings): Promise<void> {
         // PS: don't just delDevice and addDevice, as this would lose all state history, ...
 

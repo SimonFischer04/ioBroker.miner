@@ -13,6 +13,7 @@ export abstract class Miner<S extends MinerSettings> {
 
     /**
      *
+     * @param settings - miner-specific configuration
      */
     constructor(public readonly settings: S) {
         if (!settings.id) {
