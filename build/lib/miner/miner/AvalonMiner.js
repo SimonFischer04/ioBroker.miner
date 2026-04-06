@@ -89,8 +89,6 @@ class AvalonMiner extends import_SGMiner.SGMiner {
   /**
    * Set the active performance profile on the Avalon miner.
    *
-   * Sends: ascset|0,workmode,set,{id}
-   *
    * @param profile - the profile name to activate (low, medium, high)
    */
   async setProfile(profile) {
