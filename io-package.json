@@ -1,131 +1,144 @@
 {
-    "common": {
-        "name": "miner",
-        "version": "1.0.0",
-        "news": {
-            "1.0.0": {
-                "en": "Added Avalon miner support via CGMiner API, performance profile control, running switch in Device Manager, restructured object model with info/stats/control/raw channels, added reboot control, improved admin configuration",
-                "de": "Avalon-Miner-Unterstützung über CGMiner-API hinzugefügt, Leistungsprofil-Steuerung, Laufschalter im Gerätemanager, umstrukturiertes Objektmodell mit Info-/Stats-/Control-/Raw-Kanälen, Neustart-Steuerung hinzugefügt, Admin-Konfiguration verbessert",
-                "ru": "Добавлена поддержка Avalon через CGMiner API, управление профилем производительности, переключатель запуска в менеджере устройств, реструктурированная модель объектов с каналами info/stats/control/raw, управление перезагрузкой, улучшенная конфигурация администратора",
-                "pt": "Adicionado suporte ao minerador Avalon via API CGMiner, controle de perfil de desempenho, interruptor de execução no Gerenciador de Dispositivos, modelo de objetos reestruturado com canais info/stats/control/raw, controle de reinício, configuração de administração melhorada",
-                "nl": "Avalon-minerondersteuning toegevoegd via CGMiner API, prestatieprofiel besturing, aan/uit-schakelaar in Apparaatbeheer, geherstructureerd objectmodel met info/stats/control/raw kanalen, herstart besturing, verbeterde admin configuratie",
-                "fr": "Ajout du support Avalon via l'API CGMiner, contrôle du profil de performance, interrupteur de fonctionnement dans le gestionnaire de périphériques, modèle d'objet restructuré avec canaux info/stats/control/raw, contrôle de redémarrage, configuration admin améliorée",
-                "it": "Aggiunto supporto per Avalon tramite API CGMiner, controllo profilo prestazioni, interruttore di esecuzione nel Gestore Dispositivi, modello oggetti ristrutturato con canali info/stats/control/raw, controllo riavvio, configurazione admin migliorata",
-                "es": "Añadido soporte para minero Avalon a través de la API CGMiner, control de perfil de rendimiento, interruptor de ejecución en el Administrador de Dispositivos, modelo de objetos reestructurado con canales info/stats/control/raw, control de reinicio, configuración de administración mejorada",
-                "pl": "Dodano obsługę koparki Avalon przez API CGMiner, sterowanie profilem wydajności, przełącznik uruchamiania w Menedżerze Urządzeń, przebudowany model obiektów z kanałami info/stats/control/raw, sterowanie restartem, ulepszona konfiguracja administratora",
-                "uk": "Додано підтримку майнера Avalon через API CGMiner, керування профілем продуктивності, перемикач запуску в Менеджері пристроїв, реструктуризована модель об'єктів з каналами info/stats/control/raw, керування перезавантаженням, покращена конфігурація адміністратора",
-                "zh-cn": "通过CGMiner API添加Avalon矿机支持，性能配置文件控制，设备管理器中的运行开关，重构对象模型包含info/stats/control/raw通道，添加重启控制，改进管理界面配置"
-            },
-            "0.0.1": {
-                "en": "initial release",
-                "de": "Erstveröffentlichung",
-                "ru": "Начальная версия",
-                "pt": "lançamento inicial",
-                "nl": "Eerste uitgave",
-                "fr": "Première version",
-                "it": "Versione iniziale",
-                "es": "Versión inicial",
-                "pl": "Pierwsze wydanie",
-                "uk": "Початкова версія",
-                "zh-cn": "首次出版"
-            }
-        },
-        "titleLang": {
-            "en": "crypto miner control",
-            "de": "Krypto-Miner-Kontrolle",
-            "ru": "управление криптомайнером",
-            "pt": "controle de minerador de criptografia",
-            "nl": "controle van cryptominers",
-            "fr": "contrôle des mineurs de crypto",
-            "it": "controllo dei minatori di criptovalute",
-            "es": "control de cripto minero",
-            "pl": "kontrola górników kryptowalut",
-            "uk": "контроль криптомайнера",
-            "zh-cn": "加密矿工控制"
-        },
-        "desc": {
-            "en": "Interact with different crypto miner apis",
-            "de": "Interagieren Sie mit verschiedenen Krypto-Miner-APIs",
-            "ru": "Взаимодействие с различными API-интерфейсами криптомайнеров",
-            "pt": "Interaja com diferentes APIs de criptomineradores",
-            "nl": "Communiceer met verschillende cryptominer-apis",
-            "fr": "Interagissez avec différentes API de mineur de crypto",
-            "it": "Interagisci con diverse API di mining di criptovalute",
-            "es": "Interactuar con diferentes API de criptominero",
-            "pl": "Wejdź w interakcję z różnymi programami do kopania kryptowalut",
-            "uk": "Взаємодійте з різними API майнера криптовалюти",
-            "zh-cn": "与不同的加密矿工 api 交互"
-        },
-        "authors": [
-            "SimonFischer04 <simi.fischa@gmail.com>"
-        ],
-        "keywords": [
-            "crypto",
-            "bitcoin",
-            "miner",
-            "braiins",
-            "luxor"
-        ],
-        "licenseInformation": {
-            "type": "free",
-            "license": "GPL-3.0-only"
-        },
-        "platform": "Javascript/Node.js",
-        "icon": "miner.png",
-        "enabled": true,
-        "extIcon": "https://raw.githubusercontent.com/SimonFischer04/ioBroker.miner/main/admin/miner.png",
-        "readme": "https://github.com/SimonFischer04/ioBroker.miner/blob/main/README.md",
-        "loglevel": "info",
-        "tier": 2,
-        "mode": "daemon",
-        "type": "hardware",
-        "compact": true,
-        "connectionType": "local",
-        "dataSource": "poll",
-        "adminUI": {
-            "config": "json"
-        },
-        "messagebox": true,
-        "supportedMessages": {
-            "deviceManager": true
-        },
-        "dependencies": [
-            {
-                "js-controller": ">=6.0.11"
-            }
-        ],
-        "globalDependencies": [
-            {
-                "admin": ">=7.6.17"
-            }
-        ]
+  "common": {
+    "name": "miner",
+    "version": "1.0.1",
+    "news": {
+      "1.0.1": {
+        "en": "fix release",
+        "de": "zurück zur übersicht",
+        "ru": "исправление",
+        "pt": "corrigir a libertação",
+        "nl": "fix release",
+        "fr": "corriger la libération",
+        "it": "rilascio corretto",
+        "es": "corrección de liberación",
+        "pl": "fix release",
+        "uk": "фіксувати реліз",
+        "zh-cn": "固定释放"
+      },
+      "1.0.0": {
+        "en": "Added Avalon miner support via CGMiner API, performance profile control, running switch in Device Manager, restructured object model with info/stats/control/raw channels, added reboot control, improved admin configuration",
+        "de": "Avalon-Miner-Unterstützung über CGMiner-API hinzugefügt, Leistungsprofil-Steuerung, Laufschalter im Gerätemanager, umstrukturiertes Objektmodell mit Info-/Stats-/Control-/Raw-Kanälen, Neustart-Steuerung hinzugefügt, Admin-Konfiguration verbessert",
+        "ru": "Добавлена поддержка Avalon через CGMiner API, управление профилем производительности, переключатель запуска в менеджере устройств, реструктурированная модель объектов с каналами info/stats/control/raw, управление перезагрузкой, улучшенная конфигурация администратора",
+        "pt": "Adicionado suporte ao minerador Avalon via API CGMiner, controle de perfil de desempenho, interruptor de execução no Gerenciador de Dispositivos, modelo de objetos reestruturado com canais info/stats/control/raw, controle de reinício, configuração de administração melhorada",
+        "nl": "Avalon-minerondersteuning toegevoegd via CGMiner API, prestatieprofiel besturing, aan/uit-schakelaar in Apparaatbeheer, geherstructureerd objectmodel met info/stats/control/raw kanalen, herstart besturing, verbeterde admin configuratie",
+        "fr": "Ajout du support Avalon via l'API CGMiner, contrôle du profil de performance, interrupteur de fonctionnement dans le gestionnaire de périphériques, modèle d'objet restructuré avec canaux info/stats/control/raw, contrôle de redémarrage, configuration admin améliorée",
+        "it": "Aggiunto supporto per Avalon tramite API CGMiner, controllo profilo prestazioni, interruttore di esecuzione nel Gestore Dispositivi, modello oggetti ristrutturato con canali info/stats/control/raw, controllo riavvio, configurazione admin migliorata",
+        "es": "Añadido soporte para minero Avalon a través de la API CGMiner, control de perfil de rendimiento, interruptor de ejecución en el Administrador de Dispositivos, modelo de objetos reestructurado con canales info/stats/control/raw, control de reinicio, configuración de administración mejorada",
+        "pl": "Dodano obsługę koparki Avalon przez API CGMiner, sterowanie profilem wydajności, przełącznik uruchamiania w Menedżerze Urządzeń, przebudowany model obiektów z kanałami info/stats/control/raw, sterowanie restartem, ulepszona konfiguracja administratora",
+        "uk": "Додано підтримку майнера Avalon через API CGMiner, керування профілем продуктивності, перемикач запуску в Менеджері пристроїв, реструктуризована модель об'єктів з каналами info/stats/control/raw, керування перезавантаженням, покращена конфігурація адміністратора",
+        "zh-cn": "通过CGMiner API添加Avalon矿机支持，性能配置文件控制，设备管理器中的运行开关，重构对象模型包含info/stats/control/raw通道，添加重启控制，改进管理界面配置"
+      },
+      "0.0.1": {
+        "en": "initial release",
+        "de": "Erstveröffentlichung",
+        "ru": "Начальная версия",
+        "pt": "lançamento inicial",
+        "nl": "Eerste uitgave",
+        "fr": "Première version",
+        "it": "Versione iniziale",
+        "es": "Versión inicial",
+        "pl": "Pierwsze wydanie",
+        "uk": "Початкова версія",
+        "zh-cn": "首次出版"
+      }
     },
-    "native": {
-        "option1": true,
-        "option2": "42"
+    "titleLang": {
+      "en": "crypto miner control",
+      "de": "Krypto-Miner-Kontrolle",
+      "ru": "управление криптомайнером",
+      "pt": "controle de minerador de criptografia",
+      "nl": "controle van cryptominers",
+      "fr": "contrôle des mineurs de crypto",
+      "it": "controllo dei minatori di criptovalute",
+      "es": "control de cripto minero",
+      "pl": "kontrola górników kryptowalut",
+      "uk": "контроль криптомайнера",
+      "zh-cn": "加密矿工控制"
     },
-    "objects": [],
-    "instanceObjects": [
-        {
-            "_id": "info",
-            "type": "channel",
-            "common": {
-                "name": "Information"
-            },
-            "native": {}
-        },
-        {
-            "_id": "info.connection",
-            "type": "state",
-            "common": {
-                "role": "indicator.connected",
-                "name": "Device or service connected",
-                "type": "boolean",
-                "read": true,
-                "write": false,
-                "def": false
-            },
-            "native": {}
-        }
+    "desc": {
+      "en": "Interact with different crypto miner apis",
+      "de": "Interagieren Sie mit verschiedenen Krypto-Miner-APIs",
+      "ru": "Взаимодействие с различными API-интерфейсами криптомайнеров",
+      "pt": "Interaja com diferentes APIs de criptomineradores",
+      "nl": "Communiceer met verschillende cryptominer-apis",
+      "fr": "Interagissez avec différentes API de mineur de crypto",
+      "it": "Interagisci con diverse API di mining di criptovalute",
+      "es": "Interactuar con diferentes API de criptominero",
+      "pl": "Wejdź w interakcję z różnymi programami do kopania kryptowalut",
+      "uk": "Взаємодійте з різними API майнера криптовалюти",
+      "zh-cn": "与不同的加密矿工 api 交互"
+    },
+    "authors": [
+      "SimonFischer04 <simi.fischa@gmail.com>"
+    ],
+    "keywords": [
+      "crypto",
+      "bitcoin",
+      "miner",
+      "braiins",
+      "luxor"
+    ],
+    "licenseInformation": {
+      "type": "free",
+      "license": "GPL-3.0-only"
+    },
+    "platform": "Javascript/Node.js",
+    "icon": "miner.png",
+    "enabled": true,
+    "extIcon": "https://raw.githubusercontent.com/SimonFischer04/ioBroker.miner/main/admin/miner.png",
+    "readme": "https://github.com/SimonFischer04/ioBroker.miner/blob/main/README.md",
+    "loglevel": "info",
+    "tier": 2,
+    "mode": "daemon",
+    "type": "hardware",
+    "compact": true,
+    "connectionType": "local",
+    "dataSource": "poll",
+    "adminUI": {
+      "config": "json"
+    },
+    "messagebox": true,
+    "supportedMessages": {
+      "deviceManager": true
+    },
+    "dependencies": [
+      {
+        "js-controller": ">=6.0.11"
+      }
+    ],
+    "globalDependencies": [
+      {
+        "admin": ">=7.6.17"
+      }
     ]
+  },
+  "native": {
+    "option1": true,
+    "option2": "42"
+  },
+  "objects": [],
+  "instanceObjects": [
+    {
+      "_id": "info",
+      "type": "channel",
+      "common": {
+        "name": "Information"
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.connection",
+      "type": "state",
+      "common": {
+        "role": "indicator.connected",
+        "name": "Device or service connected",
+        "type": "boolean",
+        "read": true,
+        "write": false,
+        "def": false
+      },
+      "native": {}
+    }
+  ]
 }

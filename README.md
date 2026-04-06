@@ -114,7 +114,7 @@ miner.0
     Placeholder for the next version (at the beginning of the line):
     ### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 1.0.1 (2026-04-06)
 * (SimonFischer04) fix release
 
 ### 1.0.0 (2026-04-06)
