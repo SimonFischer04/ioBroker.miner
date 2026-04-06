@@ -333,6 +333,7 @@ class MinerAdapter extends utils.Adapter {
     const deviceId = this.getDeviceObjectId(settings);
     await this.setState(`${deviceId}.info.minerType`, { val: settings.settings.minerType, ack: true });
     await this.setState(`${deviceId}.info.host`, { val: settings.settings.host, ack: true });
+    await this.setState(`${deviceId}.info.online`, { val: false, ack: true });
   }
   async processNewStats(miner, settings, stats) {
     const supported = miner.getSupportedFeatures();

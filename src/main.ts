@@ -393,6 +393,8 @@ export class MinerAdapter extends utils.Adapter {
         const deviceId = this.getDeviceObjectId(settings);
         await this.setState(`${deviceId}.info.minerType`, { val: settings.settings.minerType, ack: true });
         await this.setState(`${deviceId}.info.host`, { val: settings.settings.host, ack: true });
+        // Reset online state on startup — will be set to true once the miner responds
+        await this.setState(`${deviceId}.info.online`, { val: false, ack: true });
     }
 
     private async processNewStats(
