@@ -1,3 +1,3 @@
 # WIP
 
-This folder contains example data for testing the miner.
+This folder contains example data for testing the miners.
