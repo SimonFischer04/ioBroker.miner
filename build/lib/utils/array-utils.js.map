@@ -1,7 +1,7 @@
 {
   "version": 3,
   "sources": ["../../../src/lib/utils/array-utils.ts"],
-  "sourcesContent": ["/**\n *\n * @param array\n */\nexport function distinct<T>(array: T[]): T[] {\n    return [...new Set(array)];\n}\n"],
+  "sourcesContent": ["/**\n *\n * @param array - the array to deduplicate\n */\nexport function distinct<T>(array: T[]): T[] {\n    return [...new Set(array)];\n}\n"],
   "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAIO,SAAS,SAAY,OAAiB;AACzC,SAAO,CAAC,GAAG,IAAI,IAAI,KAAK,CAAC;AAC7B;",
   "names": []
 }

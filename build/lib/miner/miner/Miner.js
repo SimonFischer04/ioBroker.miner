@@ -36,6 +36,7 @@ var import_Logger = require("../model/Logger");
 class Miner {
   /**
    *
+   * @param settings - miner-specific configuration
    */
   constructor(settings) {
     this.settings = settings;

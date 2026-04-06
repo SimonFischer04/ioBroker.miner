@@ -30,6 +30,7 @@ class TeamRedMiner extends import_PollingMiner.PollingMiner {
   sgMiner;
   /**
    *
+   * @param settings - TeamRedMiner-specific configuration
    */
   constructor(settings) {
     super(settings);

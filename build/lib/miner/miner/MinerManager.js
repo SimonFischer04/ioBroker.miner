@@ -28,6 +28,7 @@ class MinerManager {
   miners = [];
   /**
    *
+   * @param settings - the miner configuration to initialize
    */
   async init(settings) {
     logger.info(`initializing miner with id ${settings.id}`);
@@ -38,6 +39,7 @@ class MinerManager {
   }
   /**
    *
+   * @param id - the miner id to close
    */
   async close(id) {
     logger.info(`unloading miner with id ${id}`);
@@ -65,18 +67,21 @@ class MinerManager {
   }
   /**
    *
+   * @param id - the miner id to look up
    */
   getMinerById(id) {
     return this.miners.find((miner) => miner.settings.id === id);
   }
   /**
    *
+   * @param id - the miner id to check
    */
   hasMiner(id) {
     return this.getMinerById(id) != null;
   }
   /**
    *
+   * @param id - the miner id to start
    */
   async startMiner(id) {
     logger.info(`starting miner with id ${id}`);
@@ -88,6 +93,7 @@ class MinerManager {
   }
   /**
    *
+   * @param id - the miner id to stop
    */
   async stopMiner(id) {
     logger.info(`stopping miner with id ${id}`);

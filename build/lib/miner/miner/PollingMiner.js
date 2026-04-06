@@ -25,6 +25,9 @@ var import_Miner = require("./Miner");
 var import_delay = require("../../utils/delay");
 class PollingMiner extends import_Miner.Miner {
   pollInterval;
+  /**
+   *
+   */
   init() {
     this.logger.info(`initializing with interval ${this.settings.pollInterval}`);
     if (!this.settings.pollInterval || this.settings.pollInterval < 100) {
@@ -46,11 +49,17 @@ class PollingMiner extends import_Miner.Miner {
     );
     return Promise.resolve();
   }
+  /**
+   *
+   */
   async close() {
     var _a;
     await super.close();
     (_a = this.pollInterval) == null ? void 0 : _a.clear();
   }
+  /**
+   *
+   */
   getLoggerName() {
     return `${super.getLoggerName()}PollingMiner[${this.settings.pollInterval}]`;
   }

@@ -56,54 +56,63 @@ class Logger {
   static logger = consoleLogger();
   /**
    *
+   * @param name - the logger name prefix
    */
   static getLogger(name) {
     return new Logger(name);
   }
   /**
    *
+   * @param logger - the logger implementation to use
    */
   static setLogger(logger) {
     Logger.logger = logger;
   }
   /**
    *
+   * @param message - the message to log
    */
   log(message) {
     this.logWithLevel(import_Level.Level.INFO, message);
   }
   /**
    *
+   * @param message - the debug message to log
    */
   debug(message) {
     this.logWithLevel(import_Level.Level.DEBUG, message);
   }
   /**
    *
+   * @param message - the info message to log
    */
   info(message) {
     this.logWithLevel(import_Level.Level.INFO, message);
   }
   /**
    *
+   * @param message - the notice message to log
    */
   notice(message) {
     this.logWithLevel(import_Level.Level.NOTICE, message);
   }
   /**
    *
+   * @param message - the warning message to log
    */
   warn(message) {
     this.logWithLevel(import_Level.Level.WARN, message);
   }
   /**
    *
+   * @param message - the error message to log
    */
   error(message) {
     this.logWithLevel(import_Level.Level.ERROR, message);
   }
   /**
    *
+   * @param message - the fatal message to log
    */
   fatal(message) {
     this.logWithLevel(import_Level.Level.FATAL, message);

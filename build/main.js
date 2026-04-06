@@ -44,6 +44,10 @@ var import_Logger = require("./lib/miner/model/Logger");
 class MinerAdapter extends utils.Adapter {
   deviceManagement;
   minerManager = new import_MinerManager.MinerManager();
+  /**
+   *
+   * @param options - adapter options
+   */
   constructor(options = {}) {
     super({
       ...options,
@@ -71,7 +75,7 @@ class MinerAdapter extends utils.Adapter {
   /**
    * Is called when adapter shuts down - callback has to be called under any circumstances!
    *
-   * @param callback
+   * @param callback - callback to signal completion
    */
   async onUnload(callback) {
     try {
@@ -101,8 +105,8 @@ class MinerAdapter extends utils.Adapter {
   /**
    * Is called if a subscribed state changes
    *
-   * @param id
-   * @param state
+   * @param id - the state id
+   * @param state - the new state value
    */
   async onStateChange(id, state) {
     if (state) {
@@ -225,6 +229,10 @@ class MinerAdapter extends utils.Adapter {
     this.log.debug(`configureDeviceObject: ${JSON.stringify(obj)}`);
     return obj;
   }
+  /**
+   *
+   * @param settings - the device settings to add
+   */
   async addDevice(settings) {
     const obj = await this.configureDeviceObject(settings);
     if (obj == null) {
@@ -233,6 +241,10 @@ class MinerAdapter extends utils.Adapter {
     }
     await this.initDevice(obj);
   }
+  /**
+   *
+   * @param settings - the updated device settings
+   */
   async updateDevice(settings) {
     if (!(0, import_IOBrokerMinerSettings.isMiner)(settings)) {
       this.log.error(`category ${settings.category} is not yet supported.`);
