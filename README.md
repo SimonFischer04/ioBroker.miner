@@ -114,6 +114,9 @@ miner.0
     Placeholder for the next version (at the beginning of the line):
     ### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (SimonFischer04) fix release
+
 ### 1.0.0 (2026-04-06)
 * (SimonFischer04) **FIXED**: Added missing size attributes (xs, xl) to admin configuration fields
 * (SimonFischer04) **ENHANCED**: Updated dependencies to recommended versions (admin 7.6.17, js-controller 6.0.11)
