@@ -62,7 +62,7 @@ export class MinerManager {
      *
      * @param id - the miner id to look up
      */
-    public getMinerById(id: string): Miner<MinerSettings> | undefined {
+    private getMinerById(id: string): Miner<MinerSettings> | undefined {
         return this.miners.find(miner => miner.settings.id === id);
     }
 
@@ -102,5 +102,22 @@ export class MinerManager {
         }
 
         await miner.stop();
+    }
+
+    /**
+     * Set the active performance profile on a miner.
+     *
+     * @param id - the miner id
+     * @param profile - the profile name to activate
+     */
+    public async setProfile(id: string, profile: string): Promise<void> {
+        logger.info(`setting profile "${profile}" on miner with id ${id}`);
+
+        const miner = this.getMinerById(id);
+        if (!miner) {
+            throw new Error(`miner with id ${id} not found`);
+        }
+
+        await miner.setProfile(profile);
     }
 }

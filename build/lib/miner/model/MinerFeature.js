@@ -27,6 +27,7 @@ module.exports = __toCommonJS(MinerFeature_exports);
 var MinerFeatureKey = /* @__PURE__ */ ((MinerFeatureKey2) => {
   MinerFeatureKey2["running"] = "running";
   MinerFeatureKey2["reboot"] = "reboot";
+  MinerFeatureKey2["profile"] = "profile";
   MinerFeatureKey2["version"] = "version";
   MinerFeatureKey2["firmwareVersion"] = "firmwareVersion";
   MinerFeatureKey2["stats"] = "stats";
@@ -63,6 +64,16 @@ const minerFeatures = {
     type: "boolean",
     role: "button",
     readable: false,
+    writable: true
+  },
+  ["profile" /* profile */]: {
+    category: "control" /* control */,
+    id: "profile",
+    label: "Profile",
+    description: "Active performance profile of the miner.",
+    type: "string",
+    role: "text",
+    readable: true,
     writable: true
   },
   /*

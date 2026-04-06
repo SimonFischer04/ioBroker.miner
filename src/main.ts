@@ -177,6 +177,20 @@ export class MinerAdapter extends utils.Adapter {
                     break;
                 }
 
+                case getMinerFeatureFullId(MinerFeatureKey.profile): {
+                    const profile = String(state.val);
+                    this.log.debug(`profile state changed to ${profile}`);
+
+                    if (deviceSettings.settings.id === undefined) {
+                        this.log.error(`device ${deviceSettings.name} has no id`);
+                        return;
+                    }
+
+                    await this.minerManager.setProfile(deviceSettings.settings.id, profile);
+                    await this.setState(id, { val: profile, ack: true });
+                    break;
+                }
+
                 default: {
                     this.log.warn(`unknown handling of state ${id}`);
                 }
@@ -518,17 +532,31 @@ export class MinerAdapter extends utils.Adapter {
                 continue;
             }
             const feature = minerFeatures[featureKey];
+            const common: Partial<ioBroker.StateCommon> = {
+                name: `${feature.label} - ${feature.description}`,
+                type: feature.type as ioBroker.CommonType,
+                role: feature.role,
+                read: feature.readable,
+                write: feature.writable,
+                unit: feature.unit,
+                expert: feature.advanced === true ? true : undefined, // false needs to be passed in as undefined
+            };
+
+            // Profile feature: populate allowed values from the miner so ioBroker renders a dropdown
+            if (featureKey === MinerFeatureKey.profile) {
+                const profiles = dummyMiner.getProfiles();
+                if (profiles.length > 0) {
+                    const states: Record<string, string> = {};
+                    for (const p of profiles) {
+                        states[p] = p;
+                    }
+                    common.states = states;
+                }
+            }
+
             await this.extendObject(`${this.getStateFullObjectId(settings, featureKey)}`, {
                 type: 'state',
-                common: {
-                    name: `${feature.label} - ${feature.description}`,
-                    type: feature.type as ioBroker.CommonType,
-                    role: feature.role,
-                    read: feature.readable,
-                    write: feature.writable,
-                    unit: feature.unit,
-                    expert: feature.advanced === true ? true : undefined, // false needs to be passed in as undefined
-                },
+                common: common as ioBroker.StateCommon,
             });
         }
     }

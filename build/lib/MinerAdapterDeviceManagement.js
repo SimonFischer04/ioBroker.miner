@@ -432,6 +432,20 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             falseText: import_adapter_core.I18n.getTranslatedObject("OFF")
           };
         }
+        if (supportedFeatures.includes(import_MinerFeature.MinerFeatureKey.profile)) {
+          const stateId = `${device._id}.${(0, import_MinerFeature.getMinerFeatureFullId)(import_MinerFeature.MinerFeatureKey.profile)}`;
+          customInfoItems.profile = {
+            type: "state",
+            oid: stateId,
+            foreign: true,
+            control: "select",
+            label: import_adapter_core.I18n.getTranslatedObject("Profile"),
+            options: dummyMiner.getProfiles().map((p) => ({
+              label: p,
+              value: p
+            }))
+          };
+        }
       }
       context.addDevice({
         id: device._id,

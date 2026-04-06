@@ -103,6 +103,20 @@ class MinerManager {
     }
     await miner.stop();
   }
+  /**
+   * Set the active performance profile on a miner.
+   *
+   * @param id - the miner id
+   * @param profile - the profile name to activate
+   */
+  async setProfile(id, profile) {
+    logger.info(`setting profile "${profile}" on miner with id ${id}`);
+    const miner = this.getMinerById(id);
+    if (!miner) {
+      throw new Error(`miner with id ${id} not found`);
+    }
+    await miner.setProfile(profile);
+  }
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

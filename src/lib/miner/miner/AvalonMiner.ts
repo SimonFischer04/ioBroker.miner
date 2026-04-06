@@ -83,8 +83,32 @@ export class AvalonMiner extends SGMiner<AvalonMinerSettings> {
 
         return [
             ...super.getSupportedFeatures().filter(feature => !unsupportedFeatures.includes(feature)),
+            MinerFeatureKey.profile,
             // MinerFeatureKey.running,
         ];
+    }
+
+    /**
+     * Get available performance profiles for the Avalon miner.
+     */
+    public override getProfiles(): string[] {
+        return ['low', 'medium', 'high'];
+    }
+
+    /**
+     * Set the active performance profile on the Avalon miner.
+     *
+     * @param profile - the profile name to activate (low, medium, high)
+     */
+    public override setProfile(profile: string): Promise<void> {
+        const profiles = this.getProfiles();
+        if (!profiles.includes(profile)) {
+            this.logger.error(`Invalid profile "${profile}". Valid profiles: ${profiles.join(', ')}`);
+            return Promise.resolve();
+        }
+        // TODO: send the actual ascset command to the device once the Avalon API mapping is known
+        this.logger.info(`Setting profile to "${profile}" (not yet wired to hardware)`);
+        return Promise.resolve();
     }
 
     /**

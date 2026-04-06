@@ -159,6 +159,17 @@ class MinerAdapter extends utils.Adapter {
           await this.setState(id, { val: false, ack: true });
           break;
         }
+        case (0, import_MinerFeature.getMinerFeatureFullId)(import_MinerFeature.MinerFeatureKey.profile): {
+          const profile = String(state.val);
+          this.log.debug(`profile state changed to ${profile}`);
+          if (deviceSettings.settings.id === void 0) {
+            this.log.error(`device ${deviceSettings.name} has no id`);
+            return;
+          }
+          await this.minerManager.setProfile(deviceSettings.settings.id, profile);
+          await this.setState(id, { val: profile, ack: true });
+          break;
+        }
         default: {
           this.log.warn(`unknown handling of state ${id}`);
         }
@@ -428,18 +439,29 @@ class MinerAdapter extends utils.Adapter {
         continue;
       }
       const feature = import_MinerFeature.minerFeatures[featureKey];
+      const common = {
+        name: `${feature.label} - ${feature.description}`,
+        type: feature.type,
+        role: feature.role,
+        read: feature.readable,
+        write: feature.writable,
+        unit: feature.unit,
+        expert: feature.advanced === true ? true : void 0
+        // false needs to be passed in as undefined
+      };
+      if (featureKey === import_MinerFeature.MinerFeatureKey.profile) {
+        const profiles = dummyMiner.getProfiles();
+        if (profiles.length > 0) {
+          const states = {};
+          for (const p of profiles) {
+            states[p] = p;
+          }
+          common.states = states;
+        }
+      }
       await this.extendObject(`${this.getStateFullObjectId(settings, featureKey)}`, {
         type: "state",
-        common: {
-          name: `${feature.label} - ${feature.description}`,
-          type: feature.type,
-          role: feature.role,
-          read: feature.readable,
-          write: feature.writable,
-          unit: feature.unit,
-          expert: feature.advanced === true ? true : void 0
-          // false needs to be passed in as undefined
-        }
+        common
       });
     }
   }

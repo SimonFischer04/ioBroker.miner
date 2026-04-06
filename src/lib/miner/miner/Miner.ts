@@ -43,6 +43,24 @@ export abstract class Miner<S extends MinerSettings> {
     public abstract stop(): Promise<void>;
 
     /**
+     * Get available performance profiles for this miner.
+     * Returns an empty array if profiles are not supported.
+     */
+    public getProfiles(): string[] {
+        return [];
+    }
+
+    /**
+     * Set the active performance profile.
+     *
+     * @param _profile - the profile name to activate
+     */
+    public setProfile(_profile: string): Promise<void> {
+        this.logger.error('setProfile() not implemented for this miner');
+        return Promise.resolve();
+    }
+
+    /**
      * Close / cleanup any open resources
      */
     public close(): Promise<void> {

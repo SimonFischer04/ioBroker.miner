@@ -540,6 +540,21 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         falseText: I18n.getTranslatedObject('OFF'),
                     };
                 }
+
+                if (supportedFeatures.includes(MinerFeatureKey.profile)) {
+                    const stateId = `${device._id}.${getMinerFeatureFullId(MinerFeatureKey.profile)}`;
+                    customInfoItems.profile = {
+                        type: 'state',
+                        oid: stateId,
+                        foreign: true,
+                        control: 'select',
+                        label: I18n.getTranslatedObject('Profile'),
+                        options: dummyMiner.getProfiles().map(p => ({
+                            label: p,
+                            value: p,
+                        })),
+                    };
+                }
             }
 
             context.addDevice({

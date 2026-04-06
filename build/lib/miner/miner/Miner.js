@@ -48,6 +48,22 @@ class Miner {
   logger;
   statSubscriptions = [];
   /**
+   * Get available performance profiles for this miner.
+   * Returns an empty array if profiles are not supported.
+   */
+  getProfiles() {
+    return [];
+  }
+  /**
+   * Set the active performance profile.
+   *
+   * @param _profile - the profile name to activate
+   */
+  setProfile(_profile) {
+    this.logger.error("setProfile() not implemented for this miner");
+    return Promise.resolve();
+  }
+  /**
    * Close / cleanup any open resources
    */
   close() {

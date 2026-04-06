@@ -2,6 +2,7 @@ export enum MinerFeatureKey {
     // control
     running = 'running',
     reboot = 'reboot',
+    profile = 'profile',
 
     // info
     version = 'version',
@@ -97,6 +98,16 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
         type: 'boolean',
         role: 'button',
         readable: false,
+        writable: true,
+    },
+    [MinerFeatureKey.profile]: {
+        category: MinerFeatureCategory.control,
+        id: 'profile',
+        label: 'Profile',
+        description: 'Active performance profile of the miner.',
+        type: 'string',
+        role: 'text',
+        readable: true,
         writable: true,
     },
 

@@ -66,9 +66,30 @@ class AvalonMiner extends import_SGMiner.SGMiner {
   getSupportedFeatures() {
     const unsupportedFeatures = [import_MinerFeature.MinerFeatureKey.cliArgs];
     return [
-      ...super.getSupportedFeatures().filter((feature) => !unsupportedFeatures.includes(feature))
+      ...super.getSupportedFeatures().filter((feature) => !unsupportedFeatures.includes(feature)),
+      import_MinerFeature.MinerFeatureKey.profile
       // MinerFeatureKey.running,
     ];
+  }
+  /**
+   * Get available performance profiles for the Avalon miner.
+   */
+  getProfiles() {
+    return ["low", "medium", "high"];
+  }
+  /**
+   * Set the active performance profile on the Avalon miner.
+   *
+   * @param profile - the profile name to activate (low, medium, high)
+   */
+  setProfile(profile) {
+    const profiles = this.getProfiles();
+    if (!profiles.includes(profile)) {
+      this.logger.error(`Invalid profile "${profile}". Valid profiles: ${profiles.join(", ")}`);
+      return Promise.resolve();
+    }
+    this.logger.info(`Setting profile to "${profile}" (not yet wired to hardware)`);
+    return Promise.resolve();
   }
   /**
    *
