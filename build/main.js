@@ -70,7 +70,7 @@ class MinerAdapter extends utils.Adapter {
     this.log.info(`config option2: ${this.config.option2}`);
     console.log("testABC");
     await this.tryKnownDevices();
-    this.subscribeStates("control.*");
+    this.subscribeStates("miner.*.control.*");
   }
   /**
    * Is called when adapter shuts down - callback has to be called under any circumstances!

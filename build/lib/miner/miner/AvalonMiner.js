@@ -30,8 +30,17 @@ var AvalonMinerCommand = /* @__PURE__ */ ((AvalonMinerCommand2) => {
   return AvalonMinerCommand2;
 })(AvalonMinerCommand || {});
 var AvalonMinerParameter = /* @__PURE__ */ ((AvalonMinerParameter2) => {
+  AvalonMinerParameter2["workModeLow"] = "0,workmode,set,0";
+  AvalonMinerParameter2["workModeMedium"] = "0,workmode,set,1";
+  AvalonMinerParameter2["workModeHigh"] = "0,workmode,set,2";
   return AvalonMinerParameter2;
 })(AvalonMinerParameter || {});
+const AVALON_PROFILE_PARAM_MAP = {
+  low: "0,workmode,set,0" /* workModeLow */,
+  medium: "0,workmode,set,1" /* workModeMedium */,
+  high: "0,workmode,set,2" /* workModeHigh */
+};
+const AVALON_PROFILES = Object.keys(AVALON_PROFILE_PARAM_MAP);
 class AvalonMiner extends import_SGMiner.SGMiner {
   /**
    *
@@ -75,21 +84,24 @@ class AvalonMiner extends import_SGMiner.SGMiner {
    * Get available performance profiles for the Avalon miner.
    */
   getProfiles() {
-    return ["low", "medium", "high"];
+    return AVALON_PROFILES;
   }
   /**
    * Set the active performance profile on the Avalon miner.
    *
+   * Sends: ascset|0,workmode,set,{id}
+   *
    * @param profile - the profile name to activate (low, medium, high)
    */
-  setProfile(profile) {
-    const profiles = this.getProfiles();
-    if (!profiles.includes(profile)) {
-      this.logger.error(`Invalid profile "${profile}". Valid profiles: ${profiles.join(", ")}`);
-      return Promise.resolve();
+  async setProfile(profile) {
+    const params = AVALON_PROFILE_PARAM_MAP[profile];
+    if (params === void 0) {
+      const valid = this.getProfiles().join(", ");
+      this.logger.error(`Invalid profile "${profile}". Valid profiles: ${valid}`);
+      return;
     }
-    this.logger.info(`Setting profile to "${profile}" (not yet wired to hardware)`);
-    return Promise.resolve();
+    this.logger.info(`Setting Avalon workmode to "${profile}" (id=${params})`);
+    await this.sendCommand("ascset" /* ascset */, params, true);
   }
   /**
    *

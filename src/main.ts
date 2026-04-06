@@ -67,7 +67,8 @@ export class MinerAdapter extends utils.Adapter {
         // try to connect to already known devices
         await this.tryKnownDevices();
 
-        this.subscribeStates('control.*');
+        // this is correct RELATIVE path! actually means "miner.X.miner.<minerid>.control"
+        this.subscribeStates('miner.*.control.*');
     }
 
     /**

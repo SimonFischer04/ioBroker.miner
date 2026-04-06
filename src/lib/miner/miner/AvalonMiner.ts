@@ -9,24 +9,30 @@ import { safeParseFloat } from '../../utils/parse-utils';
 // Control commands use the 'ascset' command with different parameters
 // Reference: https://github.com/c7ph3r10/ha_avalonq
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 enum AvalonMinerCommand {
     // Avalon control commands (all use 'ascset' with different parameters)
     ascset = 'ascset',
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 enum AvalonMinerParameter {
     // do not appear to work on nano 3s
     // softon = '0,softon,1',
     // softoff = '0,softoff,1',
-    // Future: workmodeEco = '0,workmode,set,0',
-    // Future: workmodeStandard = '0,workmode,set,1',
-    // Future: workmodeSuper = '0,workmode,set,2',
+    workModeLow = '0,workmode,set,0',
+    workModeMedium = '0,workmode,set,1',
+    workModeHigh = '0,workmode,set,2',
     // Future: reboot = '0,reboot,0',
     // Future: lcdOn = '0,lcd,0:1',
     // Future: lcdOff = '0,lcd,0:0',
 }
+
+const AVALON_PROFILE_PARAM_MAP: Record<string, string> = {
+    low: AvalonMinerParameter.workModeLow,
+    medium: AvalonMinerParameter.workModeMedium,
+    high: AvalonMinerParameter.workModeHigh,
+} as const;
+
+const AVALON_PROFILES = Object.keys(AVALON_PROFILE_PARAM_MAP);
 
 /** Type alias for the summary+version+stats combined response. */
 export type SummaryVersionStatsResponse = CombinedResponse<
@@ -36,7 +42,7 @@ export type SummaryVersionStatsResponse = CombinedResponse<
 /**
  *
  */
-export class AvalonMiner extends SGMiner<AvalonMinerSettings> {
+export class AvalonMiner extends SGMiner<AvalonMinerSettings, AvalonMinerCommand> {
     /**
      *
      */
@@ -51,6 +57,7 @@ export class AvalonMiner extends SGMiner<AvalonMinerSettings> {
      *
      */
     public override async fetchStats(): Promise<MinerStats> {
+        // TODO: also fetch profile (workmode). control.profile is for control, info.profile for profile fetched from stats
         try {
             const response = await this.sendCommand<SummaryVersionStatsResponse>(
                 [CGMinerCommand.summary, CGMinerCommand.version, CGMinerCommand.stats],
@@ -92,7 +99,7 @@ export class AvalonMiner extends SGMiner<AvalonMinerSettings> {
      * Get available performance profiles for the Avalon miner.
      */
     public override getProfiles(): string[] {
-        return ['low', 'medium', 'high'];
+        return AVALON_PROFILES;
     }
 
     /**
@@ -100,15 +107,17 @@ export class AvalonMiner extends SGMiner<AvalonMinerSettings> {
      *
      * @param profile - the profile name to activate (low, medium, high)
      */
-    public override setProfile(profile: string): Promise<void> {
-        const profiles = this.getProfiles();
-        if (!profiles.includes(profile)) {
-            this.logger.error(`Invalid profile "${profile}". Valid profiles: ${profiles.join(', ')}`);
-            return Promise.resolve();
+    public override async setProfile(profile: string): Promise<void> {
+        const params = AVALON_PROFILE_PARAM_MAP[profile];
+        if (params === undefined) {
+            const valid = this.getProfiles().join(', ');
+            this.logger.error(`Invalid profile "${profile}". Valid profiles: ${valid}`);
+            return;
         }
-        // TODO: send the actual ascset command to the device once the Avalon API mapping is known
-        this.logger.info(`Setting profile to "${profile}" (not yet wired to hardware)`);
-        return Promise.resolve();
+
+        this.logger.info(`Setting Avalon workmode to "${profile}" (id=${params})`);
+        // TODO: check response status and then set with ack: true
+        await this.sendCommand(AvalonMinerCommand.ascset, params, true);
     }
 
     /**

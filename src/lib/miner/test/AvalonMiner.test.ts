@@ -1,6 +1,12 @@
 import { expect } from 'chai';
-import { AvalonMiner, type SummaryVersionStatsResponse } from '../miner/AvalonMiner';
+import {
+    AvalonMiner,
+    AVALON_PROFILES,
+    AVALON_PROFILE_MAP,
+    type SummaryVersionStatsResponse,
+} from '../miner/AvalonMiner';
 import summaryVersionStatsFixture from '../fixture/nano3s-summary+version+stats.json';
+import { MinerFeatureKey } from '../model/MinerFeature';
 
 describe('AvalonMiner', () => {
     let miner: AvalonMiner;
@@ -178,6 +184,37 @@ describe('AvalonMiner', () => {
             const stats = miner.parseSummaryVersionStatsResponse(zeroPower);
             // Zero power should return undefined (miner likely not running)
             expect(stats.power).to.be.undefined;
+        });
+    });
+
+    describe('getSupportedFeatures', () => {
+        it('should include the profile feature', () => {
+            const features = miner.getSupportedFeatures();
+            expect(features).to.include(MinerFeatureKey.profile);
+        });
+
+        it('should not include cliArgs', () => {
+            const features = miner.getSupportedFeatures();
+            expect(features).to.not.include(MinerFeatureKey.cliArgs);
+        });
+
+        it('should include stats-related features from SGMiner base', () => {
+            const features = miner.getSupportedFeatures();
+            expect(features).to.include(MinerFeatureKey.version);
+            expect(features).to.include(MinerFeatureKey.firmwareVersion);
+            expect(features).to.include(MinerFeatureKey.stats);
+            expect(features).to.include(MinerFeatureKey.rawStats);
+        });
+    });
+
+    describe('getProfiles', () => {
+        it('should return the same profiles as AVALON_PROFILES', () => {
+            expect(miner.getProfiles()).to.deep.equal(AVALON_PROFILES);
+        });
+
+        it('should return low, medium, high', () => {
+            const profiles = miner.getProfiles();
+            expect(profiles).to.deep.equal(['low', 'medium', 'high']);
         });
     });
 });

@@ -16,7 +16,7 @@ export class MinerManager {
      * @param settings - the miner configuration to initialize
      */
     public async init(settings: MinerSettings): Promise<Miner<MinerSettings>> {
-        logger.info(`initializing miner with id ${settings.id}`);
+        logger.info(`[init] initializing miner with id ${settings.id}`);
 
         const miner: Miner<MinerSettings> = createMiner(settings);
         this.miners.push(miner);
@@ -29,16 +29,16 @@ export class MinerManager {
      * @param id - the miner id to close
      */
     public async close(id: string): Promise<void> {
-        logger.info(`unloading miner with id ${id}`);
+        logger.info(`[close] unloading miner with id ${id}`);
 
         if (id == null) {
-            logger.error('id must be provided');
+            logger.error('[close] id must be provided');
             return;
         }
 
         const miner = this.getMinerById(id);
         if (!miner) {
-            logger.error(`miner with id ${id} not found`);
+            logger.error(`[close] miner with id ${id} not found`);
             return;
         }
 
@@ -50,7 +50,7 @@ export class MinerManager {
      *
      */
     public async closeAll(): Promise<void> {
-        logger.log('unloading all miners');
+        logger.log('[closeAll] unloading all miners');
 
         for (const miner of this.miners) {
             await miner.close();
@@ -79,11 +79,12 @@ export class MinerManager {
      * @param id - the miner id to start
      */
     public async startMiner(id: string): Promise<void> {
-        logger.info(`starting miner with id ${id}`);
+        logger.info(`[startMiner] starting miner with id ${id}`);
 
         const miner = this.getMinerById(id);
         if (!miner) {
-            throw new Error(`miner with id ${id} not found`);
+            logger.warn(`[startMiner] miner with id ${id} not found`);
+            return;
         }
 
         await miner.start();
@@ -94,11 +95,12 @@ export class MinerManager {
      * @param id - the miner id to stop
      */
     public async stopMiner(id: string): Promise<void> {
-        logger.info(`stopping miner with id ${id}`);
+        logger.info(`[stopMiner] stopping miner with id ${id}`);
 
         const miner = this.getMinerById(id);
         if (!miner) {
-            throw new Error(`miner with id ${id} not found`);
+            logger.warn(`[stopMiner] miner with id ${id} not found`);
+            return;
         }
 
         await miner.stop();
@@ -111,11 +113,12 @@ export class MinerManager {
      * @param profile - the profile name to activate
      */
     public async setProfile(id: string, profile: string): Promise<void> {
-        logger.info(`setting profile "${profile}" on miner with id ${id}`);
+        logger.info(`[setProfile] setting profile "${profile}" on miner with id ${id}`);
 
         const miner = this.getMinerById(id);
         if (!miner) {
-            throw new Error(`miner with id ${id} not found`);
+            logger.warn(`[setProfile] miner with id ${id} not found`);
+            return;
         }
 
         await miner.setProfile(profile);

@@ -45,4 +45,12 @@ describe('Miner', () => {
         miner.settings.id?.should.be.an('string');
         expect(miner.settings.id).to.have.length.above(0);
     });
+
+    it('getProfiles returns empty array by default', () => {
+        expect(miner.getProfiles()).to.deep.equal([]);
+    });
+
+    it('setProfile resolves without error by default', async () => {
+        await miner.setProfile('any');
+    });
 });
