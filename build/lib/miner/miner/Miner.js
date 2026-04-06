@@ -40,6 +40,11 @@ class Miner {
    */
   constructor(settings) {
     this.settings = settings;
+    if (settings == null) {
+      this.logger = import_Logger.Logger.getLogger("Miner[null]");
+      this.logger.error("Miner settings must be provided. This should never happen!");
+      return;
+    }
     if (!settings.id) {
       this.settings.id = crypto.randomUUID();
     }
