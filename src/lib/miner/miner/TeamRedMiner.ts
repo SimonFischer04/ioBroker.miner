@@ -1,7 +1,7 @@
 import { PollingMiner } from './PollingMiner';
 import type { TeamRedMinerSettings } from '../model/MinerSettings';
 import { ClaymoreMiner } from './ClaymoreMiner';
-import { SGMiner } from './SGMiner';
+import { CGMiner } from './CGMiner';
 import type { MinerStats } from '../model/MinerStats';
 import type { MinerFeatureKey } from '../model/MinerFeature';
 import { distinct } from '../../utils/array-utils';
@@ -11,7 +11,7 @@ import { distinct } from '../../utils/array-utils';
  */
 export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
     private readonly claymoreMiner: ClaymoreMiner;
-    private readonly sgMiner: SGMiner;
+    private readonly cgMiner: CGMiner;
 
     /**
      *
@@ -21,14 +21,14 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
         super(settings);
 
         if (
-            settings.pollInterval !== settings.sg.pollInterval ||
-            settings.pollInterval !== settings.claymore.pollInterval
+            settings.pollInterval !== settings.cgminer?.pollInterval ||
+            settings.pollInterval !== settings.claymore?.pollInterval
         ) {
-            throw new Error('pollInterval must be the same for all miners');
+            this.logger.error('pollInterval must be the same for all miners');
         }
 
         this.claymoreMiner = new ClaymoreMiner(settings.claymore);
-        this.sgMiner = new SGMiner(settings.sg);
+        this.cgMiner = new CGMiner(settings.cgminer);
     }
 
     /**
@@ -39,7 +39,7 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
 
         // DO NOT CALL sub-miner.init() here, as it will init the polling interval, but trm is PollingMiner itself (own interval) => calls fetchData() for both miners itself and merges the results
         // await this.claymoreMiner.init();
-        // await this.sgMiner.init();
+        // await this.cgMiner.init();
     }
 
     /**
@@ -54,12 +54,12 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
      */
     public override async fetchStats(): Promise<MinerStats> {
         const claymoreStats: MinerStats = await this.claymoreMiner.fetchStats();
-        const sgStats: MinerStats = await this.sgMiner.fetchStats();
+        const cgStats: MinerStats = await this.cgMiner.fetchStats();
 
         return {
             raw: {
                 claymore: claymoreStats.raw,
-                sg: sgStats.raw,
+                cgminer: cgStats.raw,
             },
             version: claymoreStats.version,
             totalHashrate: claymoreStats.totalHashrate,
@@ -84,7 +84,7 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
      *
      */
     public override getSupportedFeatures(): MinerFeatureKey[] {
-        return distinct([...this.claymoreMiner.getSupportedFeatures(), ...this.sgMiner.getSupportedFeatures()]);
+        return distinct([...this.claymoreMiner.getSupportedFeatures(), ...this.cgMiner.getSupportedFeatures()]);
     }
 
     /**
@@ -94,7 +94,7 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
         return [
             ...this.claymoreMiner.getCliArgs(),
             // cgminer official syntax is '--api-listen', but teamRedMiner uses '--api_listen'
-            ...this.sgMiner.getCliArgs().map(arg => arg.replace('--api-listen', '--api_listen')),
+            ...this.cgMiner.getCliArgs().map(arg => arg.replace('--api-listen', '--api_listen')),
         ];
     }
 }

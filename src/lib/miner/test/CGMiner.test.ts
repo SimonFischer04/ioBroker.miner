@@ -1,13 +1,13 @@
 import { expect } from 'chai';
-import { SGMiner, type SummaryVersionResponse } from '../miner/SGMiner';
+import { CGMiner, type SummaryVersionResponse } from '../miner/CGMiner';
 import summaryVersionFixture from '../fixture/nano3s-summary+version.json';
 
-describe('SGMiner', () => {
-    let miner: SGMiner;
+describe('CGMiner', () => {
+    let miner: CGMiner;
 
     beforeEach(() => {
-        miner = new SGMiner({
-            minerType: 'sgMiner',
+        miner = new CGMiner({
+            minerType: 'cgMiner',
             host: '10.10.30.51',
             port: 4028,
             pollInterval: 10000,

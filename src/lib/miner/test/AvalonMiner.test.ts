@@ -1,10 +1,5 @@
 import { expect } from 'chai';
-import {
-    AvalonMiner,
-    AVALON_PROFILES,
-    AVALON_PROFILE_MAP,
-    type SummaryVersionStatsResponse,
-} from '../miner/AvalonMiner';
+import { AvalonMiner, type SummaryVersionStatsResponse } from '../miner/AvalonMiner';
 import summaryVersionStatsFixture from '../fixture/nano3s-summary+version+stats.json';
 import { MinerFeatureKey } from '../model/MinerFeature';
 
@@ -55,7 +50,7 @@ describe('AvalonMiner', () => {
             const fixture = summaryVersionStatsFixture as SummaryVersionStatsResponse;
             const stats = miner.parseSummaryVersionStatsResponse(fixture);
 
-            // Base stats from summary+version (inherited from SGMiner)
+            // Base stats from summary+version (inherited from CGMiner)
             expect(stats.version).to.equal('4.11.1');
             expect(stats.firmwareVersion).to.equal('25021401_56abae7');
             expect(stats.totalHashrate).to.be.a('number');
@@ -198,7 +193,7 @@ describe('AvalonMiner', () => {
             expect(features).to.not.include(MinerFeatureKey.cliArgs);
         });
 
-        it('should include stats-related features from SGMiner base', () => {
+        it('should include stats-related features from CGMiner base', () => {
             const features = miner.getSupportedFeatures();
             expect(features).to.include(MinerFeatureKey.version);
             expect(features).to.include(MinerFeatureKey.firmwareVersion);
@@ -208,8 +203,8 @@ describe('AvalonMiner', () => {
     });
 
     describe('getProfiles', () => {
-        it('should return the same profiles as AVALON_PROFILES', () => {
-            expect(miner.getProfiles()).to.deep.equal(AVALON_PROFILES);
+        it('should return exactly three profiles', () => {
+            expect(miner.getProfiles()).to.have.length(3);
         });
 
         it('should return low, medium, high', () => {

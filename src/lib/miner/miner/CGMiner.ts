@@ -1,4 +1,4 @@
-import type { SGMinerSettings } from '../model/MinerSettings';
+import type { CGMinerSettings } from '../model/MinerSettings';
 import { PollingMiner } from './PollingMiner';
 import type { MinerStats } from '../model/MinerStats';
 import { MinerFeatureKey } from '../model/MinerFeature';
@@ -13,10 +13,10 @@ export type SummaryVersionResponse = CombinedResponse<CGMinerCommand.summary | C
 
 /**
  * Base class for miners that communicate via the CGMiner-compatible socket API.
- * Provides shared socket command infrastructure for SGMiner, AvalonMiner, and similar devices.
+ * Provides shared socket command infrastructure for CGMiner, AvalonMiner, and similar devices.
  */
-export class SGMiner<
-    S extends SGMinerSettings = SGMinerSettings,
+export class CGMiner<
+    S extends CGMinerSettings = CGMinerSettings,
     ExtraCMD extends string = never, // additional commands to allow besides base CGMinerCommand
 > extends PollingMiner<S> {
     /**
@@ -24,7 +24,7 @@ export class SGMiner<
      */
     public override async init(): Promise<void> {
         await super.init();
-        // sgminer/cgminer api does not support persistent connections (socket is closed after each command), so don't need to init any connection here
+        // cgminer api does not support persistent connections (socket is closed after each command), so don't need to init any connection here
         return Promise.resolve();
     }
 
@@ -78,7 +78,7 @@ export class SGMiner<
      *
      */
     public override getLoggerName(): string {
-        return `${super.getLoggerName()}SGMiner[${this.settings.host}:${this.settings.port}]`;
+        return `${super.getLoggerName()}CGMiner[${this.settings.host}:${this.settings.port}]`;
     }
 
     /**

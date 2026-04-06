@@ -105,8 +105,8 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             password: crypto.randomUUID(),
             port: 3333
           },
-          sg: {
-            minerType: "sgMiner",
+          cgminer: {
+            minerType: "cgMiner",
             host: "",
             port: 4028
           }
@@ -295,8 +295,8 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             port: 3333
             // TODO: make configurable
           },
-          sg: {
-            minerType: "sgMiner",
+          cgminer: {
+            minerType: "cgMiner",
             pollInterval,
             host: minerSettings.host,
             port: 4028
@@ -323,16 +323,16 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         };
         break;
       }
-      case "sgMiner": {
+      case "cgMiner": {
         const pollInterval = (_f = result.pollInterval) != null ? _f : this.adapter.config.pollInterval;
-        const sgSettings = {
+        const cgSettings = {
           pollInterval,
           port: 4028
           // TODO: make configurable
         };
         minerSettings = {
           ...minerSettings,
-          ...sgSettings
+          ...cgSettings
         };
         break;
       }

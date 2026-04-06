@@ -23,7 +23,7 @@ __export(MinerFactory_exports, {
 module.exports = __toCommonJS(MinerFactory_exports);
 var import_TeamRedMiner = require("./TeamRedMiner");
 var import_ClaymoreMiner = require("./ClaymoreMiner");
-var import_SGMiner = require("./SGMiner");
+var import_CGMiner = require("./CGMiner");
 var import_XMRigMiner = require("./XMRigMiner");
 var import_IceRiverOcMiner = require("./IceRiverOcMiner");
 var import_BOSMiner = require("./BOSMiner");
@@ -36,8 +36,8 @@ function createMiner(settings) {
     case "claymoreMiner": {
       return new import_ClaymoreMiner.ClaymoreMiner(settings);
     }
-    case "sgMiner": {
-      return new import_SGMiner.SGMiner(settings);
+    case "cgMiner": {
+      return new import_CGMiner.CGMiner(settings);
     }
     case "xmRig": {
       return new import_XMRigMiner.XMRigMiner(settings);

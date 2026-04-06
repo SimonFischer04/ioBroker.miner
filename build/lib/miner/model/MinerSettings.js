@@ -24,7 +24,7 @@ module.exports = __toCommonJS(MinerSettings_exports);
 const minerTypeKeys = [
   "teamRedMiner",
   "claymoreMiner",
-  "sgMiner",
+  "cgMiner",
   "xmRig",
   "iceRiverOcMiner",
   "bosMiner",

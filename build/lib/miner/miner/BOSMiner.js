@@ -22,13 +22,13 @@ __export(BOSMiner_exports, {
 });
 module.exports = __toCommonJS(BOSMiner_exports);
 var import_MinerFeature = require("../model/MinerFeature");
-var import_SGMiner = require("./SGMiner");
+var import_CGMiner = require("./CGMiner");
 var BOSMinerCommand = /* @__PURE__ */ ((BOSMinerCommand2) => {
   BOSMinerCommand2["pause"] = "pause";
   BOSMinerCommand2["resume"] = "resume";
   return BOSMinerCommand2;
 })(BOSMinerCommand || {});
-class BOSMiner extends import_SGMiner.SGMiner {
+class BOSMiner extends import_CGMiner.CGMiner {
   /**
    *
    */

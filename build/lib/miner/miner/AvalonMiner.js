@@ -21,7 +21,7 @@ __export(AvalonMiner_exports, {
   AvalonMiner: () => AvalonMiner
 });
 module.exports = __toCommonJS(AvalonMiner_exports);
-var import_SGMiner = require("./SGMiner");
+var import_CGMiner = require("./CGMiner");
 var import_MinerFeature = require("../model/MinerFeature");
 var import_CGMinerApiTypes = require("../model/CGMinerApiTypes");
 var import_parse_utils = require("../../utils/parse-utils");
@@ -41,7 +41,7 @@ const AVALON_PROFILE_PARAM_MAP = {
   high: "0,workmode,set,2" /* workModeHigh */
 };
 const AVALON_PROFILES = Object.keys(AVALON_PROFILE_PARAM_MAP);
-class AvalonMiner extends import_SGMiner.SGMiner {
+class AvalonMiner extends import_CGMiner.CGMiner {
   /**
    *
    */

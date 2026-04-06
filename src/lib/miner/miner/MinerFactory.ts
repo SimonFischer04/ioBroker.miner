@@ -4,14 +4,14 @@ import type {
     ClaymoreMinerSettings,
     IceRiverOcMinerSettings,
     MinerSettings,
-    SGMinerSettings,
+    CGMinerSettings,
     TeamRedMinerSettings,
     XMRigSettings,
 } from '../model/MinerSettings';
 import type { Miner } from './Miner';
 import { TeamRedMiner } from './TeamRedMiner';
 import { ClaymoreMiner } from './ClaymoreMiner';
-import { SGMiner } from './SGMiner';
+import { CGMiner } from './CGMiner';
 import { XMRigMiner } from './XMRigMiner';
 import { IceRiverOcMiner } from './IceRiverOcMiner';
 import { BOSMiner } from './BOSMiner';
@@ -32,8 +32,8 @@ export function createMiner(settings: MinerSettings): Miner<MinerSettings> {
             return new ClaymoreMiner(settings as ClaymoreMinerSettings);
         }
 
-        case 'sgMiner': {
-            return new SGMiner(settings as SGMinerSettings);
+        case 'cgMiner': {
+            return new CGMiner(settings as CGMinerSettings);
         }
 
         case 'xmRig': {

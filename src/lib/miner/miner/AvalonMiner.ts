@@ -1,4 +1,4 @@
-import { SGMiner } from './SGMiner';
+import { CGMiner } from './CGMiner';
 import type { AvalonMinerSettings } from '../model/MinerSettings';
 import { MinerFeatureKey } from '../model/MinerFeature';
 import type { MinerStats } from '../model/MinerStats';
@@ -42,7 +42,7 @@ export type SummaryVersionStatsResponse = CombinedResponse<
 /**
  *
  */
-export class AvalonMiner extends SGMiner<AvalonMinerSettings, AvalonMinerCommand> {
+export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand> {
     /**
      *
      */

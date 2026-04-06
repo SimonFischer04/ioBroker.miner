@@ -16,17 +16,17 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-var SGMiner_exports = {};
-__export(SGMiner_exports, {
-  SGMiner: () => SGMiner
+var CGMiner_exports = {};
+__export(CGMiner_exports, {
+  CGMiner: () => CGMiner
 });
-module.exports = __toCommonJS(SGMiner_exports);
+module.exports = __toCommonJS(CGMiner_exports);
 var import_PollingMiner = require("./PollingMiner");
 var import_MinerFeature = require("../model/MinerFeature");
 var import_socket_utils = require("../../utils/socket-utils");
 var import_CGMinerApiTypes = require("../model/CGMinerApiTypes");
 const MHS_TO_HS = 1e6;
-class SGMiner extends import_PollingMiner.PollingMiner {
+class CGMiner extends import_PollingMiner.PollingMiner {
   /**
    *
    */
@@ -79,7 +79,7 @@ class SGMiner extends import_PollingMiner.PollingMiner {
    *
    */
   getLoggerName() {
-    return `${super.getLoggerName()}SGMiner[${this.settings.host}:${this.settings.port}]`;
+    return `${super.getLoggerName()}CGMiner[${this.settings.host}:${this.settings.port}]`;
   }
   /**
    *
@@ -133,6 +133,6 @@ class SGMiner extends import_PollingMiner.PollingMiner {
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  SGMiner
+  CGMiner
 });
-//# sourceMappingURL=SGMiner.js.map
+//# sourceMappingURL=CGMiner.js.map

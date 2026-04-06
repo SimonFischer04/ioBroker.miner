@@ -23,22 +23,23 @@ __export(TeamRedMiner_exports, {
 module.exports = __toCommonJS(TeamRedMiner_exports);
 var import_PollingMiner = require("./PollingMiner");
 var import_ClaymoreMiner = require("./ClaymoreMiner");
-var import_SGMiner = require("./SGMiner");
+var import_CGMiner = require("./CGMiner");
 var import_array_utils = require("../../utils/array-utils");
 class TeamRedMiner extends import_PollingMiner.PollingMiner {
   claymoreMiner;
-  sgMiner;
+  cgMiner;
   /**
    *
    * @param settings - TeamRedMiner-specific configuration
    */
   constructor(settings) {
+    var _a, _b;
     super(settings);
-    if (settings.pollInterval !== settings.sg.pollInterval || settings.pollInterval !== settings.claymore.pollInterval) {
-      throw new Error("pollInterval must be the same for all miners");
+    if (settings.pollInterval !== ((_a = settings.cgminer) == null ? void 0 : _a.pollInterval) || settings.pollInterval !== ((_b = settings.claymore) == null ? void 0 : _b.pollInterval)) {
+      this.logger.error("pollInterval must be the same for all miners");
     }
     this.claymoreMiner = new import_ClaymoreMiner.ClaymoreMiner(settings.claymore);
-    this.sgMiner = new import_SGMiner.SGMiner(settings.sg);
+    this.cgMiner = new import_CGMiner.CGMiner(settings.cgminer);
   }
   /**
    *
@@ -57,11 +58,11 @@ class TeamRedMiner extends import_PollingMiner.PollingMiner {
    */
   async fetchStats() {
     const claymoreStats = await this.claymoreMiner.fetchStats();
-    const sgStats = await this.sgMiner.fetchStats();
+    const cgStats = await this.cgMiner.fetchStats();
     return {
       raw: {
         claymore: claymoreStats.raw,
-        sg: sgStats.raw
+        cgminer: cgStats.raw
       },
       version: claymoreStats.version,
       totalHashrate: claymoreStats.totalHashrate
@@ -83,7 +84,7 @@ class TeamRedMiner extends import_PollingMiner.PollingMiner {
    *
    */
   getSupportedFeatures() {
-    return (0, import_array_utils.distinct)([...this.claymoreMiner.getSupportedFeatures(), ...this.sgMiner.getSupportedFeatures()]);
+    return (0, import_array_utils.distinct)([...this.claymoreMiner.getSupportedFeatures(), ...this.cgMiner.getSupportedFeatures()]);
   }
   /**
    *
@@ -92,7 +93,7 @@ class TeamRedMiner extends import_PollingMiner.PollingMiner {
     return [
       ...this.claymoreMiner.getCliArgs(),
       // cgminer official syntax is '--api-listen', but teamRedMiner uses '--api_listen'
-      ...this.sgMiner.getCliArgs().map((arg) => arg.replace("--api-listen", "--api_listen"))
+      ...this.cgMiner.getCliArgs().map((arg) => arg.replace("--api-listen", "--api_listen"))
     ];
   }
 }

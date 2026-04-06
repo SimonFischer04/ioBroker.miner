@@ -1,7 +1,7 @@
 export const minerTypeKeys = [
     'teamRedMiner',
     'claymoreMiner',
-    'sgMiner',
+    'cgMiner',
     'xmRig',
     'iceRiverOcMiner',
     'bosMiner',
@@ -44,6 +44,7 @@ export interface PollingMinerSettings extends MinerSettings {
 /**
  *
  */
+// TODO: own settings. -> allow to cleanup anc move f.e. port into pollingMiner (or even base miner)
 export interface TeamRedMinerSettings extends PollingMinerSettings {
     /**
      *
@@ -56,7 +57,7 @@ export interface TeamRedMinerSettings extends PollingMinerSettings {
     /**
      *
      */
-    sg: SGMinerSettings;
+    cgminer: CGMinerSettings;
 }
 
 /**
@@ -80,7 +81,7 @@ export interface ClaymoreMinerSettings extends PollingMinerSettings {
 /**
  * Common settings for miners communicating via the CGMiner-compatible socket API.
  */
-export interface SGMinerSettings extends PollingMinerSettings {
+export interface CGMinerSettings extends PollingMinerSettings {
     /**
      *
      */
@@ -130,7 +131,7 @@ export interface IceRiverOcMinerSettings extends PollingMinerSettings {
 /**
  *
  */
-export interface BOSMinerSettings extends SGMinerSettings {
+export interface BOSMinerSettings extends CGMinerSettings {
     /**
      *
      */
@@ -140,7 +141,7 @@ export interface BOSMinerSettings extends SGMinerSettings {
 /**
  *
  */
-export interface AvalonMinerSettings extends SGMinerSettings {
+export interface AvalonMinerSettings extends CGMinerSettings {
     /**
      *
      */

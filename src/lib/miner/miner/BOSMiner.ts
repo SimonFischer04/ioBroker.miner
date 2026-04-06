@@ -1,6 +1,6 @@
 import type { BOSMinerSettings } from '../model/MinerSettings';
 import { MinerFeatureKey } from '../model/MinerFeature';
-import { SGMiner } from './SGMiner';
+import { CGMiner } from './CGMiner';
 
 // old braains api (pre grpc): https://academy.braiins.com/en/braiins-os/papi-bosminer/
 // based on cgminer, but adds some extra commands
@@ -13,7 +13,7 @@ enum BOSMinerCommand {
 /**
  *
  */
-export class BOSMiner extends SGMiner<BOSMinerSettings, BOSMinerCommand> {
+export class BOSMiner extends CGMiner<BOSMinerSettings, BOSMinerCommand> {
     /**
      *
      */

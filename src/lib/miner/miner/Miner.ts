@@ -16,9 +16,17 @@ export abstract class Miner<S extends MinerSettings> {
      * @param settings - miner-specific configuration
      */
     constructor(public readonly settings: S) {
+        if (settings == null) {
+            // can't use usual logger because settings are missing
+            this.logger = Logger.getLogger('Miner[null]');
+            this.logger.error('Miner settings must be provided. This should never happen!');
+            return;
+        }
+
         if (!settings.id) {
             this.settings.id = crypto.randomUUID();
         }
+
         this.logger = Logger.getLogger(this.getLoggerName());
     }
 

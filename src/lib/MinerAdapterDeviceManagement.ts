@@ -18,7 +18,7 @@ import type {
     IceRiverOcMinerSettings,
     MinerSettings,
     PollingMinerSettings,
-    SGMinerSettings,
+    CGMinerSettings,
     TeamRedMinerSettings,
     XMRigSettings,
 } from './miner/model/MinerSettings';
@@ -112,8 +112,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         password: crypto.randomUUID(),
                         port: 3333,
                     },
-                    sg: {
-                        minerType: 'sgMiner',
+                    cgminer: {
+                        minerType: 'cgMiner',
                         host: '',
                         port: 4028,
                     },
@@ -384,8 +384,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         password: result.password,
                         port: 3333, // TODO: make configurable
                     },
-                    sg: {
-                        minerType: 'sgMiner',
+                    cgminer: {
+                        minerType: 'cgMiner',
                         pollInterval,
                         host: minerSettings.host,
                         port: 4028, // TODO: make configurable
@@ -413,16 +413,16 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 break;
             }
 
-            case 'sgMiner': {
+            case 'cgMiner': {
                 const pollInterval = result.pollInterval ?? this.adapter.config.pollInterval;
 
-                const sgSettings: Omit<SGMinerSettings, keyof MinerSettings> = {
+                const cgSettings: Omit<CGMinerSettings, keyof MinerSettings> = {
                     pollInterval,
                     port: 4028, // TODO: make configurable
                 };
                 minerSettings = {
                     ...minerSettings,
-                    ...sgSettings,
+                    ...cgSettings,
                 };
                 break;
             }
