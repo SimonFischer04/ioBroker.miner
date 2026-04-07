@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "miner",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "news": {
+      "1.0.3": {
+        "en": "increase admin requirement to fix DM (does not work at all with current stable 7.7.22)",
+        "de": "erhöhen Admin-Anforderung, DM zu beheben ( funktioniert überhaupt nicht mit aktuellen stabil 7.7.22)",
+        "ru": "увеличить потребность администратора в исправлении DM (не работает вообще с текущей стабильной 7.7.22)",
+        "pt": "aumentar a exigência de administrador para corrigir DM (não funciona em tudo com estável atual 7.7.22)",
+        "nl": "verhoging van de admin-eis om DM vast te stellen (werkt helemaal niet met de huidige stabiele 7.7.22)",
+        "fr": "augmenter l'exigence d'administration pour fixer DM (ne fonctionne pas du tout avec la stabilité actuelle 7.7.22)",
+        "it": "aumentare il requisito di amministratore per fissare DM (non funziona affatto con attuale stabile 7.7.22)",
+        "es": "aumentar el requisito de administración para fijar DM (no funciona en absoluto con el estable actual 7.7.22)",
+        "pl": "zwiększyć wymóg admin, aby naprawić DM (nie działa w ogóle z bieżącą stabilną 7.7.22)",
+        "uk": "збільшити вимоги адміністратора для фіксації DM (не працює на всіх з поточною стабільною 7.7.22)",
+        "zh-cn": "增加修理管理部的行政管理要求(在目前稳定7.7.22的情况下根本不起作用)"
+      },
       "1.0.2": {
         "en": "**CI/CD**: Migrated deploy workflow from NPM classic tokens to Trusted Publishing (OIDC) (fixes #80)\ncleanup readme",
         "de": "**CI/CD*: Migrated Deployed Workflow von NPM classic tokens bis Trusted Publishing (OIDC) (fixes #80)\nreinigungs-lesemittel",
