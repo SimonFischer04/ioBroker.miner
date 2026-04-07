@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "miner",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "news": {
+      "1.0.2": {
+        "en": "**CI/CD**: Migrated deploy workflow from NPM classic tokens to Trusted Publishing (OIDC) (fixes #80)\ncleanup readme",
+        "de": "**CI/CD*: Migrated Deployed Workflow von NPM classic tokens bis Trusted Publishing (OIDC) (fixes #80)\nreinigungs-lesemittel",
+        "ru": "**CI/CD**: Миграционный рабочий процесс развертывания от классических токенов NPM до Trusted Publishing (OIDC) (фиксы #80)\nуборка читать",
+        "pt": "**CI/CD**: Migrated implement workflow from NPM Classic tokens to Trusted Publishing (OIDC) (fixes #80)\nlimpup readme",
+        "nl": "**CI/CD**: Migrated implement workflow from NPM classic tokens to Trusted Publishing (OIDC) (fixes #80)\nopruimen readme",
+        "fr": "**CI/CD**: Migré du flux de travail de déploiement des jetons classiques NPM à l'édition fiable (OIDC) (fixes #80)\nlecture du nettoyage",
+        "it": "**CI/CD**: Migrated distribuisce il flusso di lavoro da token classici NPM a Trusted Publishing (OIDC) (fixs #80)\npulizia del letto",
+        "es": "**CI/CD**: Despliegue migrado de los tokens clásicos de NPM a la publicación fiduciaria (OIDC) (fijos #80)\nlimpieza",
+        "pl": "* *CI / CD* *: Migrated push workflow from NPM classic tonens to Trusted Publishing (OIDC) (fixes # 80) \nczyszczenie readme",
+        "uk": "**CI/CD**: Migrated розгортання робочого процесу від NPM classic tokens до Trusted Publishing (OIDC) (фікси #80)\nчистий читець",
+        "zh-cn": "** CI/CD**:将国家防范机制经典符号的工作流程移至受托出版(附件80)\n清除读取器"
+      },
       "1.0.1": {
         "en": "Added Avalon miner support via CGMiner API, performance profile control, running switch in Device Manager, restructured object model with info/stats/control/raw channels, added reboot control, improved admin configuration",
         "de": "Avalon-Miner-Unterstützung über CGMiner-API hinzugefügt, Leistungsprofil-Steuerung, Laufschalter im Gerätemanager, umstrukturiertes Objektmodell mit Info-/Stats-/Control-/Raw-Kanälen, Neustart-Steuerung hinzugefügt, Admin-Konfiguration verbessert",
