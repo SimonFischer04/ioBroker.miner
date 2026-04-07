@@ -114,6 +114,9 @@ miner.0
     Placeholder for the next version (at the beginning of the line):
     ### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (SimonFischer04) fix repo url in package-json
+
 ### 1.0.3 (2026-04-07)
 * (SimonFischer04) increase admin requirement to fix DM (does not work at all with current stable 7.7.22)
 
