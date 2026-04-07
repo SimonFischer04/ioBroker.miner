@@ -21,7 +21,8 @@ Interact with different crypto miner apis
 - [ ] pools support
 - [ ] device discover
 - [ ] sentry
-- [ ] more: see Todo.md / issues
+- [ ] more: see Todo.md / issues 
+- [ ] fix license plugin in .releaseconfig
 
 ## Usage
 When adding a new device inside the instance settings (or directly in DeviceManager if you have a new enough admin version - not required!) you should get a dialog like this:
