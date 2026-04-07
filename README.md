@@ -25,7 +25,7 @@ Interact with different crypto miner apis
 - [ ] fix license plugin in .releaseconfig
 
 ## Usage
-When adding a new device inside the instance settings (or directly in DeviceManager if you have a new enough admin version - not required!) you should get a dialog like this:
+When adding a new device inside the instance settings (or inside the Admin DeviceManager Tab) you should get a dialog like this:
 
 ![AddDevice.png](docs/AddDevice.png)
 
@@ -114,6 +114,9 @@ miner.0
     Placeholder for the next version (at the beginning of the line):
     ### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (SimonFischer04) increase admin requirement to fix DM (does not work at all with current stable 7.7.22)
+
 ### 1.0.2 (2026-04-07)
 * (SimonFischer04) **CI/CD**: Migrated deploy workflow from NPM classic tokens to Trusted Publishing (OIDC) (fixes #80)
 * (SimonFischer04) cleanup readme
