@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "miner",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "news": {
+      "1.0.4": {
+        "en": "fix repo url in package-json",
+        "de": "repo url in paket-json",
+        "ru": "repo url в пакете-json",
+        "pt": "corrigir o repo url no pacote- json",
+        "nl": "repareren repo url in pakket-json",
+        "fr": "correction de la repo url dans l'emballage",
+        "it": "correzione del repo url in package-json",
+        "es": "arreglar repo url en paquete-json",
+        "pl": "fix repo url in package- json",
+        "uk": "виправити repo url в пакеті-json",
+        "zh-cn": "在软件包-json中修复 repo url"
+      },
       "1.0.3": {
         "en": "increase admin requirement to fix DM (does not work at all with current stable 7.7.22)",
         "de": "erhöhen Admin-Anforderung, DM zu beheben ( funktioniert überhaupt nicht mit aktuellen stabil 7.7.22)",
@@ -113,8 +126,7 @@
       }
     ]
   },
-  "native": {
-  },
+  "native": {},
   "objects": [],
   "instanceObjects": [
     {
