@@ -58,12 +58,6 @@ export class MinerAdapter extends utils.Adapter {
         // Initialize your adapter here
         await this.createBasicObjectStructure();
 
-        // The adapters config (in the instance object everything under the attribute "native") is accessible via
-        // this.config:
-        this.log.info(`aconfig option1: ${this.config.option1}`);
-        this.log.info(`config option2: ${this.config.option2}`);
-        console.log('testABC');
-
         // try to connect to already known devices
         await this.tryKnownDevices();
 

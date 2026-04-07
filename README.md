@@ -114,6 +114,9 @@ miner.0
     Placeholder for the next version (at the beginning of the line):
     ### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (SimonFischer04) **FIXED**: Removed example configuration (option1, option2) from native section and code (fixes #126 / E5040)
+
 ### 1.0.4 (2026-04-07)
 * (SimonFischer04) fix repo url in package-json
 
