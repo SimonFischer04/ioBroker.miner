@@ -147,6 +147,8 @@ miner.0
 ### 0.0.1 (2026-02-15)
 * (SimonFischer04) initial release
 
+[Older changelogs can be found there](CHANGELOG_OLD.md)
+
 ## Credits
 - the logo was created using ChatGPT
 
