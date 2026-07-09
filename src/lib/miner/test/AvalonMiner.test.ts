@@ -64,7 +64,10 @@ describe('AvalonMiner', () => {
 
             // Efficiency: totalHashrate / power
             expect(stats.efficiency).to.be.a('number');
-            expect(stats.efficiency).to.be.closeTo(stats.totalHashrate! / stats.power!, 1);
+            if (stats.totalHashrate === undefined || stats.power === undefined) {
+                throw new Error('Expected total hashrate and power to be parsed');
+            }
+            expect(stats.efficiency).to.be.closeTo(stats.totalHashrate / stats.power, 1);
 
             // raw response preserved
             expect(stats.raw).to.equal(fixture);
