@@ -1,4 +1,5 @@
 import {
+    ACTIONS,
     DeviceManagement,
     type ConfigItemAny,
     type ActionContext,
@@ -560,6 +561,9 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             context.addDevice({
                 id: device._id,
                 name: device.common.name,
+                enabled: {
+                    stateId: `${device._id}.enabled`,
+                },
                 hasDetails: true,
 
                 // Connection type using live state binding:
@@ -602,9 +606,23 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         description: I18n.getTranslatedObject('Settings'),
                         handler: this.handleSettingsDevice.bind(this),
                     },
+                    {
+                        id: ACTIONS.ENABLE_DISABLE,
+                        description: I18n.getTranslatedObject('enabled'),
+                        handler: this.handleEnableDisableDevice.bind(this),
+                    },
                 ],
             });
         }
+    }
+
+    protected async handleEnableDisableDevice(id: string): Promise<{ refresh: DeviceRefresh }> {
+        const stateId = `${id}.enabled`;
+        const enabled = (await this.adapter.getStateAsync(stateId))?.val ?? true;
+
+        await this.adapter.setForeignStateAsync(stateId, { val: !enabled, ack: false });
+
+        return { refresh: 'devices' };
     }
 
     protected async handleDeleteDevice(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
@@ -637,6 +655,14 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             value => this.adapter.decrypt(value),
         );
 
+        if (!isMiner(currentSettings)) {
+            // TODO: pool support (#deal with miner -> pool change: just disable category dropdown on settings)
+            this.adapter.log.error(`MinerAdapterDeviceManagement/handleSettingsDevice settings are not miners`);
+            return { refresh: 'none' };
+        }
+
+        currentSettings.enabled = ((await this.adapter.getStateAsync(`${id}.enabled`))?.val ?? true) === true;
+
         const newSettings = await this.showDeviceConfigurationForm(
             context,
             currentSettings,
@@ -651,7 +677,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
 
         await this.adapter.updateDevice(newSettings);
 
-        if (!isMiner(currentSettings) || !isMiner(newSettings)) {
+        if (!isMiner(newSettings)) {
             // TODO: pool support (#deal with miner -> pool change: just disable category dropdown on settings)
             this.adapter.log.error(`MinerAdapterDeviceManagement/handleSettingsDevice settings are not miners`);
             return { refresh: 'none' };
