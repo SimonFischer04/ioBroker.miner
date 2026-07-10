@@ -52,10 +52,20 @@ Some miners expose sub-entities. If available, they are placed below the miner:
 - `hardware.hashboards.<index>...`
 
 ### Examples
+- `miner.0.miner.<minerId>.enabled`
 - `miner.0.miner.<minerId>.control.running`
 - `miner.0.miner.<minerId>.stats.totalHashrate`
 - `miner.0.miner.<minerId>.hardware.gpus.0.stats.temp`
 - `miner.0.miner.<minerId>.raw.stats`
+
+### Enable / disable a miner
+Each miner device has a writable top-level `enabled` state:
+
+`miner.<instance>.miner.<minerId>.enabled`
+
+Set this state to `false` to disable the miner in the adapter at runtime. Disabled miners are unloaded and no polling/control handling is active for them. Set it back to `true` to initialize the miner again without restarting the adapter.
+
+This is different from `control.running`: `enabled` controls whether the adapter manages the miner at all, while `control.running` asks a supported miner to start or stop mining.
 
 ### Example tree
 This is just an overview / idea / plan. Not all of them are implemented yet, but it should give you an idea of the intended structure and naming. The actual implementation may differ in some details, but the general structure should be similar to this.
@@ -63,6 +73,7 @@ This is just an overview / idea / plan. Not all of them are implemented yet, but
 miner.0
   miner
     <minerId>                        (device)
+      enabled                        (boolean)  enable/disable adapter handling for this miner
       info                           (channel)
         minerType                    (string)   e.g. xmRig / teamRedMiner / bosMiner
         host                         (string)
@@ -116,6 +127,7 @@ miner.0
 -->
 ### **WORK IN PROGRESS**
 - (copilot) Adapter requires node.js >= 22 now
+* (SimonFischer04) **NEW**: Added top-level `enabled` state to dynamically enable or disable miner handling at runtime
 * (SimonFischer04) **FIXED**: Removed example configuration (option1, option2) from native section and code (fixes #126 / E5040)
 
 ### 1.0.4 (2026-04-07)
