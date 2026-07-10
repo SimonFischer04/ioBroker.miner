@@ -17,6 +17,7 @@ import { Logger } from './lib/miner/model/Logger';
 import type { Miner } from './lib/miner/miner/Miner';
 import type { MinerSettings } from './lib/miner/model/MinerSettings';
 import type { MinerStats } from './lib/miner/model/MinerStats';
+import { setTimerBackend } from './lib/utils/delay';
 
 /**
  *
@@ -33,6 +34,13 @@ export class MinerAdapter extends utils.Adapter {
         super({
             ...options,
             name: 'miner',
+        });
+        setTimerBackend({
+            schedule: (callback, timeout) => this.setTimeout(callback, timeout),
+            clear: timer => this.clearTimeout(timer as ioBroker.Timeout | undefined),
+            scheduleInterval: (callback, interval) => this.setInterval(callback, interval),
+            clearInterval: timer => this.clearInterval(timer as ioBroker.Interval | undefined),
+            delay: timeout => this.delay(timeout),
         });
         this.on('ready', this.onReady.bind(this));
         this.on('stateChange', this.onStateChange.bind(this));

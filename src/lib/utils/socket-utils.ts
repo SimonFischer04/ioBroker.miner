@@ -1,5 +1,6 @@
 import { Socket } from 'node:net';
 import type { Logger } from '../miner/model/Logger';
+import { timeout } from './delay';
 
 /**
  * Utility function to send a command to a socket server (and wait for a response - if expected)
@@ -23,6 +24,7 @@ export async function sendSocketCommand<T = void>(
     let handled = false;
     const socket: Socket = new Socket();
     let buffer = '';
+    let handlingTimeout: ReturnType<typeof timeout> | undefined;
 
     return new Promise<T>((resolve, reject) => {
         socket.on('connect', () => {
@@ -84,7 +86,7 @@ export async function sendSocketCommand<T = void>(
         socket.connect(port, host);
 
         // socket timeout alone does is not enough
-        setTimeout(() => {
+        handlingTimeout = timeout(() => {
             if (!handled) {
                 const msg = `timeout handling socket command: ${JSON.stringify(data)}. maybe the password is wrong?`;
                 logger.warn(msg);
@@ -93,6 +95,7 @@ export async function sendSocketCommand<T = void>(
         }, 3000);
     }).finally(() => {
         handled = true;
+        handlingTimeout?.clear();
         socket.end();
         socket.destroy();
     });

@@ -41,6 +41,7 @@ var import_Level = require("./lib/miner/model/Level");
 var import_MinerFeature = require("./lib/miner/model/MinerFeature");
 var import_MinerFactory = require("./lib/miner/miner/MinerFactory");
 var import_Logger = require("./lib/miner/model/Logger");
+var import_delay = require("./lib/utils/delay");
 class MinerAdapter extends utils.Adapter {
   deviceManagement;
   minerManager = new import_MinerManager.MinerManager();
@@ -52,6 +53,13 @@ class MinerAdapter extends utils.Adapter {
     super({
       ...options,
       name: "miner"
+    });
+    (0, import_delay.setTimerBackend)({
+      schedule: (callback, timeout) => this.setTimeout(callback, timeout),
+      clear: (timer) => this.clearTimeout(timer),
+      scheduleInterval: (callback, interval) => this.setInterval(callback, interval),
+      clearInterval: (timer) => this.clearInterval(timer),
+      delay: (timeout) => this.delay(timeout)
     });
     this.on("ready", this.onReady.bind(this));
     this.on("stateChange", this.onStateChange.bind(this));
@@ -66,9 +74,6 @@ class MinerAdapter extends utils.Adapter {
     await import_adapter_core.I18n.init(__dirname, this);
     await this.setState("info.connection", false, true);
     await this.createBasicObjectStructure();
-    this.log.info(`aconfig option1: ${this.config.option1}`);
-    this.log.info(`config option2: ${this.config.option2}`);
-    console.log("testABC");
     await this.tryKnownDevices();
     this.subscribeStates("miner.*.control.*");
   }

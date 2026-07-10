@@ -21,53 +21,78 @@ __export(delay_exports, {
   asyncInterval: () => asyncInterval,
   asyncIntervalNoWait: () => asyncIntervalNoWait,
   asyncTimeout: () => asyncTimeout,
-  delay: () => delay
+  delay: () => delay,
+  setTimerBackend: () => setTimerBackend
 });
 module.exports = __toCommonJS(delay_exports);
+var import_node_timers = require("node:timers");
+var import_promises = require("node:timers/promises");
+const nodeTimerBackend = {
+  schedule: (callback, timeout) => (0, import_node_timers.setTimeout)(callback, timeout),
+  clear: (timer) => (0, import_node_timers.clearTimeout)(timer),
+  scheduleInterval: (callback, interval) => (0, import_node_timers.setInterval)(callback, interval),
+  clearInterval: (timer) => (0, import_node_timers.clearInterval)(timer),
+  delay: (timeout) => (0, import_promises.setTimeout)(timeout)
+};
+let timerBackend = nodeTimerBackend;
+function setTimerBackend(backend) {
+  timerBackend = backend;
+}
 async function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return timerBackend.delay(ms);
 }
 function asyncIntervalNoWait(asyncCallback, executeEveryMs) {
-  return setInterval(() => {
+  const interval = timerBackend.scheduleInterval(() => {
     void (async () => {
       await asyncCallback();
     })();
   }, executeEveryMs);
+  return {
+    clear: () => {
+      timerBackend.clearInterval(interval);
+    }
+  };
 }
 function asyncInterval(asyncCallback, msBetweenExecutions, shouldExecuteImmediately = false) {
   let timeout;
   const callbackWrapper = () => {
     void (async () => {
       await asyncCallback();
-      timeout = setTimeout(callbackWrapper, msBetweenExecutions);
+      timeout = timerBackend.schedule(callbackWrapper, msBetweenExecutions);
     })();
   };
   if (shouldExecuteImmediately) {
     void (async () => {
       await asyncCallback();
-      timeout = setTimeout(callbackWrapper, msBetweenExecutions);
+      timeout = timerBackend.schedule(callbackWrapper, msBetweenExecutions);
     })();
   } else {
-    timeout = setTimeout(callbackWrapper, msBetweenExecutions);
+    timeout = timerBackend.schedule(callbackWrapper, msBetweenExecutions);
   }
   return {
     clear: () => {
-      clearTimeout(timeout);
+      timerBackend.clear(timeout);
     }
   };
 }
 function asyncTimeout(asyncCallback, ms) {
-  return setTimeout(() => {
+  const timeout = timerBackend.schedule(() => {
     void (async () => {
       await asyncCallback();
     })();
   }, ms);
+  return {
+    clear: () => {
+      timerBackend.clear(timeout);
+    }
+  };
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   asyncInterval,
   asyncIntervalNoWait,
   asyncTimeout,
-  delay
+  delay,
+  setTimerBackend
 });
 //# sourceMappingURL=delay.js.map

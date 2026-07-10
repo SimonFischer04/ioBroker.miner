@@ -22,11 +22,13 @@ __export(socket_utils_exports, {
 });
 module.exports = __toCommonJS(socket_utils_exports);
 var import_node_net = require("node:net");
+var import_delay = require("./delay");
 async function sendSocketCommand(logger, host, port, data, expectResponse = true) {
   logger.debug(`sendCommand: ${JSON.stringify(data)}`);
   let handled = false;
   const socket = new import_node_net.Socket();
   let buffer = "";
+  let handlingTimeout;
   return new Promise((resolve, reject) => {
     socket.on("connect", () => {
       const cmd = `${JSON.stringify(data)}
@@ -73,7 +75,7 @@ async function sendSocketCommand(logger, host, port, data, expectResponse = true
     });
     socket.setTimeout(3e3);
     socket.connect(port, host);
-    setTimeout(() => {
+    handlingTimeout = (0, import_delay.asyncTimeout)(() => {
       if (!handled) {
         const msg = `timeout handling socket command: ${JSON.stringify(data)}. maybe the password is wrong?`;
         logger.warn(msg);
@@ -82,6 +84,7 @@ async function sendSocketCommand(logger, host, port, data, expectResponse = true
     }, 3e3);
   }).finally(() => {
     handled = true;
+    handlingTimeout == null ? void 0 : handlingTimeout.clear();
     socket.end();
     socket.destroy();
   });
