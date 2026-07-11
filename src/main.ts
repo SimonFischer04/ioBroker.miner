@@ -416,12 +416,17 @@ export class MinerAdapter extends utils.Adapter {
             return;
         }
 
-        const miner = await this.minerManager.init(settings.settings);
+        try {
+            const miner = await this.minerManager.init(settings.settings);
 
-        miner.subscribeToStats(async (stats: MinerStats) => {
-            this.log.debug(`received stats: ${JSON.stringify(stats)}`);
-            await this.processNewStats(miner, settings, stats);
-        });
+            miner.subscribeToStats(async (stats: MinerStats) => {
+                this.log.debug(`received stats: ${JSON.stringify(stats)}`);
+                await this.processNewStats(miner, settings, stats);
+            });
+        } catch (e) {
+            this.log.error(`could not initialize device ${settings.name || settings.settings.host}: ${String(e)}`);
+            await this.setState(`${this.getDeviceObjectId(settings)}.info.online`, { val: false, ack: true });
+        }
     }
 
     /**

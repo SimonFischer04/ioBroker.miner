@@ -26,7 +26,9 @@
   "dependencies": {
     "@iobroker/adapter-core": "^3.4.1",
     "@iobroker/dm-utils": "^3.0.19",
-    "type-fest": "^5.7.0"
+    "type-fest": "^5.7.0",
+    "@grpc/grpc-js": "^1.14.3",
+    "@grpc/proto-loader": "^0.8.0"
   },
   "devDependencies": {
     "@alcalzone/release-script": "^5.2.1",
@@ -54,15 +56,16 @@
     "LICENSE"
   ],
   "scripts": {
+    "gen": "rimraf src/lib/generated/bos-api && mkdir -p src/lib/generated/bos-api/proto/bos src/lib/generated/bos-api/types && cp -r external/bos/proto/. src/lib/generated/bos-api/proto/bos && cd src/lib/generated/bos-api/proto && proto-loader-gen-types --grpcLib @grpc/grpc-js --longs Number --enums Number --oneofs -I . -O ../types bos/version.proto bos/v1/*.proto",
     "dev": "dev-server watch",
     "startDev": "dev-server watch --noStart",
     "prebuild": "rimraf build",
     "build": "build-adapter ts",
-    "postbuild": "cp -r src/lib/i18n build/lib/i18n",
+    "postbuild": "cp -r src/lib/i18n build/lib/i18n && mkdir -p build/lib/generated/bos-api/proto && cp -r src/lib/generated/bos-api/proto/. build/lib/generated/bos-api/proto",
     "watch": "build-adapter ts --watch",
     "prebuild:ts": "rimraf build",
     "build:ts": "build-adapter ts",
-    "postbuild:ts": "cp -r src/lib/i18n build/lib/i18n",
+    "postbuild:ts": "cp -r src/lib/i18n build/lib/i18n && mkdir -p build/lib/generated/bos-api/proto && cp -r src/lib/generated/bos-api/proto/. build/lib/generated/bos-api/proto",
     "watch:ts": "build-adapter ts --watch",
     "test:unit": "mocha --config test/mocharc.custom.json src/**/*.test.ts",
     "test:package": "mocha test/package --exit",

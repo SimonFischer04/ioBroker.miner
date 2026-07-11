@@ -1,4 +1,5 @@
 import type {
+    BOSSettings,
     ClaymoreMinerSettings,
     IceRiverOcMinerSettings,
     MinerSettings,
@@ -117,6 +118,14 @@ export function encryptDeviceSettings(
             break;
         }
 
+        case 'bos': {
+            const bosSettings = settings.settings as BOSSettings;
+            if (bosSettings.password) {
+                bosSettings.password = encryptFunction(bosSettings.password);
+            }
+            break;
+        }
+
         default: {
             break;
         }
@@ -142,6 +151,8 @@ export function decryptDeviceSettings(
     }
 
     // TODO: cleaner way to do this?
+    // maybe let miner define 'encryptedKeys'? .> na so inheritance ned ...
+    // decrypt method in miner class!
     switch (settings.settings.minerType) {
         case 'teamRedMiner': {
             const trmSettings = settings.settings as TeamRedMinerSettings;
@@ -164,6 +175,14 @@ export function decryptDeviceSettings(
         case 'iceRiverOcMiner': {
             const iceRiverOcSettings = settings.settings as IceRiverOcMinerSettings;
             iceRiverOcSettings.password = decryptFunction(iceRiverOcSettings.password);
+            break;
+        }
+
+        case 'bos': {
+            const bosSettings = settings.settings as BOSSettings;
+            if (bosSettings.password) {
+                bosSettings.password = decryptFunction(bosSettings.password);
+            }
             break;
         }
 

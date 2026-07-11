@@ -1,0 +1,41 @@
+// Original file: bos/v1/license.proto
+
+import type * as grpc from '@grpc/grpc-js'
+import type { MethodDefinition } from '@grpc/proto-loader'
+import type { ApplyContractKeyRequest as _braiins_bos_v1_ApplyContractKeyRequest, ApplyContractKeyRequest__Output as _braiins_bos_v1_ApplyContractKeyRequest__Output } from '../../../braiins/bos/v1/ApplyContractKeyRequest';
+import type { ApplyContractKeyResponse as _braiins_bos_v1_ApplyContractKeyResponse, ApplyContractKeyResponse__Output as _braiins_bos_v1_ApplyContractKeyResponse__Output } from '../../../braiins/bos/v1/ApplyContractKeyResponse';
+import type { GetLicenseStateRequest as _braiins_bos_v1_GetLicenseStateRequest, GetLicenseStateRequest__Output as _braiins_bos_v1_GetLicenseStateRequest__Output } from '../../../braiins/bos/v1/GetLicenseStateRequest';
+import type { GetLicenseStateResponse as _braiins_bos_v1_GetLicenseStateResponse, GetLicenseStateResponse__Output as _braiins_bos_v1_GetLicenseStateResponse__Output } from '../../../braiins/bos/v1/GetLicenseStateResponse';
+
+export interface LicenseServiceClient extends grpc.Client {
+  ApplyContractKey(argument: _braiins_bos_v1_ApplyContractKeyRequest, metadata: grpc.Metadata, options: grpc.CallOptions, callback: grpc.requestCallback<_braiins_bos_v1_ApplyContractKeyResponse__Output>): grpc.ClientUnaryCall;
+  ApplyContractKey(argument: _braiins_bos_v1_ApplyContractKeyRequest, metadata: grpc.Metadata, callback: grpc.requestCallback<_braiins_bos_v1_ApplyContractKeyResponse__Output>): grpc.ClientUnaryCall;
+  ApplyContractKey(argument: _braiins_bos_v1_ApplyContractKeyRequest, options: grpc.CallOptions, callback: grpc.requestCallback<_braiins_bos_v1_ApplyContractKeyResponse__Output>): grpc.ClientUnaryCall;
+  ApplyContractKey(argument: _braiins_bos_v1_ApplyContractKeyRequest, callback: grpc.requestCallback<_braiins_bos_v1_ApplyContractKeyResponse__Output>): grpc.ClientUnaryCall;
+  applyContractKey(argument: _braiins_bos_v1_ApplyContractKeyRequest, metadata: grpc.Metadata, options: grpc.CallOptions, callback: grpc.requestCallback<_braiins_bos_v1_ApplyContractKeyResponse__Output>): grpc.ClientUnaryCall;
+  applyContractKey(argument: _braiins_bos_v1_ApplyContractKeyRequest, metadata: grpc.Metadata, callback: grpc.requestCallback<_braiins_bos_v1_ApplyContractKeyResponse__Output>): grpc.ClientUnaryCall;
+  applyContractKey(argument: _braiins_bos_v1_ApplyContractKeyRequest, options: grpc.CallOptions, callback: grpc.requestCallback<_braiins_bos_v1_ApplyContractKeyResponse__Output>): grpc.ClientUnaryCall;
+  applyContractKey(argument: _braiins_bos_v1_ApplyContractKeyRequest, callback: grpc.requestCallback<_braiins_bos_v1_ApplyContractKeyResponse__Output>): grpc.ClientUnaryCall;
+  
+  GetLicenseState(argument: _braiins_bos_v1_GetLicenseStateRequest, metadata: grpc.Metadata, options: grpc.CallOptions, callback: grpc.requestCallback<_braiins_bos_v1_GetLicenseStateResponse__Output>): grpc.ClientUnaryCall;
+  GetLicenseState(argument: _braiins_bos_v1_GetLicenseStateRequest, metadata: grpc.Metadata, callback: grpc.requestCallback<_braiins_bos_v1_GetLicenseStateResponse__Output>): grpc.ClientUnaryCall;
+  GetLicenseState(argument: _braiins_bos_v1_GetLicenseStateRequest, options: grpc.CallOptions, callback: grpc.requestCallback<_braiins_bos_v1_GetLicenseStateResponse__Output>): grpc.ClientUnaryCall;
+  GetLicenseState(argument: _braiins_bos_v1_GetLicenseStateRequest, callback: grpc.requestCallback<_braiins_bos_v1_GetLicenseStateResponse__Output>): grpc.ClientUnaryCall;
+  getLicenseState(argument: _braiins_bos_v1_GetLicenseStateRequest, metadata: grpc.Metadata, options: grpc.CallOptions, callback: grpc.requestCallback<_braiins_bos_v1_GetLicenseStateResponse__Output>): grpc.ClientUnaryCall;
+  getLicenseState(argument: _braiins_bos_v1_GetLicenseStateRequest, metadata: grpc.Metadata, callback: grpc.requestCallback<_braiins_bos_v1_GetLicenseStateResponse__Output>): grpc.ClientUnaryCall;
+  getLicenseState(argument: _braiins_bos_v1_GetLicenseStateRequest, options: grpc.CallOptions, callback: grpc.requestCallback<_braiins_bos_v1_GetLicenseStateResponse__Output>): grpc.ClientUnaryCall;
+  getLicenseState(argument: _braiins_bos_v1_GetLicenseStateRequest, callback: grpc.requestCallback<_braiins_bos_v1_GetLicenseStateResponse__Output>): grpc.ClientUnaryCall;
+  
+}
+
+export interface LicenseServiceHandlers extends grpc.UntypedServiceImplementation {
+  ApplyContractKey: grpc.handleUnaryCall<_braiins_bos_v1_ApplyContractKeyRequest__Output, _braiins_bos_v1_ApplyContractKeyResponse>;
+  
+  GetLicenseState: grpc.handleUnaryCall<_braiins_bos_v1_GetLicenseStateRequest__Output, _braiins_bos_v1_GetLicenseStateResponse>;
+  
+}
+
+export interface LicenseServiceDefinition extends grpc.ServiceDefinition {
+  ApplyContractKey: MethodDefinition<_braiins_bos_v1_ApplyContractKeyRequest, _braiins_bos_v1_ApplyContractKeyResponse, _braiins_bos_v1_ApplyContractKeyRequest__Output, _braiins_bos_v1_ApplyContractKeyResponse__Output>
+  GetLicenseState: MethodDefinition<_braiins_bos_v1_GetLicenseStateRequest, _braiins_bos_v1_GetLicenseStateResponse, _braiins_bos_v1_GetLicenseStateRequest__Output, _braiins_bos_v1_GetLicenseStateResponse__Output>
+}

@@ -14,6 +14,7 @@ import type { MinerAdapter } from '../main';
 import { categoryKeys } from './miner/model/Category';
 import type {
     AvalonMinerSettings,
+    BOSSettings,
     BOSMinerSettings,
     ClaymoreMinerSettings,
     IceRiverOcMinerSettings,
@@ -23,7 +24,7 @@ import type {
     TeamRedMinerSettings,
     XMRigSettings,
 } from './miner/model/MinerSettings';
-import { minerTypeKeys } from './miner/model/MinerSettings';
+import { BOS_DEFAULT_PASSWORD, BOS_DEFAULT_USERNAME, minerTypeKeys } from './miner/model/MinerSettings';
 import type { IOBrokerDeviceSettings, IOBrokerMinerSettings } from '../miner/model/IOBrokerMinerSettings';
 import { decryptDeviceSettings, isMiner } from '../miner/model/IOBrokerMinerSettings';
 import type { PartialDeep } from 'type-fest';
@@ -242,6 +243,14 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         tooltip: 'interval to poll the device for new data (in ms)',
                         hidden: "data.category !== 'miner'",
                     },
+                    username: {
+                        type: 'text',
+                        newLine: true,
+                        trim: true,
+                        label: I18n.getTranslatedObject('username'),
+                        tooltip: 'username used to login to the device API',
+                        hidden: "data.category !== 'miner' || data.minerType != 'bos'",
+                    },
                     password: {
                         type: 'text',
                         // type password does not allow to show the password generated as default value
@@ -250,7 +259,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         label: I18n.getTranslatedObject('password'),
                         tooltip:
                             'password used to connect to the device api. Adapter generates a random, secure and unique one for each device by default. But can of course be changed if needed.',
-                        hidden: "data.category !== 'miner' || !(data.minerType == 'claymoreMiner' || data.minerType == 'xmRig' || data.minerType == 'iceRiverOcMiner' || data.minerType == 'teamRedMiner')", // TODO: improve this
+                        hidden: "data.category !== 'miner' || !(data.minerType == 'claymoreMiner' || data.minerType == 'xmRig' || data.minerType == 'iceRiverOcMiner' || data.minerType == 'teamRedMiner' || data.minerType == 'bos')", // TODO: improve this
                     },
                     enabled: {
                         type: 'checkbox',
@@ -271,7 +280,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     host: existingSettings.settings.host,
                     mac: existingSettings.mac,
                     pollInterval: (existingSettings.settings as PollingMinerSettings).pollInterval ?? 10000, // TODO: implement this properly
-                    password: (existingSettings.settings as TeamRedMinerSettings).claymore?.password ?? '', // TODO: implement this properly
+                    username: (existingSettings.settings as BOSSettings).username ?? BOS_DEFAULT_USERNAME, // TODO: implement this properly
+                    password: getPasswordFormValue(existingSettings), // TODO: implement this properly
                     enabled: existingSettings.enabled,
                 },
                 title,
@@ -464,6 +474,23 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 const bosSettings: Omit<BOSMinerSettings, keyof MinerSettings> = {
                     pollInterval,
                     port: 4028, // TODO: make configurable
+                };
+                minerSettings = {
+                    ...minerSettings,
+                    ...bosSettings,
+                };
+                break;
+            }
+
+            case 'bos': {
+                const pollInterval = result.pollInterval ?? this.adapter.config.pollInterval;
+
+                const bosSettings: Omit<BOSSettings, keyof MinerSettings> = {
+                    pollInterval,
+                    port: 50051, // BOS gRPC API default
+                    username: result.username ?? BOS_DEFAULT_USERNAME,
+                    password: result.password ?? BOS_DEFAULT_PASSWORD,
+                    secure: false,
                 };
                 minerSettings = {
                     ...minerSettings,
@@ -764,3 +791,28 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
 }
 
 export default MinerAdapterDeviceManagement;
+
+function getPasswordFormValue(settings: PartialDeep<IOBrokerMinerSettings>): string {
+    switch (settings.settings?.minerType) {
+        case 'teamRedMiner': {
+            return (settings.settings as PartialDeep<TeamRedMinerSettings>).claymore?.password ?? '';
+        }
+
+        case 'claymoreMiner':
+        case 'xmRig':
+        case 'iceRiverOcMiner':
+        case 'bos': {
+            return (
+                (
+                    settings.settings as PartialDeep<
+                        ClaymoreMinerSettings | XMRigSettings | IceRiverOcMinerSettings | BOSSettings
+                    >
+                ).password ?? (settings.settings.minerType === 'bos' ? BOS_DEFAULT_PASSWORD : '')
+            );
+        }
+
+        default: {
+            return '';
+        }
+    }
+}

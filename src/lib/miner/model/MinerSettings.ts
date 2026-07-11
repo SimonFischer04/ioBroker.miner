@@ -5,8 +5,13 @@ export const minerTypeKeys = [
     'xmRig',
     'iceRiverOcMiner',
     'bosMiner',
+    'bos',
     'avalonMiner',
 ];
+
+// TODO: move to miner class
+export const BOS_DEFAULT_USERNAME = 'root';
+export const BOS_DEFAULT_PASSWORD = '';
 
 export type MinerType = (typeof minerTypeKeys)[number];
 
@@ -141,9 +146,39 @@ export interface BOSMinerSettings extends CGMinerSettings {
 /**
  *
  */
-export interface AvalonMinerSettings extends CGMinerSettings {
+export interface BOSSettings extends PollingMinerSettings {
     /**
      *
      */
     minerType: (typeof minerTypeKeys)[6];
+    /**
+     *
+     */
+    port: number;
+    /**
+     *
+     */
+    username: string;
+    /**
+     *
+     */
+    password: string;
+    /**
+     * Whether to use TLS for the gRPC connection.
+     */
+    secure?: boolean;
+    /**
+     * Per-request timeout in milliseconds.
+     */
+    timeoutMs?: number;
+}
+
+/**
+ *
+ */
+export interface AvalonMinerSettings extends CGMinerSettings {
+    /**
+     *
+     */
+    minerType: (typeof minerTypeKeys)[7];
 }

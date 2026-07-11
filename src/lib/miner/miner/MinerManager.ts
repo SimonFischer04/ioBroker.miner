@@ -19,8 +19,13 @@ export class MinerManager {
         logger.info(`[init] initializing miner with id ${settings.id}`);
 
         const miner: Miner<MinerSettings> = createMiner(settings);
+        try {
+            await miner.init();
+        } catch (e) {
+            await miner.close();
+            throw e;
+        }
         this.miners.push(miner);
-        await miner.init();
         return miner;
     }
 
@@ -87,7 +92,11 @@ export class MinerManager {
             return;
         }
 
-        await miner.start();
+        try {
+            await miner.start();
+        } catch (e) {
+            logger.error(`[startMiner] failed to start miner with id ${id}: ${String(e)}`);
+        }
     }
 
     /**
@@ -103,7 +112,11 @@ export class MinerManager {
             return;
         }
 
-        await miner.stop();
+        try {
+            await miner.stop();
+        } catch (e) {
+            logger.error(`[stopMiner] failed to stop miner with id ${id}: ${String(e)}`);
+        }
     }
 
     /**
@@ -121,6 +134,10 @@ export class MinerManager {
             return;
         }
 
-        await miner.setProfile(profile);
+        try {
+            await miner.setProfile(profile);
+        } catch (e) {
+            logger.error(`[setProfile] failed to set profile "${profile}" on miner with id ${id}: ${String(e)}`);
+        }
     }
 }
