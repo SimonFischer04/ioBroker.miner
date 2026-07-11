@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/MinerBrand.ts"],
+  "sourcesContent": ["// Original file: bos/v1/miner.proto\n\nexport const MinerBrand = {\n  MINER_BRAND_UNSPECIFIED: 0,\n  MINER_BRAND_ANTMINER: 1,\n  MINER_BRAND_WHATSMINER: 2,\n} as const;\n\nexport type MinerBrand =\n  | 'MINER_BRAND_UNSPECIFIED'\n  | 0\n  | 'MINER_BRAND_ANTMINER'\n  | 1\n  | 'MINER_BRAND_WHATSMINER'\n  | 2\n\nexport type MinerBrand__Output = typeof MinerBrand[keyof typeof MinerBrand]\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAEO,MAAM,aAAa;AAAA,EACxB,yBAAyB;AAAA,EACzB,sBAAsB;AAAA,EACtB,wBAAwB;AAC1B;",
+  "names": []
+}

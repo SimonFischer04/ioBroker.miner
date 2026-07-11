@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/GetMinerConfigurationRequest.ts"],
+  "sourcesContent": ["// Original file: bos/v1/configuration.proto\n\n\nexport interface GetMinerConfigurationRequest {\n}\n\nexport interface GetMinerConfigurationRequest__Output {\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/FanPauseMode.ts"],
+  "sourcesContent": ["// Original file: bos/v1/cooling.proto\n\nexport const FanPauseMode = {\n  FAN_PAUSE_MODE_UNSPECIFIED: 0,\n  FAN_PAUSE_MODE_AUTO: 1,\n  FAN_PAUSE_MODE_MANUAL: 2,\n} as const;\n\nexport type FanPauseMode =\n  | 'FAN_PAUSE_MODE_UNSPECIFIED'\n  | 0\n  | 'FAN_PAUSE_MODE_AUTO'\n  | 1\n  | 'FAN_PAUSE_MODE_MANUAL'\n  | 2\n\nexport type FanPauseMode__Output = typeof FanPauseMode[keyof typeof FanPauseMode]\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAEO,MAAM,eAAe;AAAA,EAC1B,4BAA4B;AAAA,EAC5B,qBAAqB;AAAA,EACrB,uBAAuB;AACzB;",
+  "names": []
+}

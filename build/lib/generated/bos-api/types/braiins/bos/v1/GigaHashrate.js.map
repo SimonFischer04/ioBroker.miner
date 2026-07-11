@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/GigaHashrate.ts"],
+  "sourcesContent": ["// Original file: bos/v1/units.proto\n\n\nexport interface GigaHashrate {\n  'gigahashPerSecond'?: (number | string);\n}\n\nexport interface GigaHashrate__Output {\n  'gigahashPerSecond'?: (number);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

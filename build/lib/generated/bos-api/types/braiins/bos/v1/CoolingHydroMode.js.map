@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/CoolingHydroMode.ts"],
+  "sourcesContent": ["// Original file: bos/v1/cooling.proto\n\nimport type { Temperature as _braiins_bos_v1_Temperature, Temperature__Output as _braiins_bos_v1_Temperature__Output } from '../../../braiins/bos/v1/Temperature';\n\nexport interface CoolingHydroMode {\n  'hotTemperature'?: (_braiins_bos_v1_Temperature | null);\n  'dangerousTemperature'?: (_braiins_bos_v1_Temperature | null);\n  'targetTemperature'?: (_braiins_bos_v1_Temperature | null);\n}\n\nexport interface CoolingHydroMode__Output {\n  'hotTemperature'?: (_braiins_bos_v1_Temperature__Output);\n  'dangerousTemperature'?: (_braiins_bos_v1_Temperature__Output);\n  'targetTemperature'?: (_braiins_bos_v1_Temperature__Output);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

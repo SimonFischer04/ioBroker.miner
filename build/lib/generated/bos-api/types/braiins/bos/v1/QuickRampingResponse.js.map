@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/QuickRampingResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/performance.proto\n\n\nexport interface QuickRampingResponse {\n  'upS'?: (number);\n  'downS'?: (number);\n}\n\nexport interface QuickRampingResponse__Output {\n  'upS'?: (number);\n  'downS'?: (number);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

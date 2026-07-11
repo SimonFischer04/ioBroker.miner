@@ -54,6 +54,13 @@ function encryptDeviceSettings(settings, encryptFunction) {
       iceRiverOcSettings.password = encryptFunction(iceRiverOcSettings.password);
       break;
     }
+    case "bos": {
+      const bosSettings = settings.settings;
+      if (bosSettings.password) {
+        bosSettings.password = encryptFunction(bosSettings.password);
+      }
+      break;
+    }
     default: {
       break;
     }
@@ -84,6 +91,13 @@ function decryptDeviceSettings(settings, decryptFunction) {
     case "iceRiverOcMiner": {
       const iceRiverOcSettings = settings.settings;
       iceRiverOcSettings.password = decryptFunction(iceRiverOcSettings.password);
+      break;
+    }
+    case "bos": {
+      const bosSettings = settings.settings;
+      if (bosSettings.password) {
+        bosSettings.password = decryptFunction(bosSettings.password);
+      }
       break;
     }
     default: {

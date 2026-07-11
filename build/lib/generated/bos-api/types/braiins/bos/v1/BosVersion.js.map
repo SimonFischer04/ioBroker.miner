@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/BosVersion.ts"],
+  "sourcesContent": ["// Original file: bos/v1/miner.proto\n\n\nexport interface BosVersion {\n  'current'?: (string);\n  'major'?: (string);\n  'bosPlus'?: (boolean);\n}\n\nexport interface BosVersion__Output {\n  'current'?: (string);\n  'major'?: (string);\n  'bosPlus'?: (boolean);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

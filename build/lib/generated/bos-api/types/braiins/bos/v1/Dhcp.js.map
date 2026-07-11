@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/Dhcp.ts"],
+  "sourcesContent": ["// Original file: bos/v1/network.proto\n\n\nexport interface Dhcp {\n}\n\nexport interface Dhcp__Output {\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

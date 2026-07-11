@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/HashrateTargetProfile.ts"],
+  "sourcesContent": ["// Original file: bos/v1/performance.proto\n\nimport type { Timestamp as _google_protobuf_Timestamp, Timestamp__Output as _google_protobuf_Timestamp__Output } from '../../../google/protobuf/Timestamp';\nimport type { TeraHashrate as _braiins_bos_v1_TeraHashrate, TeraHashrate__Output as _braiins_bos_v1_TeraHashrate__Output } from '../../../braiins/bos/v1/TeraHashrate';\nimport type { GigaHashrate as _braiins_bos_v1_GigaHashrate, GigaHashrate__Output as _braiins_bos_v1_GigaHashrate__Output } from '../../../braiins/bos/v1/GigaHashrate';\nimport type { Power as _braiins_bos_v1_Power, Power__Output as _braiins_bos_v1_Power__Output } from '../../../braiins/bos/v1/Power';\n\nexport interface HashrateTargetProfile {\n  'created'?: (_google_protobuf_Timestamp | null);\n  'target'?: (_braiins_bos_v1_TeraHashrate | null);\n  'measuredHashrate'?: (_braiins_bos_v1_GigaHashrate | null);\n  'estimatedPowerConsumption'?: (_braiins_bos_v1_Power | null);\n}\n\nexport interface HashrateTargetProfile__Output {\n  'created'?: (_google_protobuf_Timestamp__Output);\n  'target'?: (_braiins_bos_v1_TeraHashrate__Output);\n  'measuredHashrate'?: (_braiins_bos_v1_GigaHashrate__Output);\n  'estimatedPowerConsumption'?: (_braiins_bos_v1_Power__Output);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

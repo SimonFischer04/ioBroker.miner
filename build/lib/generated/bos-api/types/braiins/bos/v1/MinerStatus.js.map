@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/MinerStatus.ts"],
+  "sourcesContent": ["// Original file: bos/v1/miner.proto\n\nexport const MinerStatus = {\n  MINER_STATUS_UNSPECIFIED: 0,\n  MINER_STATUS_NOT_STARTED: 1,\n  MINER_STATUS_NORMAL: 2,\n  MINER_STATUS_PAUSED: 3,\n  MINER_STATUS_SUSPENDED: 4,\n  MINER_STATUS_RESTRICTED: 5,\n} as const;\n\nexport type MinerStatus =\n  | 'MINER_STATUS_UNSPECIFIED'\n  | 0\n  | 'MINER_STATUS_NOT_STARTED'\n  | 1\n  | 'MINER_STATUS_NORMAL'\n  | 2\n  | 'MINER_STATUS_PAUSED'\n  | 3\n  | 'MINER_STATUS_SUSPENDED'\n  | 4\n  | 'MINER_STATUS_RESTRICTED'\n  | 5\n\nexport type MinerStatus__Output = typeof MinerStatus[keyof typeof MinerStatus]\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAEO,MAAM,cAAc;AAAA,EACzB,0BAA0B;AAAA,EAC1B,0BAA0B;AAAA,EAC1B,qBAAqB;AAAA,EACrB,qBAAqB;AAAA,EACrB,wBAAwB;AAAA,EACxB,yBAAyB;AAC3B;",
+  "names": []
+}

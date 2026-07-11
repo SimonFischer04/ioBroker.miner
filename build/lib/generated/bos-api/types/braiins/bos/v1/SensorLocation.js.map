@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/SensorLocation.ts"],
+  "sourcesContent": ["// Original file: bos/v1/cooling.proto\n\nexport const SensorLocation = {\n  SENSOR_LOCATION_UNSPECIFIED: 0,\n  SENSOR_LOCATION_CHIP: 1,\n  SENSOR_LOCATION_PCB: 2,\n} as const;\n\nexport type SensorLocation =\n  | 'SENSOR_LOCATION_UNSPECIFIED'\n  | 0\n  | 'SENSOR_LOCATION_CHIP'\n  | 1\n  | 'SENSOR_LOCATION_PCB'\n  | 2\n\nexport type SensorLocation__Output = typeof SensorLocation[keyof typeof SensorLocation]\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAEO,MAAM,iBAAiB;AAAA,EAC5B,6BAA6B;AAAA,EAC7B,sBAAsB;AAAA,EACtB,qBAAqB;AACvB;",
+  "names": []
+}

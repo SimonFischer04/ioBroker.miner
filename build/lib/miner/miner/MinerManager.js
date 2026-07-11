@@ -33,8 +33,13 @@ class MinerManager {
   async init(settings) {
     logger.info(`[init] initializing miner with id ${settings.id}`);
     const miner = (0, import_MinerFactory.createMiner)(settings);
+    try {
+      await miner.init();
+    } catch (e) {
+      await miner.close();
+      throw e;
+    }
     this.miners.push(miner);
-    await miner.init();
     return miner;
   }
   /**
@@ -90,7 +95,11 @@ class MinerManager {
       logger.warn(`[startMiner] miner with id ${id} not found`);
       return;
     }
-    await miner.start();
+    try {
+      await miner.start();
+    } catch (e) {
+      logger.error(`[startMiner] failed to start miner with id ${id}: ${String(e)}`);
+    }
   }
   /**
    *
@@ -103,7 +112,11 @@ class MinerManager {
       logger.warn(`[stopMiner] miner with id ${id} not found`);
       return;
     }
-    await miner.stop();
+    try {
+      await miner.stop();
+    } catch (e) {
+      logger.error(`[stopMiner] failed to stop miner with id ${id}: ${String(e)}`);
+    }
   }
   /**
    * Set the active performance profile on a miner.
@@ -118,7 +131,11 @@ class MinerManager {
       logger.warn(`[setProfile] miner with id ${id} not found`);
       return;
     }
-    await miner.setProfile(profile);
+    try {
+      await miner.setProfile(profile);
+    } catch (e) {
+      logger.error(`[setProfile] failed to set profile "${profile}" on miner with id ${id}: ${String(e)}`);
+    }
   }
 }
 // Annotate the CommonJS export names for ESM import in node:

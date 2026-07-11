@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/GetLogRequest.ts"],
+  "sourcesContent": ["// Original file: bos/v1/miner.proto\n\nimport type { LogType as _braiins_bos_v1_LogType, LogType__Output as _braiins_bos_v1_LogType__Output } from '../../../braiins/bos/v1/LogType';\n\nexport interface GetLogRequest {\n  'logType'?: (_braiins_bos_v1_LogType);\n}\n\nexport interface GetLogRequest__Output {\n  'logType'?: (_braiins_bos_v1_LogType__Output);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

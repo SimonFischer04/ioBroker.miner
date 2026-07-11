@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/UpdateAutoUpgradeConfigResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/upgrade.proto\n\nimport type { Timestamp as _google_protobuf_Timestamp, Timestamp__Output as _google_protobuf_Timestamp__Output } from '../../../google/protobuf/Timestamp';\n\nexport interface UpdateAutoUpgradeConfigResponse {\n  'enabled'?: (boolean);\n  'nextExecution'?: (_google_protobuf_Timestamp | null);\n  '_nextExecution'?: \"nextExecution\";\n}\n\nexport interface UpdateAutoUpgradeConfigResponse__Output {\n  'enabled'?: (boolean);\n  'nextExecution'?: (_google_protobuf_Timestamp__Output);\n  '_nextExecution'?: \"nextExecution\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

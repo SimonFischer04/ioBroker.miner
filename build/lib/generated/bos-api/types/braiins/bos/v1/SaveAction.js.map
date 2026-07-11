@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/SaveAction.ts"],
+  "sourcesContent": ["// Original file: bos/v1/common.proto\n\nexport const SaveAction = {\n  SAVE_ACTION_UNSPECIFIED: 0,\n  SAVE_ACTION_SAVE: 1,\n  SAVE_ACTION_SAVE_AND_APPLY: 2,\n  SAVE_ACTION_SAVE_AND_FORCE_APPLY: 3,\n} as const;\n\nexport type SaveAction =\n  | 'SAVE_ACTION_UNSPECIFIED'\n  | 0\n  | 'SAVE_ACTION_SAVE'\n  | 1\n  | 'SAVE_ACTION_SAVE_AND_APPLY'\n  | 2\n  | 'SAVE_ACTION_SAVE_AND_FORCE_APPLY'\n  | 3\n\nexport type SaveAction__Output = typeof SaveAction[keyof typeof SaveAction]\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAEO,MAAM,aAAa;AAAA,EACxB,yBAAyB;AAAA,EACzB,kBAAkB;AAAA,EAClB,4BAA4B;AAAA,EAC5B,kCAAkC;AACpC;",
+  "names": []
+}

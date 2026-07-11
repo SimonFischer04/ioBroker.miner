@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/TeraHashrate.ts"],
+  "sourcesContent": ["// Original file: bos/v1/units.proto\n\n\nexport interface TeraHashrate {\n  'terahashPerSecond'?: (number | string);\n}\n\nexport interface TeraHashrate__Output {\n  'terahashPerSecond'?: (number);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

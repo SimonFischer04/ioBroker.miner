@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/Frequency.ts"],
+  "sourcesContent": ["// Original file: bos/v1/units.proto\n\n\nexport interface Frequency {\n  'hertz'?: (number | string);\n}\n\nexport interface Frequency__Output {\n  'hertz'?: (number);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

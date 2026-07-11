@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/FactoryResetRequest.ts"],
+  "sourcesContent": ["// Original file: bos/v1/actions.proto\n\n\nexport interface FactoryResetRequest {\n  'wipeNetwork'?: (boolean);\n  '_wipeNetwork'?: \"wipeNetwork\";\n}\n\nexport interface FactoryResetRequest__Output {\n  'wipeNetwork'?: (boolean);\n  '_wipeNetwork'?: \"wipeNetwork\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

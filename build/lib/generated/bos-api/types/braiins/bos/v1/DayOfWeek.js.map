@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/DayOfWeek.ts"],
+  "sourcesContent": ["// Original file: bos/v1/units.proto\n\nexport const DayOfWeek = {\n  DAY_OF_WEEK_UNSPECIFIED: 0,\n  DAY_OF_WEEK_MONDAY: 1,\n  DAY_OF_WEEK_TUESDAY: 2,\n  DAY_OF_WEEK_WEDNESDAY: 3,\n  DAY_OF_WEEK_THURSDAY: 4,\n  DAY_OF_WEEK_FRIDAY: 5,\n  DAY_OF_WEEK_SATURDAY: 6,\n  DAY_OF_WEEK_SUNDAY: 7,\n} as const;\n\nexport type DayOfWeek =\n  | 'DAY_OF_WEEK_UNSPECIFIED'\n  | 0\n  | 'DAY_OF_WEEK_MONDAY'\n  | 1\n  | 'DAY_OF_WEEK_TUESDAY'\n  | 2\n  | 'DAY_OF_WEEK_WEDNESDAY'\n  | 3\n  | 'DAY_OF_WEEK_THURSDAY'\n  | 4\n  | 'DAY_OF_WEEK_FRIDAY'\n  | 5\n  | 'DAY_OF_WEEK_SATURDAY'\n  | 6\n  | 'DAY_OF_WEEK_SUNDAY'\n  | 7\n\nexport type DayOfWeek__Output = typeof DayOfWeek[keyof typeof DayOfWeek]\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAEO,MAAM,YAAY;AAAA,EACvB,yBAAyB;AAAA,EACzB,oBAAoB;AAAA,EACpB,qBAAqB;AAAA,EACrB,uBAAuB;AAAA,EACvB,sBAAsB;AAAA,EACtB,oBAAoB;AAAA,EACpB,sBAAsB;AAAA,EACtB,oBAAoB;AACtB;",
+  "names": []
+}

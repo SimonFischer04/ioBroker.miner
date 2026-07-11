@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/Hours.ts"],
+  "sourcesContent": ["// Original file: bos/v1/units.proto\n\n\nexport interface Hours {\n  'hours'?: (number);\n}\n\nexport interface Hours__Output {\n  'hours'?: (number);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

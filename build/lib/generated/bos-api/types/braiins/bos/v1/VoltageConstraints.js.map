@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/VoltageConstraints.ts"],
+  "sourcesContent": ["// Original file: bos/v1/constraints.proto\n\nimport type { Voltage as _braiins_bos_v1_Voltage, Voltage__Output as _braiins_bos_v1_Voltage__Output } from '../../../braiins/bos/v1/Voltage';\n\nexport interface VoltageConstraints {\n  'default'?: (_braiins_bos_v1_Voltage | null);\n  'min'?: (_braiins_bos_v1_Voltage | null);\n  'max'?: (_braiins_bos_v1_Voltage | null);\n}\n\nexport interface VoltageConstraints__Output {\n  'default'?: (_braiins_bos_v1_Voltage__Output);\n  'min'?: (_braiins_bos_v1_Voltage__Output);\n  'max'?: (_braiins_bos_v1_Voltage__Output);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/HashboardEnableState.ts"],
+  "sourcesContent": ["// Original file: bos/v1/miner.proto\n\n\nexport interface HashboardEnableState {\n  'id'?: (string);\n  'isEnabled'?: (boolean);\n}\n\nexport interface HashboardEnableState__Output {\n  'id'?: (string);\n  'isEnabled'?: (boolean);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

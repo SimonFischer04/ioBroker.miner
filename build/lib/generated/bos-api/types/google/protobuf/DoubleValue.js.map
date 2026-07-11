@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../src/lib/generated/bos-api/types/google/protobuf/DoubleValue.ts"],
+  "sourcesContent": ["// Original file: null\n\n\nexport interface DoubleValue {\n  'value'?: (number | string);\n}\n\nexport interface DoubleValue__Output {\n  'value'?: (number);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

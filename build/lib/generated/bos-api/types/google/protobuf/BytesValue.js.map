@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../src/lib/generated/bos-api/types/google/protobuf/BytesValue.ts"],
+  "sourcesContent": ["// Original file: null\n\n\nexport interface BytesValue {\n  'value'?: (Buffer | Uint8Array | string);\n}\n\nexport interface BytesValue__Output {\n  'value'?: (Buffer);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/PauseMiningResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/actions.proto\n\n\nexport interface PauseMiningResponse {\n  'alreadyPaused'?: (boolean);\n}\n\nexport interface PauseMiningResponse__Output {\n  'alreadyPaused'?: (boolean);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/LogType.ts"],
+  "sourcesContent": ["// Original file: bos/v1/miner.proto\n\nexport const LogType = {\n  LOG_TYPE_UNSPECIFIED: 0,\n  LOG_TYPE_ERRORS: 1,\n  LOG_TYPE_BOSMINER: 2,\n  LOG_TYPE_BOSER: 3,\n  LOG_TYPE_MONITOR: 4,\n  LOG_TYPE_SYSLOG: 5,\n  LOG_TYPE_DMESG: 6,\n} as const;\n\nexport type LogType =\n  | 'LOG_TYPE_UNSPECIFIED'\n  | 0\n  | 'LOG_TYPE_ERRORS'\n  | 1\n  | 'LOG_TYPE_BOSMINER'\n  | 2\n  | 'LOG_TYPE_BOSER'\n  | 3\n  | 'LOG_TYPE_MONITOR'\n  | 4\n  | 'LOG_TYPE_SYSLOG'\n  | 5\n  | 'LOG_TYPE_DMESG'\n  | 6\n\nexport type LogType__Output = typeof LogType[keyof typeof LogType]\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAEO,MAAM,UAAU;AAAA,EACrB,sBAAsB;AAAA,EACtB,iBAAiB;AAAA,EACjB,mBAAmB;AAAA,EACnB,gBAAgB;AAAA,EAChB,kBAAkB;AAAA,EAClB,iBAAiB;AAAA,EACjB,gBAAgB;AAClB;",
+  "names": []
+}

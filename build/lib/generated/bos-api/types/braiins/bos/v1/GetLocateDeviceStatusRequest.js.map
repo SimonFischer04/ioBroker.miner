@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/GetLocateDeviceStatusRequest.ts"],
+  "sourcesContent": ["// Original file: bos/v1/actions.proto\n\n\nexport interface GetLocateDeviceStatusRequest {\n}\n\nexport interface GetLocateDeviceStatusRequest__Output {\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

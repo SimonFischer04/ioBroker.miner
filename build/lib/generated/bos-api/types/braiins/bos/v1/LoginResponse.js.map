@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/LoginResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/authentication.proto\n\n\nexport interface LoginResponse {\n  'token'?: (string);\n  'timeoutS'?: (number);\n}\n\nexport interface LoginResponse__Output {\n  'token'?: (string);\n  'timeoutS'?: (number);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

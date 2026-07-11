@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/WorkSolverStats.ts"],
+  "sourcesContent": ["// Original file: bos/v1/work.proto\n\nimport type { RealHashrate as _braiins_bos_v1_RealHashrate, RealHashrate__Output as _braiins_bos_v1_RealHashrate__Output } from '../../../braiins/bos/v1/RealHashrate';\nimport type { GigaHashrate as _braiins_bos_v1_GigaHashrate, GigaHashrate__Output as _braiins_bos_v1_GigaHashrate__Output } from '../../../braiins/bos/v1/GigaHashrate';\nimport type { MegaHashrate as _braiins_bos_v1_MegaHashrate, MegaHashrate__Output as _braiins_bos_v1_MegaHashrate__Output } from '../../../braiins/bos/v1/MegaHashrate';\nimport type { Long } from '@grpc/proto-loader';\n\nexport interface WorkSolverStats {\n  'realHashrate'?: (_braiins_bos_v1_RealHashrate | null);\n  'nominalHashrate'?: (_braiins_bos_v1_GigaHashrate | null);\n  'errorHashrate'?: (_braiins_bos_v1_MegaHashrate | null);\n  'foundBlocks'?: (number);\n  'bestShare'?: (number | string | Long);\n  'bestShareStr'?: (string);\n}\n\nexport interface WorkSolverStats__Output {\n  'realHashrate'?: (_braiins_bos_v1_RealHashrate__Output);\n  'nominalHashrate'?: (_braiins_bos_v1_GigaHashrate__Output);\n  'errorHashrate'?: (_braiins_bos_v1_MegaHashrate__Output);\n  'foundBlocks'?: (number);\n  'bestShare'?: (number);\n  'bestShareStr'?: (string);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

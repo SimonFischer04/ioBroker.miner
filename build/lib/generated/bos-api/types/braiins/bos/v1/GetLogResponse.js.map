@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/GetLogResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/miner.proto\n\n\nexport interface GetLogResponse {\n  'chunkData'?: (Buffer | Uint8Array | string);\n}\n\nexport interface GetLogResponse__Output {\n  'chunkData'?: (Buffer);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

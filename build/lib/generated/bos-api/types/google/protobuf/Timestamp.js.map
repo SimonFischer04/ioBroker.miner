@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../src/lib/generated/bos-api/types/google/protobuf/Timestamp.ts"],
+  "sourcesContent": ["// Original file: null\n\nimport type { Long } from '@grpc/proto-loader';\n\nexport interface Timestamp {\n  'seconds'?: (number | string | Long);\n  'nanos'?: (number);\n}\n\nexport interface Timestamp__Output {\n  'seconds'?: (number);\n  'nanos'?: (number);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

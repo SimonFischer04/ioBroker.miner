@@ -75,7 +75,7 @@ async function sendSocketCommand(logger, host, port, data, expectResponse = true
     });
     socket.setTimeout(3e3);
     socket.connect(port, host);
-    handlingTimeout = (0, import_delay.asyncTimeout)(() => {
+    handlingTimeout = (0, import_delay.timeout)(() => {
       if (!handled) {
         const msg = `timeout handling socket command: ${JSON.stringify(data)}. maybe the password is wrong?`;
         logger.warn(msg);

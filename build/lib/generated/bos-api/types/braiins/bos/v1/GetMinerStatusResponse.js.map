@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/GetMinerStatusResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/miner.proto\n\nimport type { MinerStatus as _braiins_bos_v1_MinerStatus, MinerStatus__Output as _braiins_bos_v1_MinerStatus__Output } from '../../../braiins/bos/v1/MinerStatus';\n\nexport interface GetMinerStatusResponse {\n  'status'?: (_braiins_bos_v1_MinerStatus);\n}\n\nexport interface GetMinerStatusResponse__Output {\n  'status'?: (_braiins_bos_v1_MinerStatus__Output);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

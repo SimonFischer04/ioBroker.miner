@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/SupportArchiveFormat.ts"],
+  "sourcesContent": ["// Original file: bos/v1/miner.proto\n\nexport const SupportArchiveFormat = {\n  SUPPORT_ARCHIVE_FORMAT_UNSPECIFIED: 0,\n  SUPPORT_ARCHIVE_FORMAT_ZIP: 1,\n  SUPPORT_ARCHIVE_FORMAT_BOS: 2,\n  SUPPORT_ARCHIVE_FORMAT_ZIP_ENCRYPTED: 3,\n} as const;\n\nexport type SupportArchiveFormat =\n  | 'SUPPORT_ARCHIVE_FORMAT_UNSPECIFIED'\n  | 0\n  | 'SUPPORT_ARCHIVE_FORMAT_ZIP'\n  | 1\n  | 'SUPPORT_ARCHIVE_FORMAT_BOS'\n  | 2\n  | 'SUPPORT_ARCHIVE_FORMAT_ZIP_ENCRYPTED'\n  | 3\n\nexport type SupportArchiveFormat__Output = typeof SupportArchiveFormat[keyof typeof SupportArchiveFormat]\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAEO,MAAM,uBAAuB;AAAA,EAClC,oCAAoC;AAAA,EACpC,4BAA4B;AAAA,EAC5B,4BAA4B;AAAA,EAC5B,sCAAsC;AACxC;",
+  "names": []
+}

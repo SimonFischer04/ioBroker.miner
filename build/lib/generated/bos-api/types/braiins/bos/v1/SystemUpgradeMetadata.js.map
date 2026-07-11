@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/SystemUpgradeMetadata.ts"],
+  "sourcesContent": ["// Original file: bos/v1/upgrade.proto\n\nimport type { Long } from '@grpc/proto-loader';\n\nexport interface SystemUpgradeMetadata {\n  'size'?: (number | string | Long);\n  'hash'?: (string);\n  'discardSettings'?: (boolean);\n  'disableCleanup'?: (boolean);\n}\n\nexport interface SystemUpgradeMetadata__Output {\n  'size'?: (number);\n  'hash'?: (string);\n  'discardSettings'?: (boolean);\n  'disableCleanup'?: (boolean);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

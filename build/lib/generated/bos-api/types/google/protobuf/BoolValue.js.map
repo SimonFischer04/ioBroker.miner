@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../src/lib/generated/bos-api/types/google/protobuf/BoolValue.ts"],
+  "sourcesContent": ["// Original file: null\n\n\nexport interface BoolValue {\n  'value'?: (boolean);\n}\n\nexport interface BoolValue__Output {\n  'value'?: (boolean);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

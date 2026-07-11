@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/Static.ts"],
+  "sourcesContent": ["// Original file: bos/v1/network.proto\n\n\nexport interface Static {\n  'address'?: (string);\n  'netmask'?: (string);\n  'gateway'?: (string);\n  'dnsServers'?: (string)[];\n}\n\nexport interface Static__Output {\n  'address'?: (string);\n  'netmask'?: (string);\n  'gateway'?: (string);\n  'dnsServers'?: (string)[];\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

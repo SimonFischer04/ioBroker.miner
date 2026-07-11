@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../src/lib/generated/bos-api/types/google/protobuf/NullValue.ts"],
+  "sourcesContent": ["// Original file: null\n\nexport const NullValue = {\n  NULL_VALUE: 0,\n} as const;\n\nexport type NullValue =\n  | 'NULL_VALUE'\n  | 0\n\nexport type NullValue__Output = typeof NullValue[keyof typeof NullValue]\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAEO,MAAM,YAAY;AAAA,EACvB,YAAY;AACd;",
+  "names": []
+}

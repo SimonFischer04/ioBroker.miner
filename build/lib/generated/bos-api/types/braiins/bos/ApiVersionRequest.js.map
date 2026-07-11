@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../src/lib/generated/bos-api/types/braiins/bos/ApiVersionRequest.ts"],
+  "sourcesContent": ["// Original file: bos/version.proto\n\n\nexport interface ApiVersionRequest {\n}\n\nexport interface ApiVersionRequest__Output {\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

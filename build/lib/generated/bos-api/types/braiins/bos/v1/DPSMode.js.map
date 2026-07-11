@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/DPSMode.ts"],
+  "sourcesContent": ["// Original file: bos/v1/performance.proto\n\nexport const DPSMode = {\n  DPS_MODE_UNSPECIFIED: 0,\n  DPS_MODE_NORMAL: 1,\n  DPS_MODE_BOOST: 2,\n} as const;\n\nexport type DPSMode =\n  | 'DPS_MODE_UNSPECIFIED'\n  | 0\n  | 'DPS_MODE_NORMAL'\n  | 1\n  | 'DPS_MODE_BOOST'\n  | 2\n\nexport type DPSMode__Output = typeof DPSMode[keyof typeof DPSMode]\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAEO,MAAM,UAAU;AAAA,EACrB,sBAAsB;AAAA,EACtB,iBAAiB;AAAA,EACjB,gBAAgB;AAClB;",
+  "names": []
+}

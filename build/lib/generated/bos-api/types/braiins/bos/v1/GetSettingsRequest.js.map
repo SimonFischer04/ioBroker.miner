@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/GetSettingsRequest.ts"],
+  "sourcesContent": ["// Original file: bos/v1/advanced_settings.proto\n\n\nexport interface GetSettingsRequest {\n  'includeDefault'?: (boolean);\n  '_includeDefault'?: \"includeDefault\";\n}\n\nexport interface GetSettingsRequest__Output {\n  'includeDefault'?: (boolean);\n  '_includeDefault'?: \"includeDefault\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

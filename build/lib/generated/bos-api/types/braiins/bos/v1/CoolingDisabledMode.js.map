@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/CoolingDisabledMode.ts"],
+  "sourcesContent": ["// Original file: bos/v1/cooling.proto\n\n\nexport interface CoolingDisabledMode {\n  'fanSpeedRatio'?: (number | string);\n  '_fanSpeedRatio'?: \"fanSpeedRatio\";\n}\n\nexport interface CoolingDisabledMode__Output {\n  'fanSpeedRatio'?: (number);\n  '_fanSpeedRatio'?: \"fanSpeedRatio\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

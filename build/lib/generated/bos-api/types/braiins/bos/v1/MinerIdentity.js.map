@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/MinerIdentity.ts"],
+  "sourcesContent": ["// Original file: bos/v1/miner.proto\n\nimport type { MinerBrand as _braiins_bos_v1_MinerBrand, MinerBrand__Output as _braiins_bos_v1_MinerBrand__Output } from '../../../braiins/bos/v1/MinerBrand';\nimport type { MinerModel as _braiins_bos_v1_MinerModel, MinerModel__Output as _braiins_bos_v1_MinerModel__Output } from '../../../braiins/bos/v1/MinerModel';\n\nexport interface MinerIdentity {\n  'brand'?: (_braiins_bos_v1_MinerBrand);\n  'model'?: (_braiins_bos_v1_MinerModel);\n  'name'?: (string);\n  'minerModel'?: (string);\n}\n\nexport interface MinerIdentity__Output {\n  'brand'?: (_braiins_bos_v1_MinerBrand__Output);\n  'model'?: (_braiins_bos_v1_MinerModel__Output);\n  'name'?: (string);\n  'minerModel'?: (string);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

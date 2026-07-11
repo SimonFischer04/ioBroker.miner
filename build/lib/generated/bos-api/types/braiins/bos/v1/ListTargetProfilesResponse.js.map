@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/ListTargetProfilesResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/performance.proto\n\nimport type { PowerTargetProfile as _braiins_bos_v1_PowerTargetProfile, PowerTargetProfile__Output as _braiins_bos_v1_PowerTargetProfile__Output } from '../../../braiins/bos/v1/PowerTargetProfile';\nimport type { HashrateTargetProfile as _braiins_bos_v1_HashrateTargetProfile, HashrateTargetProfile__Output as _braiins_bos_v1_HashrateTargetProfile__Output } from '../../../braiins/bos/v1/HashrateTargetProfile';\n\nexport interface ListTargetProfilesResponse {\n  'powerTargetProfiles'?: (_braiins_bos_v1_PowerTargetProfile)[];\n  'hashrateTargetProfiles'?: (_braiins_bos_v1_HashrateTargetProfile)[];\n}\n\nexport interface ListTargetProfilesResponse__Output {\n  'powerTargetProfiles'?: (_braiins_bos_v1_PowerTargetProfile__Output)[];\n  'hashrateTargetProfiles'?: (_braiins_bos_v1_HashrateTargetProfile__Output)[];\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

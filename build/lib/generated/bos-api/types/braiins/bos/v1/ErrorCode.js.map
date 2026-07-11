@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/ErrorCode.ts"],
+  "sourcesContent": ["// Original file: bos/v1/miner.proto\n\n\nexport interface ErrorCode {\n  'code'?: (string);\n  'reason'?: (string);\n  'hint'?: (string);\n}\n\nexport interface ErrorCode__Output {\n  'code'?: (string);\n  'reason'?: (string);\n  'hint'?: (string);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}
