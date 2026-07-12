@@ -50,7 +50,7 @@ class BOS extends import_PollingMiner.PollingMiner {
   }
   /**
    *
-   * @param powerTarget
+   * @param powerTarget Target power value in watts to apply on the miner.
    */
   async setPowerTarget(powerTarget) {
     await this.getClient().setPowerTarget(powerTarget);
@@ -101,10 +101,10 @@ class BOS extends import_PollingMiner.PollingMiner {
   }
   /**
    *
-   * @param details
-   * @param stats
-   * @param apiVersion
-   * @param tunerState
+   * @param details Miner metadata returned by the Braiins OS API.
+   * @param stats Live miner statistics returned by the Braiins OS API.
+   * @param apiVersion Optional Braiins OS API version payload.
+   * @param tunerState Optional tuner state payload containing power target data.
    */
   parseBosApiResponse(details, stats, apiVersion, tunerState) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k;

@@ -55,10 +55,6 @@ class BOSMiner extends import_CGMiner.CGMiner {
   async setPowerTarget(powerTarget) {
     const config = await this.runSshCommand(`cat ${shellQuote(BOSMINER_CONFIG_PATH)}`);
     const patchedConfig = patchBosMinerPowerTargetConfig(config, powerTarget);
-    if (patchedConfig === config) {
-      this.logger.debug(`bosMiner power target already set to ${powerTarget} W`);
-      return;
-    }
     const command = [
       buildBosMinerBackupConfigCommand(),
       BOSMINER_STOP_COMMAND,

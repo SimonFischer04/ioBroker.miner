@@ -89,7 +89,7 @@ class BosApiClient {
   tokenTimeoutMs = 36e5;
   /**
    *
-   * @param options
+   * @param options Connection and authentication options for the Braiins OS API client.
    */
   constructor(options) {
     const credentials = options.secure ? grpc.credentials.createSsl() : grpc.credentials.createInsecure();
@@ -168,7 +168,7 @@ class BosApiClient {
   }
   /**
    *
-   * @param watt
+   * @param watt Target power value in watts to send to the Braiins OS API.
    */
   setPowerTarget(watt) {
     return this.authenticatedUnary(
