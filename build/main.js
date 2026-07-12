@@ -188,6 +188,21 @@ class MinerAdapter extends utils.Adapter {
           await this.setState(id, { val: profile, ack: true });
           break;
         }
+        case (0, import_MinerFeature.getMinerFeatureFullId)(import_MinerFeature.MinerFeatureKey.powerTarget): {
+          const powerTarget = Number(state.val);
+          this.log.debug(`power target state changed to ${powerTarget}`);
+          if (!Number.isFinite(powerTarget) || powerTarget <= 0) {
+            this.log.warn(`invalid power target value for device ${deviceSettings.name}: ${state.val}`);
+            return;
+          }
+          if (deviceSettings.settings.id === void 0) {
+            this.log.error(`device ${deviceSettings.name} has no id`);
+            return;
+          }
+          await this.minerManager.setPowerTarget(deviceSettings.settings.id, powerTarget);
+          await this.setState(id, { val: powerTarget, ack: true });
+          break;
+        }
         default: {
           this.log.warn(`unknown handling of state ${id}`);
         }
@@ -428,6 +443,7 @@ class MinerAdapter extends utils.Adapter {
       const statsValues = {
         totalHashrate: stats.totalHashrate,
         power: stats.power,
+        dynamicPowerTarget: stats.dynamicPowerTarget,
         efficiency: stats.efficiency,
         acceptedShares: stats.acceptedShares,
         rejectedShares: stats.rejectedShares
@@ -490,6 +506,13 @@ class MinerAdapter extends utils.Adapter {
       const statsStates = {
         totalHashrate: { name: "Total Hashrate", type: "number", unit: "h/s", read: true, write: false },
         power: { name: "Power", type: "number", unit: "W", read: true, write: false },
+        dynamicPowerTarget: {
+          name: "Dynamic Power Target",
+          type: "number",
+          unit: "W",
+          read: true,
+          write: false
+        },
         efficiency: { name: "Efficiency", type: "number", unit: "H/W", read: true, write: false },
         acceptedShares: { name: "Accepted Shares", type: "number", read: true, write: false },
         rejectedShares: { name: "Rejected Shares", type: "number", read: true, write: false }

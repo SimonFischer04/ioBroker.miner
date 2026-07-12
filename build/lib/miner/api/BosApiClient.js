@@ -39,7 +39,8 @@ const PROTO_FILES = [
   import_node_path.default.join(PROTO_ROOT, "bos/version.proto"),
   import_node_path.default.join(PROTO_ROOT, "bos/v1/actions.proto"),
   import_node_path.default.join(PROTO_ROOT, "bos/v1/authentication.proto"),
-  import_node_path.default.join(PROTO_ROOT, "bos/v1/miner.proto")
+  import_node_path.default.join(PROTO_ROOT, "bos/v1/miner.proto"),
+  import_node_path.default.join(PROTO_ROOT, "bos/v1/performance.proto")
 ];
 function loadBosPackage() {
   const packageDefinition = protoLoader.loadSync(PROTO_FILES, {
@@ -78,6 +79,7 @@ class BosApiClient {
   minerService;
   actionsService;
   authenticationService;
+  performanceService;
   apiVersionService;
   timeoutMs;
   username;
@@ -99,6 +101,7 @@ class BosApiClient {
     this.minerService = new bosPackage.braiins.bos.v1.MinerService(target, credentials);
     this.actionsService = new bosPackage.braiins.bos.v1.ActionsService(target, credentials);
     this.authenticationService = new bosPackage.braiins.bos.v1.AuthenticationService(target, credentials);
+    this.performanceService = new bosPackage.braiins.bos.v1.PerformanceService(target, credentials);
     this.apiVersionService = new bosPackage.braiins.bos.ApiVersionService(target, credentials);
   }
   /**
@@ -156,6 +159,30 @@ class BosApiClient {
   /**
    *
    */
+  getTunerState() {
+    return this.authenticatedUnary(
+      "PerformanceService.GetTunerState",
+      this.performanceService.getTunerState.bind(this.performanceService),
+      {}
+    );
+  }
+  /**
+   *
+   * @param watt
+   */
+  setPowerTarget(watt) {
+    return this.authenticatedUnary(
+      "PerformanceService.SetPowerTarget",
+      this.performanceService.setPowerTarget.bind(this.performanceService),
+      {
+        saveAction: 2,
+        powerTarget: { watt }
+      }
+    );
+  }
+  /**
+   *
+   */
   start() {
     return this.authenticatedUnary("ActionsService.Start", this.actionsService.start.bind(this.actionsService), {});
   }
@@ -202,6 +229,7 @@ class BosApiClient {
     this.minerService.close();
     this.actionsService.close();
     this.authenticationService.close();
+    this.performanceService.close();
     this.apiVersionService.close();
   }
   async authenticatedUnary(methodName, method, request) {

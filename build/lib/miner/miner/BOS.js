@@ -50,12 +50,20 @@ class BOS extends import_PollingMiner.PollingMiner {
   }
   /**
    *
+   * @param powerTarget
+   */
+  async setPowerTarget(powerTarget) {
+    await this.getClient().setPowerTarget(powerTarget);
+  }
+  /**
+   *
    */
   async fetchStats() {
     const details = await this.getClient().getMinerDetails();
     const stats = await this.getClient().getMinerStats();
     const apiVersion = await this.getClient().getApiVersion();
-    return this.parseBosApiResponse(details, stats, apiVersion);
+    const tunerState = await this.getClient().getTunerState();
+    return this.parseBosApiResponse(details, stats, apiVersion, tunerState);
   }
   /**
    *
@@ -74,6 +82,7 @@ class BOS extends import_PollingMiner.PollingMiner {
       import_MinerFeature.MinerFeatureKey.running,
       import_MinerFeature.MinerFeatureKey.version,
       import_MinerFeature.MinerFeatureKey.firmwareVersion,
+      import_MinerFeature.MinerFeatureKey.powerTarget,
       import_MinerFeature.MinerFeatureKey.stats,
       import_MinerFeature.MinerFeatureKey.rawStats
     ];
@@ -95,22 +104,25 @@ class BOS extends import_PollingMiner.PollingMiner {
    * @param details
    * @param stats
    * @param apiVersion
+   * @param tunerState
    */
-  parseBosApiResponse(details, stats, apiVersion) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
+  parseBosApiResponse(details, stats, apiVersion, tunerState) {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k;
     const hashrate = (_a = stats.minerStats) == null ? void 0 : _a.realHashrate;
     const totalHashrate = ((_b = hashrate == null ? void 0 : hashrate.last_5s) == null ? void 0 : _b.gigahashPerSecond) !== void 0 ? hashrate.last_5s.gigahashPerSecond * GHASH_TO_HASH : void 0;
     const power = (_d = (_c = stats.powerStats) == null ? void 0 : _c.approximatedConsumption) == null ? void 0 : _d.watt;
-    const joulePerTerahash = (_f = (_e = stats.powerStats) == null ? void 0 : _e.efficiency) == null ? void 0 : _f.joulePerTerahash;
+    const dynamicPowerTarget = (_f = (_e = tunerState == null ? void 0 : tunerState.powerTargetModeState) == null ? void 0 : _e.currentTarget) == null ? void 0 : _f.watt;
+    const joulePerTerahash = (_h = (_g = stats.powerStats) == null ? void 0 : _g.efficiency) == null ? void 0 : _h.joulePerTerahash;
     return {
-      raw: { details, stats, apiVersion },
+      raw: { details, stats, apiVersion, tunerState },
       version: formatApiVersion(apiVersion),
-      firmwareVersion: (_g = details.bosVersion) == null ? void 0 : _g.current,
+      firmwareVersion: (_i = details.bosVersion) == null ? void 0 : _i.current,
       totalHashrate,
       power,
+      dynamicPowerTarget,
       efficiency: joulePerTerahash !== void 0 && joulePerTerahash > 0 ? TERAHASH_TO_HASH / joulePerTerahash : void 0,
-      acceptedShares: (_h = stats.poolStats) == null ? void 0 : _h.acceptedShares,
-      rejectedShares: (_i = stats.poolStats) == null ? void 0 : _i.rejectedShares
+      acceptedShares: (_j = stats.poolStats) == null ? void 0 : _j.acceptedShares,
+      rejectedShares: (_k = stats.poolStats) == null ? void 0 : _k.rejectedShares
     };
   }
   getClient() {

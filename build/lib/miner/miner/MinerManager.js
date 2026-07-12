@@ -137,6 +137,27 @@ class MinerManager {
       logger.error(`[setProfile] failed to set profile "${profile}" on miner with id ${id}: ${String(e)}`);
     }
   }
+  /**
+   * Set the power target on a miner.
+   *
+   * @param id - the miner id
+   * @param powerTarget - the power target in watts
+   */
+  async setPowerTarget(id, powerTarget) {
+    logger.info(`[setPowerTarget] setting power target ${powerTarget} W on miner with id ${id}`);
+    const miner = this.getMinerById(id);
+    if (!miner) {
+      logger.warn(`[setPowerTarget] miner with id ${id} not found`);
+      return;
+    }
+    try {
+      await miner.setPowerTarget(powerTarget);
+    } catch (e) {
+      logger.error(
+        `[setPowerTarget] failed to set power target ${powerTarget} W on miner with id ${id}: ${String(e)}`
+      );
+    }
+  }
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

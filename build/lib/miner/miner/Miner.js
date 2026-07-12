@@ -69,6 +69,15 @@ class Miner {
     return Promise.resolve();
   }
   /**
+   * Set the active power target in watts.
+   *
+   * @param _powerTarget - the target power in watts
+   */
+  setPowerTarget(_powerTarget) {
+    this.logger.error("setPowerTarget() not implemented for this miner");
+    return Promise.resolve();
+  }
+  /**
    * Close / cleanup any open resources
    */
   close() {

@@ -28,6 +28,7 @@ var MinerFeatureKey = /* @__PURE__ */ ((MinerFeatureKey2) => {
   MinerFeatureKey2["running"] = "running";
   MinerFeatureKey2["reboot"] = "reboot";
   MinerFeatureKey2["profile"] = "profile";
+  MinerFeatureKey2["powerTarget"] = "powerTarget";
   MinerFeatureKey2["version"] = "version";
   MinerFeatureKey2["firmwareVersion"] = "firmwareVersion";
   MinerFeatureKey2["stats"] = "stats";
@@ -73,6 +74,17 @@ const minerFeatures = {
     description: "Active performance profile of the miner.",
     type: "string",
     role: "text",
+    readable: true,
+    writable: true
+  },
+  ["powerTarget" /* powerTarget */]: {
+    category: "control" /* control */,
+    id: "powerTarget",
+    label: "Power Target",
+    description: "Configured power target of the miner.",
+    type: "number",
+    unit: "W",
+    role: "level.power",
     readable: true,
     writable: true
   },
