@@ -3,6 +3,7 @@ export enum MinerFeatureKey {
     running = 'running',
     reboot = 'reboot',
     profile = 'profile',
+    powerTarget = 'powerTarget',
 
     // info
     version = 'version',
@@ -107,6 +108,17 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
         description: 'Active performance profile of the miner.',
         type: 'string',
         role: 'text',
+        readable: true,
+        writable: true,
+    },
+    [MinerFeatureKey.powerTarget]: {
+        category: MinerFeatureCategory.control,
+        id: 'powerTarget',
+        label: 'Power Target',
+        description: 'Configured power target of the miner.',
+        type: 'number',
+        unit: 'W',
+        role: 'level.power',
         readable: true,
         writable: true,
     },

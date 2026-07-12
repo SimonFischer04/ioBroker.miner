@@ -4,18 +4,24 @@ import path from 'node:path';
 import type { ProtoGrpcType as ActionsProtoGrpcType } from '../../generated/bos-api/types/actions';
 import type { ProtoGrpcType as AuthenticationProtoGrpcType } from '../../generated/bos-api/types/authentication';
 import type { ProtoGrpcType as MinerProtoGrpcType } from '../../generated/bos-api/types/miner';
+import type { ProtoGrpcType as PerformanceProtoGrpcType } from '../../generated/bos-api/types/performance';
 import type { ProtoGrpcType as VersionProtoGrpcType } from '../../generated/bos-api/types/version';
 import type { ActionsServiceClient } from '../../generated/bos-api/types/braiins/bos/v1/ActionsService';
 import type { AuthenticationServiceClient } from '../../generated/bos-api/types/braiins/bos/v1/AuthenticationService';
 import type { MinerServiceClient } from '../../generated/bos-api/types/braiins/bos/v1/MinerService';
+import type { PerformanceServiceClient } from '../../generated/bos-api/types/braiins/bos/v1/PerformanceService';
 import type { ApiVersionServiceClient } from '../../generated/bos-api/types/braiins/bos/ApiVersionService';
 import type { GetMinerDetailsResponse__Output } from '../../generated/bos-api/types/braiins/bos/v1/GetMinerDetailsResponse';
 import type { GetMinerStatsResponse__Output } from '../../generated/bos-api/types/braiins/bos/v1/GetMinerStatsResponse';
+import type { GetTunerStateResponse__Output } from '../../generated/bos-api/types/braiins/bos/v1/GetTunerStateResponse';
 import type { LoginResponse__Output } from '../../generated/bos-api/types/braiins/bos/v1/LoginResponse';
+import type { SetPowerTargetResponse__Output } from '../../generated/bos-api/types/braiins/bos/v1/SetPowerTargetResponse';
 import type { ApiVersion__Output } from '../../generated/bos-api/types/braiins/bos/ApiVersion';
 
 export type BosMinerDetails = GetMinerDetailsResponse__Output;
 export type BosMinerStats = GetMinerStatsResponse__Output;
+export type BosTunerState = GetTunerStateResponse__Output;
+export type BosSetPowerTargetResponse = SetPowerTargetResponse__Output;
 export type BosLoginResponse = LoginResponse__Output;
 export type BosApiVersion = ApiVersion__Output;
 
@@ -62,11 +68,13 @@ const PROTO_FILES = [
     path.join(PROTO_ROOT, 'bos/v1/actions.proto'),
     path.join(PROTO_ROOT, 'bos/v1/authentication.proto'),
     path.join(PROTO_ROOT, 'bos/v1/miner.proto'),
+    path.join(PROTO_ROOT, 'bos/v1/performance.proto'),
 ];
 
 function loadBosPackage(): ActionsProtoGrpcType &
     AuthenticationProtoGrpcType &
     MinerProtoGrpcType &
+    PerformanceProtoGrpcType &
     VersionProtoGrpcType {
     const packageDefinition = protoLoader.loadSync(PROTO_FILES, {
         includeDirs: [PROTO_ROOT],
@@ -79,6 +87,7 @@ function loadBosPackage(): ActionsProtoGrpcType &
     return grpc.loadPackageDefinition(packageDefinition) as unknown as ActionsProtoGrpcType &
         AuthenticationProtoGrpcType &
         MinerProtoGrpcType &
+        PerformanceProtoGrpcType &
         VersionProtoGrpcType;
 }
 
@@ -127,6 +136,7 @@ export class BosApiClient {
     private readonly minerService: MinerServiceClient;
     private readonly actionsService: ActionsServiceClient;
     private readonly authenticationService: AuthenticationServiceClient;
+    private readonly performanceService: PerformanceServiceClient;
     private readonly apiVersionService: ApiVersionServiceClient;
     private readonly timeoutMs: number | undefined;
     private readonly username: string | undefined;
@@ -150,6 +160,7 @@ export class BosApiClient {
         this.minerService = new bosPackage.braiins.bos.v1.MinerService(target, credentials);
         this.actionsService = new bosPackage.braiins.bos.v1.ActionsService(target, credentials);
         this.authenticationService = new bosPackage.braiins.bos.v1.AuthenticationService(target, credentials);
+        this.performanceService = new bosPackage.braiins.bos.v1.PerformanceService(target, credentials);
         this.apiVersionService = new bosPackage.braiins.bos.ApiVersionService(target, credentials);
     }
 
@@ -217,6 +228,32 @@ export class BosApiClient {
     /**
      *
      */
+    public getTunerState(): Promise<BosTunerState> {
+        return this.authenticatedUnary(
+            'PerformanceService.GetTunerState',
+            this.performanceService.getTunerState.bind(this.performanceService),
+            {},
+        );
+    }
+
+    /**
+     *
+     * @param watt
+     */
+    public setPowerTarget(watt: number): Promise<BosSetPowerTargetResponse> {
+        return this.authenticatedUnary(
+            'PerformanceService.SetPowerTarget',
+            this.performanceService.setPowerTarget.bind(this.performanceService),
+            {
+                saveAction: 2,
+                powerTarget: { watt },
+            },
+        );
+    }
+
+    /**
+     *
+     */
     public start(): Promise<object> {
         return this.authenticatedUnary('ActionsService.Start', this.actionsService.start.bind(this.actionsService), {});
     }
@@ -268,6 +305,7 @@ export class BosApiClient {
         this.minerService.close();
         this.actionsService.close();
         this.authenticationService.close();
+        this.performanceService.close();
         this.apiVersionService.close();
     }
 

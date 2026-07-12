@@ -31,6 +31,21 @@ When adding a new device inside the instance settings (or inside the Admin Devic
 
 The options should be pretty self-explanatory. All of them also have tooltips with more details. If anything is still unclear feel free to ask in an issue, discussion or the forum. 
 
+### Braiins OS miner types
+There are two Braiins miner implementations because Braiins changed the API stack across firmware generations:
+
+- `bos`: use this for official Braiins OS firmware `>= 23.03`, typically Antminer S19 series and newer. This implementation uses the Braiins OS Public API (PAPI) over gRPC.
+- `bosMiner`: use this for legacy Braiins OS firmware `< 23.03`, typically pre-S19 devices such as Antminer S9 and S17 series. This keeps using the older CGMiner-compatible API.
+
+If you are unsure which one to choose, check the firmware generation/device family first:
+
+- S19/S21/T19 and newer Braiins OS images are listed in the current firmware download flow and should normally use `bos`.
+- S17 images are published as `v 23.01` and S9 images as `v 22.08.1` on the Braiins download page, so those legacy generations should use `bosMiner`.
+
+References:
+- Braiins OS Public API: https://academy.braiins.com/braiins-os/papi-about
+- Braiins OS firmware downloads: https://braiins.com/os-firmware/download
+
 ## Object model
 
 All objects are created under:
@@ -83,6 +98,7 @@ miner.0
       stats                          (channel)
         totalHashrate                (number)   H/s (maps to feature: totalHashrate)
         power                        (number)   W
+        dynamicPowerTarget           (number)   W, current dynamic target reported by miner
         efficiency                   (number)   H/W
         acceptedShares               (number)
         rejectedShares               (number)
@@ -90,6 +106,7 @@ miner.0
         running                      (boolean)  start/stop (maps to feature: running)
         reboot                       (boolean)  "button"
         profile                      (string)   performance profile (e.g. low/medium/high)
+        powerTarget                  (number)   W, configured target to write to miner
       pools                          (channel)
         0                            (channel)
           info

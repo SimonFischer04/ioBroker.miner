@@ -1,5 +1,11 @@
 import { BOS_DEFAULT_PASSWORD, BOS_DEFAULT_USERNAME } from '../model/MinerSettings';
-import { BosApiClient, type BosApiVersion, type BosMinerDetails, type BosMinerStats } from '../api/BosApiClient';
+import {
+    BosApiClient,
+    type BosApiVersion,
+    type BosMinerDetails,
+    type BosMinerStats,
+    type BosTunerState,
+} from '../api/BosApiClient';
 import { MinerFeatureKey } from '../model/MinerFeature';
 import type { BOSSettings } from '../model/MinerSettings';
 import type { MinerStats } from '../model/MinerStats';
@@ -7,6 +13,11 @@ import { PollingMiner } from './PollingMiner';
 
 const GHASH_TO_HASH = 1_000_000_000;
 const TERAHASH_TO_HASH = 1_000_000_000_000;
+
+// new "bos public api"
+// see: https://academy.braiins.com/braiins-os/papi-about and https://braiins.com/os-firmware/download
+// bos: firmware >= 23.03 (S19 Series and above)
+// bosMiner: firmware < 23.03 (pre S19 - (s9, s17))
 
 /**
  *
@@ -38,13 +49,22 @@ export class BOS extends PollingMiner<BOSSettings> {
 
     /**
      *
+     * @param powerTarget
+     */
+    public override async setPowerTarget(powerTarget: number): Promise<void> {
+        await this.getClient().setPowerTarget(powerTarget);
+    }
+
+    /**
+     *
      */
     public override async fetchStats(): Promise<MinerStats> {
         const details = await this.getClient().getMinerDetails();
         const stats = await this.getClient().getMinerStats();
         const apiVersion = await this.getClient().getApiVersion();
+        const tunerState = await this.getClient().getTunerState();
 
-        return this.parseBosApiResponse(details, stats, apiVersion);
+        return this.parseBosApiResponse(details, stats, apiVersion, tunerState);
     }
 
     /**
@@ -64,6 +84,7 @@ export class BOS extends PollingMiner<BOSSettings> {
             MinerFeatureKey.running,
             MinerFeatureKey.version,
             MinerFeatureKey.firmwareVersion,
+            MinerFeatureKey.powerTarget,
             MinerFeatureKey.stats,
             MinerFeatureKey.rawStats,
         ];
@@ -88,22 +109,30 @@ export class BOS extends PollingMiner<BOSSettings> {
      * @param details
      * @param stats
      * @param apiVersion
+     * @param tunerState
      */
-    public parseBosApiResponse(details: BosMinerDetails, stats: BosMinerStats, apiVersion?: BosApiVersion): MinerStats {
+    public parseBosApiResponse(
+        details: BosMinerDetails,
+        stats: BosMinerStats,
+        apiVersion?: BosApiVersion,
+        tunerState?: BosTunerState,
+    ): MinerStats {
         const hashrate = stats.minerStats?.realHashrate;
         const totalHashrate =
             hashrate?.last_5s?.gigahashPerSecond !== undefined
                 ? hashrate.last_5s.gigahashPerSecond * GHASH_TO_HASH
                 : undefined;
         const power = stats.powerStats?.approximatedConsumption?.watt;
+        const dynamicPowerTarget = tunerState?.powerTargetModeState?.currentTarget?.watt;
         const joulePerTerahash = stats.powerStats?.efficiency?.joulePerTerahash;
 
         return {
-            raw: { details, stats, apiVersion },
+            raw: { details, stats, apiVersion, tunerState },
             version: formatApiVersion(apiVersion),
             firmwareVersion: details.bosVersion?.current,
             totalHashrate,
             power,
+            dynamicPowerTarget,
             efficiency:
                 joulePerTerahash !== undefined && joulePerTerahash > 0
                     ? TERAHASH_TO_HASH / joulePerTerahash
