@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/TunerPerformanceMode.ts"],
+  "sourcesContent": ["// Original file: bos/v1/performance.proto\n\nimport type { PowerTargetMode as _braiins_bos_v1_PowerTargetMode, PowerTargetMode__Output as _braiins_bos_v1_PowerTargetMode__Output } from '../../../braiins/bos/v1/PowerTargetMode';\nimport type { HashrateTargetMode as _braiins_bos_v1_HashrateTargetMode, HashrateTargetMode__Output as _braiins_bos_v1_HashrateTargetMode__Output } from '../../../braiins/bos/v1/HashrateTargetMode';\n\nexport interface TunerPerformanceMode {\n  'powerTarget'?: (_braiins_bos_v1_PowerTargetMode | null);\n  'hashrateTarget'?: (_braiins_bos_v1_HashrateTargetMode | null);\n  'target'?: \"powerTarget\"|\"hashrateTarget\";\n}\n\nexport interface TunerPerformanceMode__Output {\n  'powerTarget'?: (_braiins_bos_v1_PowerTargetMode__Output);\n  'hashrateTarget'?: (_braiins_bos_v1_HashrateTargetMode__Output);\n  'target'?: \"powerTarget\"|\"hashrateTarget\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

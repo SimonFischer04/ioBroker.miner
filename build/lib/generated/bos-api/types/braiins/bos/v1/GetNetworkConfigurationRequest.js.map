@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/GetNetworkConfigurationRequest.ts"],
+  "sourcesContent": ["// Original file: bos/v1/network.proto\n\n\nexport interface GetNetworkConfigurationRequest {\n}\n\nexport interface GetNetworkConfigurationRequest__Output {\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

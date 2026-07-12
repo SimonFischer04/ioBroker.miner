@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/Pool.ts"],
+  "sourcesContent": ["// Original file: bos/v1/pool.proto\n\nimport type { PoolStats as _braiins_bos_v1_PoolStats, PoolStats__Output as _braiins_bos_v1_PoolStats__Output } from '../../../braiins/bos/v1/PoolStats';\n\nexport interface Pool {\n  'uid'?: (string);\n  'url'?: (string);\n  'user'?: (string);\n  'enabled'?: (boolean);\n  'alive'?: (boolean);\n  'active'?: (boolean);\n  'stats'?: (_braiins_bos_v1_PoolStats | null);\n}\n\nexport interface Pool__Output {\n  'uid'?: (string);\n  'url'?: (string);\n  'user'?: (string);\n  'enabled'?: (boolean);\n  'alive'?: (boolean);\n  'active'?: (boolean);\n  'stats'?: (_braiins_bos_v1_PoolStats__Output);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

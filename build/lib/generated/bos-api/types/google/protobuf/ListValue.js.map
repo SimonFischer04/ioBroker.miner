@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../src/lib/generated/bos-api/types/google/protobuf/ListValue.ts"],
+  "sourcesContent": ["// Original file: null\n\nimport type { Value as _google_protobuf_Value, Value__Output as _google_protobuf_Value__Output } from '../../google/protobuf/Value';\n\nexport interface ListValue {\n  'values'?: (_google_protobuf_Value)[];\n}\n\nexport interface ListValue__Output {\n  'values'?: (_google_protobuf_Value__Output)[];\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

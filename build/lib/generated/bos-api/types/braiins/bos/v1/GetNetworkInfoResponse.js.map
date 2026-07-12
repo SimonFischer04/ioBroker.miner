@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/GetNetworkInfoResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/network.proto\n\nimport type { NetworkProtocol as _braiins_bos_v1_NetworkProtocol, NetworkProtocol__Output as _braiins_bos_v1_NetworkProtocol__Output } from '../../../braiins/bos/v1/NetworkProtocol';\nimport type { IpNetwork as _braiins_bos_v1_IpNetwork, IpNetwork__Output as _braiins_bos_v1_IpNetwork__Output } from '../../../braiins/bos/v1/IpNetwork';\n\nexport interface GetNetworkInfoResponse {\n  'name'?: (string);\n  'macAddress'?: (string);\n  'hostname'?: (string);\n  'protocol'?: (_braiins_bos_v1_NetworkProtocol);\n  'dnsServers'?: (string)[];\n  'networks'?: (_braiins_bos_v1_IpNetwork)[];\n  'defaultGateway'?: (string);\n  '_macAddress'?: \"macAddress\";\n  '_hostname'?: \"hostname\";\n  '_protocol'?: \"protocol\";\n  '_defaultGateway'?: \"defaultGateway\";\n}\n\nexport interface GetNetworkInfoResponse__Output {\n  'name'?: (string);\n  'macAddress'?: (string);\n  'hostname'?: (string);\n  'protocol'?: (_braiins_bos_v1_NetworkProtocol__Output);\n  'dnsServers'?: (string)[];\n  'networks'?: (_braiins_bos_v1_IpNetwork__Output)[];\n  'defaultGateway'?: (string);\n  '_macAddress'?: \"macAddress\";\n  '_hostname'?: \"hostname\";\n  '_protocol'?: \"protocol\";\n  '_defaultGateway'?: \"defaultGateway\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/ApplyContractKeyResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/license.proto\n\n\nexport interface ApplyContractKeyResponse {\n  'successful'?: (boolean);\n}\n\nexport interface ApplyContractKeyResponse__Output {\n  'successful'?: (boolean);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

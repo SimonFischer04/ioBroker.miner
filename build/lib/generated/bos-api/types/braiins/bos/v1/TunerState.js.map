@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/TunerState.ts"],
+  "sourcesContent": ["// Original file: bos/v1/performance.proto\n\nexport const TunerState = {\n  TUNER_STATE_UNSPECIFIED: 0,\n  TUNER_STATE_DISABLED: 1,\n  TUNER_STATE_STABLE: 2,\n  TUNER_STATE_TUNING: 3,\n  TUNER_STATE_ERROR: 4,\n  TUNER_STATE_CONTINUOUS: 5,\n  TUNER_STATE_PREHEAT: 6,\n} as const;\n\nexport type TunerState =\n  | 'TUNER_STATE_UNSPECIFIED'\n  | 0\n  | 'TUNER_STATE_DISABLED'\n  | 1\n  | 'TUNER_STATE_STABLE'\n  | 2\n  | 'TUNER_STATE_TUNING'\n  | 3\n  | 'TUNER_STATE_ERROR'\n  | 4\n  | 'TUNER_STATE_CONTINUOUS'\n  | 5\n  | 'TUNER_STATE_PREHEAT'\n  | 6\n\nexport type TunerState__Output = typeof TunerState[keyof typeof TunerState]\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAEO,MAAM,aAAa;AAAA,EACxB,yBAAyB;AAAA,EACzB,sBAAsB;AAAA,EACtB,oBAAoB;AAAA,EACpB,oBAAoB;AAAA,EACpB,mBAAmB;AAAA,EACnB,wBAAwB;AAAA,EACxB,qBAAqB;AACvB;",
+  "names": []
+}

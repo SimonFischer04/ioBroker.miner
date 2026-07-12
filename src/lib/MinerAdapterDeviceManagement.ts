@@ -1,4 +1,5 @@
 import {
+    ACTIONS,
     DeviceManagement,
     type ConfigItemAny,
     type ActionContext,
@@ -13,6 +14,7 @@ import type { MinerAdapter } from '../main';
 import { categoryKeys } from './miner/model/Category';
 import type {
     AvalonMinerSettings,
+    BOSSettings,
     BOSMinerSettings,
     ClaymoreMinerSettings,
     IceRiverOcMinerSettings,
@@ -22,7 +24,7 @@ import type {
     TeamRedMinerSettings,
     XMRigSettings,
 } from './miner/model/MinerSettings';
-import { minerTypeKeys } from './miner/model/MinerSettings';
+import { BOS_DEFAULT_PASSWORD, BOS_DEFAULT_USERNAME, minerTypeKeys } from './miner/model/MinerSettings';
 import type { IOBrokerDeviceSettings, IOBrokerMinerSettings } from '../miner/model/IOBrokerMinerSettings';
 import { decryptDeviceSettings, isMiner } from '../miner/model/IOBrokerMinerSettings';
 import type { PartialDeep } from 'type-fest';
@@ -241,6 +243,14 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         tooltip: 'interval to poll the device for new data (in ms)',
                         hidden: "data.category !== 'miner'",
                     },
+                    username: {
+                        type: 'text',
+                        newLine: true,
+                        trim: true,
+                        label: I18n.getTranslatedObject('username'),
+                        tooltip: 'username used to login to the device API',
+                        hidden: "data.category !== 'miner' || !(data.minerType == 'bos' || data.minerType == 'bosMiner')",
+                    },
                     password: {
                         type: 'text',
                         // type password does not allow to show the password generated as default value
@@ -249,7 +259,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         label: I18n.getTranslatedObject('password'),
                         tooltip:
                             'password used to connect to the device api. Adapter generates a random, secure and unique one for each device by default. But can of course be changed if needed.',
-                        hidden: "data.category !== 'miner' || !(data.minerType == 'claymoreMiner' || data.minerType == 'xmRig' || data.minerType == 'iceRiverOcMiner' || data.minerType == 'teamRedMiner')", // TODO: improve this
+                        hidden: "data.category !== 'miner' || !(data.minerType == 'claymoreMiner' || data.minerType == 'xmRig' || data.minerType == 'iceRiverOcMiner' || data.minerType == 'teamRedMiner' || data.minerType == 'bos' || data.minerType == 'bosMiner')", // TODO: improve this
                     },
                     enabled: {
                         type: 'checkbox',
@@ -270,7 +280,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     host: existingSettings.settings.host,
                     mac: existingSettings.mac,
                     pollInterval: (existingSettings.settings as PollingMinerSettings).pollInterval ?? 10000, // TODO: implement this properly
-                    password: (existingSettings.settings as TeamRedMinerSettings).claymore?.password ?? '', // TODO: implement this properly
+                    username: (existingSettings.settings as BOSSettings).username ?? BOS_DEFAULT_USERNAME, // TODO: implement this properly
+                    password: getPasswordFormValue(existingSettings), // TODO: implement this properly
                     enabled: existingSettings.enabled,
                 },
                 title,
@@ -463,6 +474,26 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 const bosSettings: Omit<BOSMinerSettings, keyof MinerSettings> = {
                     pollInterval,
                     port: 4028, // TODO: make configurable
+                    sshPort: 22,
+                    username: result.username ?? BOS_DEFAULT_USERNAME,
+                    password: result.password ?? BOS_DEFAULT_PASSWORD,
+                };
+                minerSettings = {
+                    ...minerSettings,
+                    ...bosSettings,
+                };
+                break;
+            }
+
+            case 'bos': {
+                const pollInterval = result.pollInterval ?? this.adapter.config.pollInterval;
+
+                const bosSettings: Omit<BOSSettings, keyof MinerSettings> = {
+                    pollInterval,
+                    port: 50051, // BOS gRPC API default
+                    username: result.username ?? BOS_DEFAULT_USERNAME,
+                    password: result.password ?? BOS_DEFAULT_PASSWORD,
+                    secure: false,
                 };
                 minerSettings = {
                     ...minerSettings,
@@ -560,6 +591,9 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             context.addDevice({
                 id: device._id,
                 name: device.common.name,
+                enabled: {
+                    stateId: `${device._id}.enabled`,
+                },
                 hasDetails: true,
 
                 // Connection type using live state binding:
@@ -602,9 +636,23 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         description: I18n.getTranslatedObject('Settings'),
                         handler: this.handleSettingsDevice.bind(this),
                     },
+                    {
+                        id: ACTIONS.ENABLE_DISABLE,
+                        description: I18n.getTranslatedObject('enabled'),
+                        handler: this.handleEnableDisableDevice.bind(this),
+                    },
                 ],
             });
         }
+    }
+
+    protected async handleEnableDisableDevice(id: string): Promise<{ refresh: DeviceRefresh }> {
+        const stateId = `${id}.enabled`;
+        const enabled = (await this.adapter.getStateAsync(stateId))?.val ?? true;
+
+        await this.adapter.setForeignStateAsync(stateId, { val: !enabled, ack: false });
+
+        return { refresh: 'devices' };
     }
 
     protected async handleDeleteDevice(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
@@ -637,6 +685,14 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             value => this.adapter.decrypt(value),
         );
 
+        if (!isMiner(currentSettings)) {
+            // TODO: pool support (#deal with miner -> pool change: just disable category dropdown on settings)
+            this.adapter.log.error(`MinerAdapterDeviceManagement/handleSettingsDevice settings are not miners`);
+            return { refresh: 'none' };
+        }
+
+        currentSettings.enabled = ((await this.adapter.getStateAsync(`${id}.enabled`))?.val ?? true) === true;
+
         const newSettings = await this.showDeviceConfigurationForm(
             context,
             currentSettings,
@@ -651,7 +707,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
 
         await this.adapter.updateDevice(newSettings);
 
-        if (!isMiner(currentSettings) || !isMiner(newSettings)) {
+        if (!isMiner(newSettings)) {
             // TODO: pool support (#deal with miner -> pool change: just disable category dropdown on settings)
             this.adapter.log.error(`MinerAdapterDeviceManagement/handleSettingsDevice settings are not miners`);
             return { refresh: 'none' };
@@ -738,3 +794,32 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
 }
 
 export default MinerAdapterDeviceManagement;
+
+function getPasswordFormValue(settings: PartialDeep<IOBrokerMinerSettings>): string {
+    switch (settings.settings?.minerType) {
+        case 'teamRedMiner': {
+            return (settings.settings as PartialDeep<TeamRedMinerSettings>).claymore?.password ?? '';
+        }
+
+        case 'claymoreMiner':
+        case 'xmRig':
+        case 'iceRiverOcMiner':
+        case 'bos': {
+            return (
+                (
+                    settings.settings as PartialDeep<
+                        ClaymoreMinerSettings | XMRigSettings | IceRiverOcMinerSettings | BOSSettings
+                    >
+                ).password ?? (settings.settings.minerType === 'bos' ? BOS_DEFAULT_PASSWORD : '')
+            );
+        }
+
+        case 'bosMiner': {
+            return (settings.settings as PartialDeep<BOSMinerSettings>).password ?? BOS_DEFAULT_PASSWORD;
+        }
+
+        default: {
+            return '';
+        }
+    }
+}

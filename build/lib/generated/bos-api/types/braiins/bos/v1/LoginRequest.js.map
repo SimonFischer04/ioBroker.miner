@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/LoginRequest.ts"],
+  "sourcesContent": ["// Original file: bos/v1/authentication.proto\n\n\nexport interface LoginRequest {\n  'username'?: (string);\n  'password'?: (string);\n}\n\nexport interface LoginRequest__Output {\n  'username'?: (string);\n  'password'?: (string);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

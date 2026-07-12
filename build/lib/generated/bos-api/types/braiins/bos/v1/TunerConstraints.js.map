@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/TunerConstraints.ts"],
+  "sourcesContent": ["// Original file: bos/v1/performance.proto\n\nimport type { PowerConstraints as _braiins_bos_v1_PowerConstraints, PowerConstraints__Output as _braiins_bos_v1_PowerConstraints__Output } from '../../../braiins/bos/v1/PowerConstraints';\nimport type { HashrateConstraints as _braiins_bos_v1_HashrateConstraints, HashrateConstraints__Output as _braiins_bos_v1_HashrateConstraints__Output } from '../../../braiins/bos/v1/HashrateConstraints';\nimport type { BooleanConstraint as _braiins_bos_v1_BooleanConstraint, BooleanConstraint__Output as _braiins_bos_v1_BooleanConstraint__Output } from '../../../braiins/bos/v1/BooleanConstraint';\nimport type { TunerMode as _braiins_bos_v1_TunerMode, TunerMode__Output as _braiins_bos_v1_TunerMode__Output } from '../../../braiins/bos/v1/TunerMode';\n\nexport interface TunerConstraints {\n  'powerTarget'?: (_braiins_bos_v1_PowerConstraints | null);\n  'hashrateTarget'?: (_braiins_bos_v1_HashrateConstraints | null);\n  'enabled'?: (_braiins_bos_v1_BooleanConstraint | null);\n  'defaultMode'?: (_braiins_bos_v1_TunerMode);\n}\n\nexport interface TunerConstraints__Output {\n  'powerTarget'?: (_braiins_bos_v1_PowerConstraints__Output);\n  'hashrateTarget'?: (_braiins_bos_v1_HashrateConstraints__Output);\n  'enabled'?: (_braiins_bos_v1_BooleanConstraint__Output);\n  'defaultMode'?: (_braiins_bos_v1_TunerMode__Output);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

@@ -71,6 +71,7 @@ export class MinerAdapter extends utils.Adapter {
 
         // this is correct RELATIVE path! actually means "miner.X.miner.<minerid>.control"
         this.subscribeStates('miner.*.control.*');
+        this.subscribeStates('miner.*.enabled');
     }
 
     /**
@@ -136,16 +137,28 @@ export class MinerAdapter extends utils.Adapter {
                 this.log.warn(`Object ${deviceObjectId} not found`);
                 return;
             }
-            const deviceSettings = obj.native as IOBrokerDeviceSettings;
+            const deviceSettings = decryptDeviceSettings(obj.native as IOBrokerDeviceSettings, value =>
+                this.decrypt(value),
+            );
             if (!isMiner(deviceSettings)) {
                 this.log.warn(`category ${deviceSettings.category} not yet supported`);
                 return;
             }
+            deviceSettings.enabled = ((await this.getStateAsync(`${deviceObjectId}.enabled`))?.val ?? true) === true;
 
-            // example: control.running
+            // example: control.running or enabled
             const minerObjectId: string = parts.slice(4).join('.');
 
             switch (minerObjectId) {
+                case 'enabled': {
+                    const enabled = state.val === true;
+                    this.log.info(`${enabled ? 'enable' : 'disable'} requested for device ${deviceSettings.name}`);
+
+                    await this.setDeviceEnabled(deviceObjectId, deviceSettings, enabled);
+                    await this.setState(id, { val: enabled, ack: true });
+                    break;
+                }
+
                 case getMinerFeatureFullId(MinerFeatureKey.running): {
                     this.log.debug(`running state changed to ${state.val}`);
 
@@ -191,6 +204,26 @@ export class MinerAdapter extends utils.Adapter {
 
                     await this.minerManager.setProfile(deviceSettings.settings.id, profile);
                     await this.setState(id, { val: profile, ack: true });
+                    break;
+                }
+
+                case getMinerFeatureFullId(MinerFeatureKey.powerTarget): {
+                    const powerTarget = Number(state.val);
+                    this.log.debug(`power target state changed to ${powerTarget}`);
+
+                    if (!Number.isFinite(powerTarget) || powerTarget <= 0) {
+                        this.log.warn(`invalid power target value for device ${deviceSettings.name}: ${state.val}`);
+                        return;
+                    }
+
+                    // TODO: why this copy pasta??
+                    if (deviceSettings.settings.id === undefined) {
+                        this.log.error(`device ${deviceSettings.name} has no id`);
+                        return;
+                    }
+
+                    await this.minerManager.setPowerTarget(deviceSettings.settings.id, powerTarget);
+                    await this.setState(id, { val: powerTarget, ack: true });
                     break;
                 }
 
@@ -254,12 +287,15 @@ export class MinerAdapter extends utils.Adapter {
         const id = this.getDeviceObjectId(settings);
 
         this.log.debug(`extended object ${id} with: ${JSON.stringify(settings)}`);
+        // strip old (<=v1.0.4) enabled prop from native
+        const { enabled: _enabled, ...nativeSettings } = settings;
+
         await this.extendObject(id, {
             type: 'device',
             common: {
                 name: settings.name || settings.settings.host,
             },
-            native: encryptDeviceSettings(settings, value => this.encrypt(value)),
+            native: encryptDeviceSettings(nativeSettings, value => this.encrypt(value)),
         });
 
         // always add empty state, so that getObjectAsync works
@@ -292,7 +328,7 @@ export class MinerAdapter extends utils.Adapter {
             return;
         }
 
-        await this.initDevice(obj);
+        await this.initDevice(obj, isMiner(settings) ? settings.enabled : undefined);
     }
 
     /**
@@ -307,6 +343,11 @@ export class MinerAdapter extends utils.Adapter {
             this.log.error(`category ${settings.category} is not yet supported.`);
             return;
         }
+
+        await this.setState(`${this.getDeviceObjectId(settings)}.enabled`, {
+            val: settings.enabled,
+            ack: true,
+        });
 
         if (!(await this.tryCloseMiner(settings))) {
             this.log.error(`updateDevice could not close miner ${settings.settings.id}`);
@@ -374,7 +415,7 @@ export class MinerAdapter extends utils.Adapter {
         return true;
     }
 
-    private async initDevice(device: ioBroker.DeviceObject): Promise<void> {
+    private async initDevice(device: ioBroker.DeviceObject, initialEnabled?: boolean): Promise<void> {
         const settings: IOBrokerDeviceSettings = decryptDeviceSettings(device.native as IOBrokerDeviceSettings, value =>
             this.decrypt(value),
         );
@@ -386,6 +427,8 @@ export class MinerAdapter extends utils.Adapter {
         }
 
         await this.createDeviceStateObjects(settings);
+        const enabledState = await this.getStateAsync(`${device._id}.enabled`);
+        settings.enabled = (enabledState?.val ?? initialEnabled ?? true) as boolean;
         await this.writeStaticInfoStates(settings);
 
         if (!settings.enabled) {
@@ -393,12 +436,17 @@ export class MinerAdapter extends utils.Adapter {
             return;
         }
 
-        const miner = await this.minerManager.init(settings.settings);
+        try {
+            const miner = await this.minerManager.init(settings.settings);
 
-        miner.subscribeToStats(async (stats: MinerStats) => {
-            this.log.debug(`received stats: ${JSON.stringify(stats)}`);
-            await this.processNewStats(miner, settings, stats);
-        });
+            miner.subscribeToStats(async (stats: MinerStats) => {
+                this.log.debug(`received stats: ${JSON.stringify(stats)}`);
+                await this.processNewStats(miner, settings, stats);
+            });
+        } catch (e) {
+            this.log.error(`could not initialize device ${settings.name || settings.settings.host}: ${String(e)}`);
+            await this.setState(`${this.getDeviceObjectId(settings)}.info.online`, { val: false, ack: true });
+        }
     }
 
     /**
@@ -410,8 +458,44 @@ export class MinerAdapter extends utils.Adapter {
         const deviceId = this.getDeviceObjectId(settings);
         await this.setState(`${deviceId}.info.minerType`, { val: settings.settings.minerType, ack: true });
         await this.setState(`${deviceId}.info.host`, { val: settings.settings.host, ack: true });
+        await this.setState(`${deviceId}.enabled`, { val: settings.enabled, ack: true });
         // Reset online state on startup — will be set to true once the miner responds
         await this.setState(`${deviceId}.info.online`, { val: false, ack: true });
+    }
+
+    private async setDeviceEnabled(
+        deviceObjectId: string,
+        settings: IOBrokerMinerSettings,
+        enabled: boolean,
+    ): Promise<void> {
+        if (settings.settings.id === undefined) {
+            this.log.error(`device ${settings.name} has no id`);
+            return;
+        }
+
+        if (settings.enabled === enabled && this.minerManager.hasMiner(settings.settings.id) === enabled) {
+            return;
+        }
+
+        if (enabled) {
+            if (this.minerManager.hasMiner(settings.settings.id)) {
+                return;
+            }
+
+            const obj = (await this.getObjectAsync(deviceObjectId)) as ioBroker.DeviceObject | null | undefined;
+            if (obj == null) {
+                this.log.warn(`Object ${deviceObjectId} not found`);
+                return;
+            }
+
+            await this.initDevice(obj, enabled);
+            return;
+        }
+
+        if (this.minerManager.hasMiner(settings.settings.id)) {
+            await this.minerManager.close(settings.settings.id);
+        }
+        await this.setState(`${deviceObjectId}.info.online`, { val: false, ack: true });
     }
 
     private async processNewStats(
@@ -444,12 +528,12 @@ export class MinerAdapter extends utils.Adapter {
                 ack: true,
             });
         }
-
         // Stats sub-states: write whatever the miner provides
         if (supported.includes(MinerFeatureKey.stats)) {
             const statsValues: Record<string, ioBroker.StateValue | undefined> = {
                 totalHashrate: stats.totalHashrate,
                 power: stats.power,
+                dynamicPowerTarget: stats.dynamicPowerTarget,
                 efficiency: stats.efficiency,
                 acceptedShares: stats.acceptedShares,
                 rejectedShares: stats.rejectedShares,
@@ -494,6 +578,18 @@ export class MinerAdapter extends utils.Adapter {
         // Clean up legacy state paths from pre-restructure versions
         await this.cleanupLegacyStates(deviceId);
 
+        // Always present enabled state
+        await this.extendObject(`${deviceId}.enabled`, {
+            type: 'state',
+            common: {
+                name: 'Enabled',
+                type: 'boolean',
+                role: 'switch.enable',
+                read: true,
+                write: true,
+            },
+        });
+
         // --- Always-present info states (not feature-gated) ---
         const infoStates: Record<string, Partial<ioBroker.StateCommon>> = {
             minerType: { name: 'Miner Type', type: 'string', read: true, write: false },
@@ -516,6 +612,13 @@ export class MinerAdapter extends utils.Adapter {
             const statsStates: Record<string, Partial<ioBroker.StateCommon>> = {
                 totalHashrate: { name: 'Total Hashrate', type: 'number', unit: 'h/s', read: true, write: false },
                 power: { name: 'Power', type: 'number', unit: 'W', read: true, write: false },
+                dynamicPowerTarget: {
+                    name: 'Dynamic Power Target',
+                    type: 'number',
+                    unit: 'W',
+                    read: true,
+                    write: false,
+                },
                 efficiency: { name: 'Efficiency', type: 'number', unit: 'H/W', read: true, write: false },
                 acceptedShares: { name: 'Accepted Shares', type: 'number', read: true, write: false },
                 rejectedShares: { name: 'Rejected Shares', type: 'number', read: true, write: false },

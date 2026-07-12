@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/PerformanceMode.ts"],
+  "sourcesContent": ["// Original file: bos/v1/performance.proto\n\nimport type { ManualPerformanceMode as _braiins_bos_v1_ManualPerformanceMode, ManualPerformanceMode__Output as _braiins_bos_v1_ManualPerformanceMode__Output } from '../../../braiins/bos/v1/ManualPerformanceMode';\nimport type { TunerPerformanceMode as _braiins_bos_v1_TunerPerformanceMode, TunerPerformanceMode__Output as _braiins_bos_v1_TunerPerformanceMode__Output } from '../../../braiins/bos/v1/TunerPerformanceMode';\n\nexport interface PerformanceMode {\n  'manualMode'?: (_braiins_bos_v1_ManualPerformanceMode | null);\n  'tunerMode'?: (_braiins_bos_v1_TunerPerformanceMode | null);\n  'mode'?: \"manualMode\"|\"tunerMode\";\n}\n\nexport interface PerformanceMode__Output {\n  'manualMode'?: (_braiins_bos_v1_ManualPerformanceMode__Output);\n  'tunerMode'?: (_braiins_bos_v1_TunerPerformanceMode__Output);\n  'mode'?: \"manualMode\"|\"tunerMode\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

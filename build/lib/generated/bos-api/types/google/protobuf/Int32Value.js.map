@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../src/lib/generated/bos-api/types/google/protobuf/Int32Value.ts"],
+  "sourcesContent": ["// Original file: null\n\n\nexport interface Int32Value {\n  'value'?: (number);\n}\n\nexport interface Int32Value__Output {\n  'value'?: (number);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

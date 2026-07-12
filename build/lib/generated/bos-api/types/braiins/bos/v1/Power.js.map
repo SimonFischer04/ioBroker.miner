@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/Power.ts"],
+  "sourcesContent": ["// Original file: bos/v1/units.proto\n\nimport type { Long } from '@grpc/proto-loader';\n\nexport interface Power {\n  'watt'?: (number | string | Long);\n}\n\nexport interface Power__Output {\n  'watt'?: (number);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

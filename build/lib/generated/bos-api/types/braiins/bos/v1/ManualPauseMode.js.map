@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/ManualPauseMode.ts"],
+  "sourcesContent": ["// Original file: bos/v1/cooling.proto\n\nimport type { FanPauseRuntime as _braiins_bos_v1_FanPauseRuntime, FanPauseRuntime__Output as _braiins_bos_v1_FanPauseRuntime__Output } from '../../../braiins/bos/v1/FanPauseRuntime';\n\nexport interface ManualPauseMode {\n  'pauseCooldownFanSpeedRatio'?: (number | string);\n  'fanPauseRuntime'?: (_braiins_bos_v1_FanPauseRuntime);\n  '_pauseCooldownFanSpeedRatio'?: \"pauseCooldownFanSpeedRatio\";\n  '_fanPauseRuntime'?: \"fanPauseRuntime\";\n}\n\nexport interface ManualPauseMode__Output {\n  'pauseCooldownFanSpeedRatio'?: (number);\n  'fanPauseRuntime'?: (_braiins_bos_v1_FanPauseRuntime__Output);\n  '_pauseCooldownFanSpeedRatio'?: \"pauseCooldownFanSpeedRatio\";\n  '_fanPauseRuntime'?: \"fanPauseRuntime\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

@@ -22,17 +22,18 @@ __export(delay_exports, {
   asyncIntervalNoWait: () => asyncIntervalNoWait,
   asyncTimeout: () => asyncTimeout,
   delay: () => delay,
-  setTimerBackend: () => setTimerBackend
+  setTimerBackend: () => setTimerBackend,
+  timeout: () => timeout
 });
 module.exports = __toCommonJS(delay_exports);
 var import_node_timers = require("node:timers");
 var import_promises = require("node:timers/promises");
 const nodeTimerBackend = {
-  schedule: (callback, timeout) => (0, import_node_timers.setTimeout)(callback, timeout),
+  schedule: (callback, timeout2) => (0, import_node_timers.setTimeout)(callback, timeout2),
   clear: (timer) => (0, import_node_timers.clearTimeout)(timer),
   scheduleInterval: (callback, interval) => (0, import_node_timers.setInterval)(callback, interval),
   clearInterval: (timer) => (0, import_node_timers.clearInterval)(timer),
-  delay: (timeout) => (0, import_promises.setTimeout)(timeout)
+  delay: (timeout2) => (0, import_promises.setTimeout)(timeout2)
 };
 let timerBackend = nodeTimerBackend;
 function setTimerBackend(backend) {
@@ -54,36 +55,44 @@ function asyncIntervalNoWait(asyncCallback, executeEveryMs) {
   };
 }
 function asyncInterval(asyncCallback, msBetweenExecutions, shouldExecuteImmediately = false) {
-  let timeout;
+  let timeout2;
   const callbackWrapper = () => {
     void (async () => {
       await asyncCallback();
-      timeout = timerBackend.schedule(callbackWrapper, msBetweenExecutions);
+      timeout2 = timerBackend.schedule(callbackWrapper, msBetweenExecutions);
     })();
   };
   if (shouldExecuteImmediately) {
     void (async () => {
       await asyncCallback();
-      timeout = timerBackend.schedule(callbackWrapper, msBetweenExecutions);
+      timeout2 = timerBackend.schedule(callbackWrapper, msBetweenExecutions);
     })();
   } else {
-    timeout = timerBackend.schedule(callbackWrapper, msBetweenExecutions);
+    timeout2 = timerBackend.schedule(callbackWrapper, msBetweenExecutions);
   }
   return {
     clear: () => {
-      timerBackend.clear(timeout);
+      timerBackend.clear(timeout2);
+    }
+  };
+}
+function timeout(callback, ms) {
+  const handle = timerBackend.schedule(callback, ms);
+  return {
+    clear: () => {
+      timerBackend.clear(handle);
     }
   };
 }
 function asyncTimeout(asyncCallback, ms) {
-  const timeout = timerBackend.schedule(() => {
+  const handle = timerBackend.schedule(() => {
     void (async () => {
       await asyncCallback();
     })();
   }, ms);
   return {
     clear: () => {
-      timerBackend.clear(timeout);
+      timerBackend.clear(handle);
     }
   };
 }
@@ -93,6 +102,7 @@ function asyncTimeout(asyncCallback, ms) {
   asyncIntervalNoWait,
   asyncTimeout,
   delay,
-  setTimerBackend
+  setTimerBackend,
+  timeout
 });
 //# sourceMappingURL=delay.js.map

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/SetPerformanceModeRequest.ts"],
+  "sourcesContent": ["// Original file: bos/v1/performance.proto\n\nimport type { SaveAction as _braiins_bos_v1_SaveAction, SaveAction__Output as _braiins_bos_v1_SaveAction__Output } from '../../../braiins/bos/v1/SaveAction';\nimport type { PerformanceMode as _braiins_bos_v1_PerformanceMode, PerformanceMode__Output as _braiins_bos_v1_PerformanceMode__Output } from '../../../braiins/bos/v1/PerformanceMode';\n\nexport interface SetPerformanceModeRequest {\n  'saveAction'?: (_braiins_bos_v1_SaveAction);\n  'mode'?: (_braiins_bos_v1_PerformanceMode | null);\n}\n\nexport interface SetPerformanceModeRequest__Output {\n  'saveAction'?: (_braiins_bos_v1_SaveAction__Output);\n  'mode'?: (_braiins_bos_v1_PerformanceMode__Output);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

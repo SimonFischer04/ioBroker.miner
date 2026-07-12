@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/SystemUpgradeRequest.ts"],
+  "sourcesContent": ["// Original file: bos/v1/upgrade.proto\n\nimport type { SystemUpgradeMetadata as _braiins_bos_v1_SystemUpgradeMetadata, SystemUpgradeMetadata__Output as _braiins_bos_v1_SystemUpgradeMetadata__Output } from '../../../braiins/bos/v1/SystemUpgradeMetadata';\n\nexport interface SystemUpgradeRequest {\n  'metadata'?: (_braiins_bos_v1_SystemUpgradeMetadata | null);\n  'data'?: (Buffer | Uint8Array | string);\n  'payload'?: \"metadata\"|\"data\";\n}\n\nexport interface SystemUpgradeRequest__Output {\n  'metadata'?: (_braiins_bos_v1_SystemUpgradeMetadata__Output);\n  'data'?: (Buffer);\n  'payload'?: \"metadata\"|\"data\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

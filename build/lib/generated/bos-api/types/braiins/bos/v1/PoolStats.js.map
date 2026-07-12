@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/PoolStats.ts"],
+  "sourcesContent": ["// Original file: bos/v1/pool.proto\n\nimport type { Timestamp as _google_protobuf_Timestamp, Timestamp__Output as _google_protobuf_Timestamp__Output } from '../../../google/protobuf/Timestamp';\nimport type { Long } from '@grpc/proto-loader';\n\nexport interface PoolStats {\n  'acceptedShares'?: (number | string | Long);\n  'rejectedShares'?: (number | string | Long);\n  'staleShares'?: (number | string | Long);\n  'lastDifficulty'?: (number | string | Long);\n  'bestShare'?: (number | string | Long);\n  'generatedWork'?: (number | string | Long);\n  'lastShareTime'?: (_google_protobuf_Timestamp | null);\n  'bestShareStr'?: (string);\n  '_lastShareTime'?: \"lastShareTime\";\n}\n\nexport interface PoolStats__Output {\n  'acceptedShares'?: (number);\n  'rejectedShares'?: (number);\n  'staleShares'?: (number);\n  'lastDifficulty'?: (number);\n  'bestShare'?: (number);\n  'generatedWork'?: (number);\n  'lastShareTime'?: (_google_protobuf_Timestamp__Output);\n  'bestShareStr'?: (string);\n  '_lastShareTime'?: \"lastShareTime\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

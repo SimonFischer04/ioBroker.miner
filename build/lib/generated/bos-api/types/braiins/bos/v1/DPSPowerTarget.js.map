@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/DPSPowerTarget.ts"],
+  "sourcesContent": ["// Original file: bos/v1/performance.proto\n\nimport type { Power as _braiins_bos_v1_Power, Power__Output as _braiins_bos_v1_Power__Output } from '../../../braiins/bos/v1/Power';\n\nexport interface DPSPowerTarget {\n  'powerStep'?: (_braiins_bos_v1_Power | null);\n  'minPowerTarget'?: (_braiins_bos_v1_Power | null);\n}\n\nexport interface DPSPowerTarget__Output {\n  'powerStep'?: (_braiins_bos_v1_Power__Output);\n  'minPowerTarget'?: (_braiins_bos_v1_Power__Output);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/SetSettingsRequest.ts"],
+  "sourcesContent": ["// Original file: bos/v1/advanced_settings.proto\n\nimport type { Struct as _google_protobuf_Struct, Struct__Output as _google_protobuf_Struct__Output } from '../../../google/protobuf/Struct';\n\nexport interface SetSettingsRequest {\n  'settings'?: (_google_protobuf_Struct | null);\n}\n\nexport interface SetSettingsRequest__Output {\n  'settings'?: (_google_protobuf_Struct__Output);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

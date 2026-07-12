@@ -7,3 +7,6 @@ This project is not any way affiliated with the authors of these projects / file
 ## iceriver-oc
 - see: https://github.com/rdugan/iceriver-oc
 - [iceriver-oc_apidoc](iceriver-oc_apidoc.json)
+
+# bos (Braiins)
+- see: https://github.com/braiins/bos-plus-api

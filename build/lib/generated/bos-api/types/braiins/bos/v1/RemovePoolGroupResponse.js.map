@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/RemovePoolGroupResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/pool.proto\n\n\nexport interface RemovePoolGroupResponse {\n}\n\nexport interface RemovePoolGroupResponse__Output {\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

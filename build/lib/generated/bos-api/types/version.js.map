@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../src/lib/generated/bos-api/types/version.ts"],
+  "sourcesContent": ["import type * as grpc from '@grpc/grpc-js';\nimport type { MessageTypeDefinition } from '@grpc/proto-loader';\n\nimport type { ApiVersion as _braiins_bos_ApiVersion, ApiVersion__Output as _braiins_bos_ApiVersion__Output } from './braiins/bos/ApiVersion';\nimport type { ApiVersionRequest as _braiins_bos_ApiVersionRequest, ApiVersionRequest__Output as _braiins_bos_ApiVersionRequest__Output } from './braiins/bos/ApiVersionRequest';\nimport type { ApiVersionServiceClient as _braiins_bos_ApiVersionServiceClient, ApiVersionServiceDefinition as _braiins_bos_ApiVersionServiceDefinition } from './braiins/bos/ApiVersionService';\n\ntype SubtypeConstructor<Constructor extends new (...args: any) => any, Subtype> = {\n  new(...args: ConstructorParameters<Constructor>): Subtype;\n};\n\nexport interface ProtoGrpcType {\n  braiins: {\n    bos: {\n      ApiVersion: MessageTypeDefinition<_braiins_bos_ApiVersion, _braiins_bos_ApiVersion__Output>\n      ApiVersionRequest: MessageTypeDefinition<_braiins_bos_ApiVersionRequest, _braiins_bos_ApiVersionRequest__Output>\n      ApiVersionService: SubtypeConstructor<typeof grpc.Client, _braiins_bos_ApiVersionServiceClient> & { service: _braiins_bos_ApiVersionServiceDefinition }\n    }\n  }\n}\n\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/Voltage.ts"],
+  "sourcesContent": ["// Original file: bos/v1/units.proto\n\n\nexport interface Voltage {\n  'volt'?: (number | string);\n}\n\nexport interface Voltage__Output {\n  'volt'?: (number);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

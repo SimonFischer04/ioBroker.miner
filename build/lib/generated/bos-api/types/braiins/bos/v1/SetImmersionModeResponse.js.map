@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/SetImmersionModeResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/cooling.proto\n\n\nexport interface SetImmersionModeResponse {\n  'immersionMode'?: (boolean);\n}\n\nexport interface SetImmersionModeResponse__Output {\n  'immersionMode'?: (boolean);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

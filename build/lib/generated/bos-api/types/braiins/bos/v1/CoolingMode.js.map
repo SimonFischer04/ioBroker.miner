@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/CoolingMode.ts"],
+  "sourcesContent": ["// Original file: bos/v1/cooling.proto\n\nexport const CoolingMode = {\n  COOLING_MODE_UNSPECIFIED: 0,\n  COOLING_MODE_AUTO: 1,\n  COOLING_MODE_MANUAL: 2,\n  COOLING_MODE_DISABLED: 3,\n  COOLING_MODE_IMMERSION: 4,\n  COOLING_MODE_HYDRO: 5,\n} as const;\n\nexport type CoolingMode =\n  | 'COOLING_MODE_UNSPECIFIED'\n  | 0\n  | 'COOLING_MODE_AUTO'\n  | 1\n  | 'COOLING_MODE_MANUAL'\n  | 2\n  | 'COOLING_MODE_DISABLED'\n  | 3\n  | 'COOLING_MODE_IMMERSION'\n  | 4\n  | 'COOLING_MODE_HYDRO'\n  | 5\n\nexport type CoolingMode__Output = typeof CoolingMode[keyof typeof CoolingMode]\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAEO,MAAM,cAAc;AAAA,EACzB,0BAA0B;AAAA,EAC1B,mBAAmB;AAAA,EACnB,qBAAqB;AAAA,EACrB,uBAAuB;AAAA,EACvB,wBAAwB;AAAA,EACxB,oBAAoB;AACtB;",
+  "names": []
+}

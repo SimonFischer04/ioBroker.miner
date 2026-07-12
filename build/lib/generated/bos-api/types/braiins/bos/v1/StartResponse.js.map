@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/StartResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/actions.proto\n\n\nexport interface StartResponse {\n  'alreadyRunning'?: (boolean);\n}\n\nexport interface StartResponse__Output {\n  'alreadyRunning'?: (boolean);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

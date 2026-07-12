@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/TunerMode.ts"],
+  "sourcesContent": ["// Original file: bos/v1/performance.proto\n\nexport const TunerMode = {\n  TUNER_MODE_UNSPECIFIED: 0,\n  TUNER_MODE_POWER_TARGET: 1,\n  TUNER_MODE_HASHRATE_TARGET: 2,\n} as const;\n\nexport type TunerMode =\n  | 'TUNER_MODE_UNSPECIFIED'\n  | 0\n  | 'TUNER_MODE_POWER_TARGET'\n  | 1\n  | 'TUNER_MODE_HASHRATE_TARGET'\n  | 2\n\nexport type TunerMode__Output = typeof TunerMode[keyof typeof TunerMode]\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAEO,MAAM,YAAY;AAAA,EACvB,wBAAwB;AAAA,EACxB,yBAAyB;AAAA,EACzB,4BAA4B;AAC9B;",
+  "names": []
+}

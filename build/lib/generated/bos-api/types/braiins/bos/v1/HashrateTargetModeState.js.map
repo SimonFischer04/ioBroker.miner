@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/HashrateTargetModeState.ts"],
+  "sourcesContent": ["// Original file: bos/v1/performance.proto\n\nimport type { HashrateTargetProfile as _braiins_bos_v1_HashrateTargetProfile, HashrateTargetProfile__Output as _braiins_bos_v1_HashrateTargetProfile__Output } from '../../../braiins/bos/v1/HashrateTargetProfile';\nimport type { TeraHashrate as _braiins_bos_v1_TeraHashrate, TeraHashrate__Output as _braiins_bos_v1_TeraHashrate__Output } from '../../../braiins/bos/v1/TeraHashrate';\n\nexport interface HashrateTargetModeState {\n  'profile'?: (_braiins_bos_v1_HashrateTargetProfile | null);\n  'currentTarget'?: (_braiins_bos_v1_TeraHashrate | null);\n}\n\nexport interface HashrateTargetModeState__Output {\n  'profile'?: (_braiins_bos_v1_HashrateTargetProfile__Output);\n  'currentTarget'?: (_braiins_bos_v1_TeraHashrate__Output);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

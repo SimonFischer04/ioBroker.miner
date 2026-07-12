@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/GetCoolingStateResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/cooling.proto\n\nimport type { FanState as _braiins_bos_v1_FanState, FanState__Output as _braiins_bos_v1_FanState__Output } from '../../../braiins/bos/v1/FanState';\nimport type { TemperatureSensor as _braiins_bos_v1_TemperatureSensor, TemperatureSensor__Output as _braiins_bos_v1_TemperatureSensor__Output } from '../../../braiins/bos/v1/TemperatureSensor';\n\nexport interface GetCoolingStateResponse {\n  'fans'?: (_braiins_bos_v1_FanState)[];\n  'highestTemperature'?: (_braiins_bos_v1_TemperatureSensor | null);\n}\n\nexport interface GetCoolingStateResponse__Output {\n  'fans'?: (_braiins_bos_v1_FanState__Output)[];\n  'highestTemperature'?: (_braiins_bos_v1_TemperatureSensor__Output);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

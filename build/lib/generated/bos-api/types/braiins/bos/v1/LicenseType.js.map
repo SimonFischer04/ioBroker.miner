@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/LicenseType.ts"],
+  "sourcesContent": ["// Original file: bos/v1/license.proto\n\nexport const LicenseType = {\n  LICENSE_TYPE_UNSPECIFIED: 0,\n  LICENSE_TYPE_STANDARD: 1,\n  LICENSE_TYPE_CUSTOM: 2,\n} as const;\n\nexport type LicenseType =\n  | 'LICENSE_TYPE_UNSPECIFIED'\n  | 0\n  | 'LICENSE_TYPE_STANDARD'\n  | 1\n  | 'LICENSE_TYPE_CUSTOM'\n  | 2\n\nexport type LicenseType__Output = typeof LicenseType[keyof typeof LicenseType]\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAEO,MAAM,cAAc;AAAA,EACzB,0BAA0B;AAAA,EAC1B,uBAAuB;AAAA,EACvB,qBAAqB;AACvB;",
+  "names": []
+}

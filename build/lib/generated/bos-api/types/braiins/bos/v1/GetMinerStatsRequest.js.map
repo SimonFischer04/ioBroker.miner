@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/GetMinerStatsRequest.ts"],
+  "sourcesContent": ["// Original file: bos/v1/miner.proto\n\n\nexport interface GetMinerStatsRequest {\n}\n\nexport interface GetMinerStatsRequest__Output {\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/MinerError.ts"],
+  "sourcesContent": ["// Original file: bos/v1/miner.proto\n\nimport type { ErrorCode as _braiins_bos_v1_ErrorCode, ErrorCode__Output as _braiins_bos_v1_ErrorCode__Output } from '../../../braiins/bos/v1/ErrorCode';\nimport type { Component as _braiins_bos_v1_Component, Component__Output as _braiins_bos_v1_Component__Output } from '../../../braiins/bos/v1/Component';\n\nexport interface MinerError {\n  'timestamp'?: (string);\n  'message'?: (string);\n  'errorCodes'?: (_braiins_bos_v1_ErrorCode)[];\n  'components'?: (_braiins_bos_v1_Component)[];\n}\n\nexport interface MinerError__Output {\n  'timestamp'?: (string);\n  'message'?: (string);\n  'errorCodes'?: (_braiins_bos_v1_ErrorCode__Output)[];\n  'components'?: (_braiins_bos_v1_Component__Output)[];\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

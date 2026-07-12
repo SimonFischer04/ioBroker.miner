@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/HashboardConfig.ts"],
+  "sourcesContent": ["// Original file: bos/v1/performance.proto\n\nimport type { Frequency as _braiins_bos_v1_Frequency, Frequency__Output as _braiins_bos_v1_Frequency__Output } from '../../../braiins/bos/v1/Frequency';\nimport type { Voltage as _braiins_bos_v1_Voltage, Voltage__Output as _braiins_bos_v1_Voltage__Output } from '../../../braiins/bos/v1/Voltage';\n\nexport interface HashboardConfig {\n  'id'?: (string);\n  'enabled'?: (boolean);\n  'frequency'?: (_braiins_bos_v1_Frequency | null);\n  'voltage'?: (_braiins_bos_v1_Voltage | null);\n  '_enabled'?: \"enabled\";\n}\n\nexport interface HashboardConfig__Output {\n  'id'?: (string);\n  'enabled'?: (boolean);\n  'frequency'?: (_braiins_bos_v1_Frequency__Output);\n  'voltage'?: (_braiins_bos_v1_Voltage__Output);\n  '_enabled'?: \"enabled\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

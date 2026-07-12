@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/CoolingManualMode.ts"],
+  "sourcesContent": ["// Original file: bos/v1/cooling.proto\n\nimport type { Temperature as _braiins_bos_v1_Temperature, Temperature__Output as _braiins_bos_v1_Temperature__Output } from '../../../braiins/bos/v1/Temperature';\nimport type { PauseMode as _braiins_bos_v1_PauseMode, PauseMode__Output as _braiins_bos_v1_PauseMode__Output } from '../../../braiins/bos/v1/PauseMode';\n\nexport interface CoolingManualMode {\n  'fanSpeedRatio'?: (number | string);\n  'hotTemperature'?: (_braiins_bos_v1_Temperature | null);\n  'dangerousTemperature'?: (_braiins_bos_v1_Temperature | null);\n  'targetTemperature'?: (_braiins_bos_v1_Temperature | null);\n  'minimumRequiredFans'?: (number);\n  'pauseMode'?: (_braiins_bos_v1_PauseMode | null);\n  '_fanSpeedRatio'?: \"fanSpeedRatio\";\n  '_minimumRequiredFans'?: \"minimumRequiredFans\";\n  '_pauseMode'?: \"pauseMode\";\n}\n\nexport interface CoolingManualMode__Output {\n  'fanSpeedRatio'?: (number);\n  'hotTemperature'?: (_braiins_bos_v1_Temperature__Output);\n  'dangerousTemperature'?: (_braiins_bos_v1_Temperature__Output);\n  'targetTemperature'?: (_braiins_bos_v1_Temperature__Output);\n  'minimumRequiredFans'?: (number);\n  'pauseMode'?: (_braiins_bos_v1_PauseMode__Output);\n  '_fanSpeedRatio'?: \"fanSpeedRatio\";\n  '_minimumRequiredFans'?: \"minimumRequiredFans\";\n  '_pauseMode'?: \"pauseMode\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

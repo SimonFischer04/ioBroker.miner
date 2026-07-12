@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/Temperature.ts"],
+  "sourcesContent": ["// Original file: bos/v1/units.proto\n\n\nexport interface Temperature {\n  'degreeC'?: (number | string);\n}\n\nexport interface Temperature__Output {\n  'degreeC'?: (number);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../src/lib/generated/bos-api/types/google/protobuf/Value.ts"],
+  "sourcesContent": ["// Original file: null\n\nimport type { NullValue as _google_protobuf_NullValue, NullValue__Output as _google_protobuf_NullValue__Output } from '../../google/protobuf/NullValue';\nimport type { Struct as _google_protobuf_Struct, Struct__Output as _google_protobuf_Struct__Output } from '../../google/protobuf/Struct';\nimport type { ListValue as _google_protobuf_ListValue, ListValue__Output as _google_protobuf_ListValue__Output } from '../../google/protobuf/ListValue';\n\nexport interface Value {\n  'nullValue'?: (_google_protobuf_NullValue);\n  'numberValue'?: (number | string);\n  'stringValue'?: (string);\n  'boolValue'?: (boolean);\n  'structValue'?: (_google_protobuf_Struct | null);\n  'listValue'?: (_google_protobuf_ListValue | null);\n  'kind'?: \"nullValue\"|\"numberValue\"|\"stringValue\"|\"boolValue\"|\"structValue\"|\"listValue\";\n}\n\nexport interface Value__Output {\n  'nullValue'?: (_google_protobuf_NullValue__Output);\n  'numberValue'?: (number);\n  'stringValue'?: (string);\n  'boolValue'?: (boolean);\n  'structValue'?: (_google_protobuf_Struct__Output);\n  'listValue'?: (_google_protobuf_ListValue__Output);\n  'kind'?: \"nullValue\"|\"numberValue\"|\"stringValue\"|\"boolValue\"|\"structValue\"|\"listValue\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

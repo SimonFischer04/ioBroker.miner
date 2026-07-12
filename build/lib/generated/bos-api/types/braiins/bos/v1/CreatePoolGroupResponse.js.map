@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/CreatePoolGroupResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/pool.proto\n\nimport type { PoolGroupConfiguration as _braiins_bos_v1_PoolGroupConfiguration, PoolGroupConfiguration__Output as _braiins_bos_v1_PoolGroupConfiguration__Output } from '../../../braiins/bos/v1/PoolGroupConfiguration';\n\nexport interface CreatePoolGroupResponse {\n  'group'?: (_braiins_bos_v1_PoolGroupConfiguration | null);\n}\n\nexport interface CreatePoolGroupResponse__Output {\n  'group'?: (_braiins_bos_v1_PoolGroupConfiguration__Output);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

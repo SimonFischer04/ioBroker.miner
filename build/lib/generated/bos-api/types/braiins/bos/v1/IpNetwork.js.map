@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/IpNetwork.ts"],
+  "sourcesContent": ["// Original file: bos/v1/network.proto\n\n\nexport interface IpNetwork {\n  'address'?: (string);\n  'netmask'?: (string);\n}\n\nexport interface IpNetwork__Output {\n  'address'?: (string);\n  'netmask'?: (string);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/PoolConfiguration.ts"],
+  "sourcesContent": ["// Original file: bos/v1/pool.proto\n\n\nexport interface PoolConfiguration {\n  'uid'?: (string);\n  'url'?: (string);\n  'user'?: (string);\n  'password'?: (string);\n  'enabled'?: (boolean);\n  '_uid'?: \"uid\";\n  '_password'?: \"password\";\n  '_enabled'?: \"enabled\";\n}\n\nexport interface PoolConfiguration__Output {\n  'uid'?: (string);\n  'url'?: (string);\n  'user'?: (string);\n  'password'?: (string);\n  'enabled'?: (boolean);\n  '_uid'?: \"uid\";\n  '_password'?: \"password\";\n  '_enabled'?: \"enabled\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

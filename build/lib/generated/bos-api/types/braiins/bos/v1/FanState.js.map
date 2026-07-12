@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/FanState.ts"],
+  "sourcesContent": ["// Original file: bos/v1/cooling.proto\n\n\nexport interface FanState {\n  'position'?: (number);\n  'rpm'?: (number);\n  'targetSpeedRatio'?: (number | string);\n  '_position'?: \"position\";\n  '_targetSpeedRatio'?: \"targetSpeedRatio\";\n}\n\nexport interface FanState__Output {\n  'position'?: (number);\n  'rpm'?: (number);\n  'targetSpeedRatio'?: (number);\n  '_position'?: \"position\";\n  '_targetSpeedRatio'?: \"targetSpeedRatio\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

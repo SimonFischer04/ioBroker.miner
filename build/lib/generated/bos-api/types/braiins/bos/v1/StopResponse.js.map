@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/StopResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/actions.proto\n\n\nexport interface StopResponse {\n  'alreadyStopped'?: (boolean);\n}\n\nexport interface StopResponse__Output {\n  'alreadyStopped'?: (boolean);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

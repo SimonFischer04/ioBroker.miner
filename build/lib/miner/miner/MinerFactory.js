@@ -28,6 +28,7 @@ var import_XMRigMiner = require("./XMRigMiner");
 var import_IceRiverOcMiner = require("./IceRiverOcMiner");
 var import_BOSMiner = require("./BOSMiner");
 var import_AvalonMiner = require("./AvalonMiner");
+var import_BOS = require("./BOS");
 function createMiner(settings) {
   switch (settings.minerType) {
     case "teamRedMiner": {
@@ -47,6 +48,9 @@ function createMiner(settings) {
     }
     case "bosMiner": {
       return new import_BOSMiner.BOSMiner(settings);
+    }
+    case "bos": {
+      return new import_BOS.BOS(settings);
     }
     case "avalonMiner": {
       return new import_AvalonMiner.AvalonMiner(settings);

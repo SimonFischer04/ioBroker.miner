@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/SystemUpgradeResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/upgrade.proto\n\n\nexport interface SystemUpgradeResponse {\n  'successful'?: (boolean);\n}\n\nexport interface SystemUpgradeResponse__Output {\n  'successful'?: (boolean);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

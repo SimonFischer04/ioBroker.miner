@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/Platform.ts"],
+  "sourcesContent": ["// Original file: bos/v1/miner.proto\n\nexport const Platform = {\n  PLATFORM_UNSPECIFIED: 0,\n  PLATFORM_AM1_S9: 1,\n  PLATFORM_AM2_S17: 2,\n  PLATFORM_AM3_BBB: 3,\n  PLATFORM_AM3_AML: 4,\n  PLATFORM_STM32MP157C_II1_AM2: 5,\n  PLATFORM_CVITEK_BM1_AM2: 6,\n  PLATFORM_ZYNQ_BM3_AM2: 7,\n  PLATFORM_STM32MP157C_II2_BMM1: 8,\n} as const;\n\nexport type Platform =\n  | 'PLATFORM_UNSPECIFIED'\n  | 0\n  | 'PLATFORM_AM1_S9'\n  | 1\n  | 'PLATFORM_AM2_S17'\n  | 2\n  | 'PLATFORM_AM3_BBB'\n  | 3\n  | 'PLATFORM_AM3_AML'\n  | 4\n  | 'PLATFORM_STM32MP157C_II1_AM2'\n  | 5\n  | 'PLATFORM_CVITEK_BM1_AM2'\n  | 6\n  | 'PLATFORM_ZYNQ_BM3_AM2'\n  | 7\n  | 'PLATFORM_STM32MP157C_II2_BMM1'\n  | 8\n\nexport type Platform__Output = typeof Platform[keyof typeof Platform]\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAEO,MAAM,WAAW;AAAA,EACtB,sBAAsB;AAAA,EACtB,iBAAiB;AAAA,EACjB,kBAAkB;AAAA,EAClB,kBAAkB;AAAA,EAClB,kBAAkB;AAAA,EAClB,8BAA8B;AAAA,EAC9B,yBAAyB;AAAA,EACzB,uBAAuB;AAAA,EACvB,+BAA+B;AACjC;",
+  "names": []
+}

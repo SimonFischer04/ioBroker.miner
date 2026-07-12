@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/NetworkProtocol.ts"],
+  "sourcesContent": ["// Original file: bos/v1/network.proto\n\nexport const NetworkProtocol = {\n  NETWORK_PROTOCOL_UNSPECIFIED: 0,\n  NETWORK_PROTOCOL_DHCP: 1,\n  NETWORK_PROTOCOL_STATIC: 2,\n} as const;\n\nexport type NetworkProtocol =\n  | 'NETWORK_PROTOCOL_UNSPECIFIED'\n  | 0\n  | 'NETWORK_PROTOCOL_DHCP'\n  | 1\n  | 'NETWORK_PROTOCOL_STATIC'\n  | 2\n\nexport type NetworkProtocol__Output = typeof NetworkProtocol[keyof typeof NetworkProtocol]\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAEO,MAAM,kBAAkB;AAAA,EAC7B,8BAA8B;AAAA,EAC9B,uBAAuB;AAAA,EACvB,yBAAyB;AAC3B;",
+  "names": []
+}

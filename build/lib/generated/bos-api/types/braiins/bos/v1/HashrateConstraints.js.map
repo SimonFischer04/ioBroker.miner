@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/HashrateConstraints.ts"],
+  "sourcesContent": ["// Original file: bos/v1/constraints.proto\n\nimport type { TeraHashrate as _braiins_bos_v1_TeraHashrate, TeraHashrate__Output as _braiins_bos_v1_TeraHashrate__Output } from '../../../braiins/bos/v1/TeraHashrate';\n\nexport interface HashrateConstraints {\n  'default'?: (_braiins_bos_v1_TeraHashrate | null);\n  'min'?: (_braiins_bos_v1_TeraHashrate | null);\n  'max'?: (_braiins_bos_v1_TeraHashrate | null);\n}\n\nexport interface HashrateConstraints__Output {\n  'default'?: (_braiins_bos_v1_TeraHashrate__Output);\n  'min'?: (_braiins_bos_v1_TeraHashrate__Output);\n  'max'?: (_braiins_bos_v1_TeraHashrate__Output);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

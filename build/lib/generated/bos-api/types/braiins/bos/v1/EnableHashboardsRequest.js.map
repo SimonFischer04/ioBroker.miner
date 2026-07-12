@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/EnableHashboardsRequest.ts"],
+  "sourcesContent": ["// Original file: bos/v1/miner.proto\n\nimport type { SaveAction as _braiins_bos_v1_SaveAction, SaveAction__Output as _braiins_bos_v1_SaveAction__Output } from '../../../braiins/bos/v1/SaveAction';\n\nexport interface EnableHashboardsRequest {\n  'saveAction'?: (_braiins_bos_v1_SaveAction);\n  'hashboardIds'?: (string)[];\n}\n\nexport interface EnableHashboardsRequest__Output {\n  'saveAction'?: (_braiins_bos_v1_SaveAction__Output);\n  'hashboardIds'?: (string)[];\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

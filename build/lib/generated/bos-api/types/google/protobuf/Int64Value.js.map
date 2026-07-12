@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../src/lib/generated/bos-api/types/google/protobuf/Int64Value.ts"],
+  "sourcesContent": ["// Original file: null\n\nimport type { Long } from '@grpc/proto-loader';\n\nexport interface Int64Value {\n  'value'?: (number | string | Long);\n}\n\nexport interface Int64Value__Output {\n  'value'?: (number);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

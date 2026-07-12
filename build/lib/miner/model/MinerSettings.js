@@ -18,6 +18,8 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var MinerSettings_exports = {};
 __export(MinerSettings_exports, {
+  BOS_DEFAULT_PASSWORD: () => BOS_DEFAULT_PASSWORD,
+  BOS_DEFAULT_USERNAME: () => BOS_DEFAULT_USERNAME,
   minerTypeKeys: () => minerTypeKeys
 });
 module.exports = __toCommonJS(MinerSettings_exports);
@@ -28,10 +30,15 @@ const minerTypeKeys = [
   "xmRig",
   "iceRiverOcMiner",
   "bosMiner",
+  "bos",
   "avalonMiner"
 ];
+const BOS_DEFAULT_USERNAME = "root";
+const BOS_DEFAULT_PASSWORD = "";
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  BOS_DEFAULT_PASSWORD,
+  BOS_DEFAULT_USERNAME,
   minerTypeKeys
 });
 //# sourceMappingURL=MinerSettings.js.map

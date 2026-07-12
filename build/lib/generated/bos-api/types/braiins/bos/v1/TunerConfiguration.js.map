@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/TunerConfiguration.ts"],
+  "sourcesContent": ["// Original file: bos/v1/performance.proto\n\nimport type { TunerMode as _braiins_bos_v1_TunerMode, TunerMode__Output as _braiins_bos_v1_TunerMode__Output } from '../../../braiins/bos/v1/TunerMode';\nimport type { Power as _braiins_bos_v1_Power, Power__Output as _braiins_bos_v1_Power__Output } from '../../../braiins/bos/v1/Power';\nimport type { TeraHashrate as _braiins_bos_v1_TeraHashrate, TeraHashrate__Output as _braiins_bos_v1_TeraHashrate__Output } from '../../../braiins/bos/v1/TeraHashrate';\n\nexport interface TunerConfiguration {\n  'enabled'?: (boolean);\n  'tunerMode'?: (_braiins_bos_v1_TunerMode);\n  'powerTarget'?: (_braiins_bos_v1_Power | null);\n  'hashrateTarget'?: (_braiins_bos_v1_TeraHashrate | null);\n  '_enabled'?: \"enabled\";\n  '_tunerMode'?: \"tunerMode\";\n}\n\nexport interface TunerConfiguration__Output {\n  'enabled'?: (boolean);\n  'tunerMode'?: (_braiins_bos_v1_TunerMode__Output);\n  'powerTarget'?: (_braiins_bos_v1_Power__Output);\n  'hashrateTarget'?: (_braiins_bos_v1_TeraHashrate__Output);\n  '_enabled'?: \"enabled\";\n  '_tunerMode'?: \"tunerMode\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

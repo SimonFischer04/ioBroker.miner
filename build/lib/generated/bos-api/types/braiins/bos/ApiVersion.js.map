@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../src/lib/generated/bos-api/types/braiins/bos/ApiVersion.ts"],
+  "sourcesContent": ["// Original file: bos/version.proto\n\nimport type { Long } from '@grpc/proto-loader';\n\nexport interface ApiVersion {\n  'major'?: (number | string | Long);\n  'minor'?: (number | string | Long);\n  'patch'?: (number | string | Long);\n  'pre'?: (string);\n  'build'?: (string);\n}\n\nexport interface ApiVersion__Output {\n  'major'?: (number);\n  'minor'?: (number);\n  'patch'?: (number);\n  'pre'?: (string);\n  'build'?: (string);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/UpgradeTime.ts"],
+  "sourcesContent": ["// Original file: bos/v1/upgrade.proto\n\n\nexport interface UpgradeTime {\n  'hours'?: (number);\n  'minutes'?: (number);\n  'seconds'?: (number);\n  '_seconds'?: \"seconds\";\n}\n\nexport interface UpgradeTime__Output {\n  'hours'?: (number);\n  'minutes'?: (number);\n  'seconds'?: (number);\n  '_seconds'?: \"seconds\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

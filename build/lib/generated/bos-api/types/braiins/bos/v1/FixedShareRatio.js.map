@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/FixedShareRatio.ts"],
+  "sourcesContent": ["// Original file: bos/v1/pool.proto\n\n\nexport interface FixedShareRatio {\n  'value'?: (number | string);\n}\n\nexport interface FixedShareRatio__Output {\n  'value'?: (number);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

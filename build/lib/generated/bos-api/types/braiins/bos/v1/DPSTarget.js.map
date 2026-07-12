@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/DPSTarget.ts"],
+  "sourcesContent": ["// Original file: bos/v1/performance.proto\n\nimport type { DPSPowerTarget as _braiins_bos_v1_DPSPowerTarget, DPSPowerTarget__Output as _braiins_bos_v1_DPSPowerTarget__Output } from '../../../braiins/bos/v1/DPSPowerTarget';\nimport type { DPSHashrateTarget as _braiins_bos_v1_DPSHashrateTarget, DPSHashrateTarget__Output as _braiins_bos_v1_DPSHashrateTarget__Output } from '../../../braiins/bos/v1/DPSHashrateTarget';\n\nexport interface DPSTarget {\n  'powerTarget'?: (_braiins_bos_v1_DPSPowerTarget | null);\n  'hashrateTarget'?: (_braiins_bos_v1_DPSHashrateTarget | null);\n  'target'?: \"powerTarget\"|\"hashrateTarget\";\n}\n\nexport interface DPSTarget__Output {\n  'powerTarget'?: (_braiins_bos_v1_DPSPowerTarget__Output);\n  'hashrateTarget'?: (_braiins_bos_v1_DPSHashrateTarget__Output);\n  'target'?: \"powerTarget\"|\"hashrateTarget\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

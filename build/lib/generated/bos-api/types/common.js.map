@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../src/lib/generated/bos-api/types/common.ts"],
+  "sourcesContent": ["import type * as grpc from '@grpc/grpc-js';\nimport type { EnumTypeDefinition } from '@grpc/proto-loader';\n\n\ntype SubtypeConstructor<Constructor extends new (...args: any) => any, Subtype> = {\n  new(...args: ConstructorParameters<Constructor>): Subtype;\n};\n\nexport interface ProtoGrpcType {\n  braiins: {\n    bos: {\n      v1: {\n        SaveAction: EnumTypeDefinition\n      }\n    }\n  }\n}\n\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

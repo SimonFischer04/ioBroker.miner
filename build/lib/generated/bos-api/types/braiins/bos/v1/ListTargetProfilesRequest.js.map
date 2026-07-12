@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/ListTargetProfilesRequest.ts"],
+  "sourcesContent": ["// Original file: bos/v1/performance.proto\n\n\nexport interface ListTargetProfilesRequest {\n}\n\nexport interface ListTargetProfilesRequest__Output {\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

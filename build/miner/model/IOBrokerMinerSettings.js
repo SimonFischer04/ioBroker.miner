@@ -54,6 +54,20 @@ function encryptDeviceSettings(settings, encryptFunction) {
       iceRiverOcSettings.password = encryptFunction(iceRiverOcSettings.password);
       break;
     }
+    case "bos": {
+      const bosSettings = settings.settings;
+      if (bosSettings.password) {
+        bosSettings.password = encryptFunction(bosSettings.password);
+      }
+      break;
+    }
+    case "bosMiner": {
+      const bosMinerSettings = settings.settings;
+      if (bosMinerSettings.password) {
+        bosMinerSettings.password = encryptFunction(bosMinerSettings.password);
+      }
+      break;
+    }
     default: {
       break;
     }
@@ -84,6 +98,20 @@ function decryptDeviceSettings(settings, decryptFunction) {
     case "iceRiverOcMiner": {
       const iceRiverOcSettings = settings.settings;
       iceRiverOcSettings.password = decryptFunction(iceRiverOcSettings.password);
+      break;
+    }
+    case "bos": {
+      const bosSettings = settings.settings;
+      if (bosSettings.password) {
+        bosSettings.password = decryptFunction(bosSettings.password);
+      }
+      break;
+    }
+    case "bosMiner": {
+      const bosMinerSettings = settings.settings;
+      if (bosMinerSettings.password) {
+        bosMinerSettings.password = decryptFunction(bosMinerSettings.password);
+      }
       break;
     }
     default: {

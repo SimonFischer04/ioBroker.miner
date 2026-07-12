@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/DurationConstraints.ts"],
+  "sourcesContent": ["// Original file: bos/v1/constraints.proto\n\nimport type { Hours as _braiins_bos_v1_Hours, Hours__Output as _braiins_bos_v1_Hours__Output } from '../../../braiins/bos/v1/Hours';\n\nexport interface DurationConstraints {\n  'default'?: (_braiins_bos_v1_Hours | null);\n  'min'?: (_braiins_bos_v1_Hours | null);\n  'max'?: (_braiins_bos_v1_Hours | null);\n}\n\nexport interface DurationConstraints__Output {\n  'default'?: (_braiins_bos_v1_Hours__Output);\n  'min'?: (_braiins_bos_v1_Hours__Output);\n  'max'?: (_braiins_bos_v1_Hours__Output);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

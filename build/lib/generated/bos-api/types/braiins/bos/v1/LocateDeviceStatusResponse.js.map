@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/LocateDeviceStatusResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/actions.proto\n\n\nexport interface LocateDeviceStatusResponse {\n  'enabled'?: (boolean);\n}\n\nexport interface LocateDeviceStatusResponse__Output {\n  'enabled'?: (boolean);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

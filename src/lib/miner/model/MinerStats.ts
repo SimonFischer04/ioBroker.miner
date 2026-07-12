@@ -19,6 +19,10 @@ export interface MinerStats {
      */
     power?: number;
     /**
+     * Current dynamic power target in watts.
+     */
+    dynamicPowerTarget?: number;
+    /**
      * Energy efficiency in H/W.
      */
     efficiency?: number;

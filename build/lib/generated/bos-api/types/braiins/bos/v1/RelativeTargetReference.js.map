@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/RelativeTargetReference.ts"],
+  "sourcesContent": ["// Original file: bos/v1/performance.proto\n\nexport const RelativeTargetReference = {\n  RELATIVE_TARGET_REFERENCE_UNSPECIFIED: 0,\n  RELATIVE_TARGET_REFERENCE_NOMINAL: 1,\n  RELATIVE_TARGET_REFERENCE_MIN: 2,\n  RELATIVE_TARGET_REFERENCE_MAX: 3,\n  RELATIVE_TARGET_REFERENCE_CURRENT: 4,\n} as const;\n\nexport type RelativeTargetReference =\n  | 'RELATIVE_TARGET_REFERENCE_UNSPECIFIED'\n  | 0\n  | 'RELATIVE_TARGET_REFERENCE_NOMINAL'\n  | 1\n  | 'RELATIVE_TARGET_REFERENCE_MIN'\n  | 2\n  | 'RELATIVE_TARGET_REFERENCE_MAX'\n  | 3\n  | 'RELATIVE_TARGET_REFERENCE_CURRENT'\n  | 4\n\nexport type RelativeTargetReference__Output = typeof RelativeTargetReference[keyof typeof RelativeTargetReference]\n"],
+  "mappings": ";;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAEO,MAAM,0BAA0B;AAAA,EACrC,uCAAuC;AAAA,EACvC,mCAAmC;AAAA,EACnC,+BAA+B;AAAA,EAC/B,+BAA+B;AAAA,EAC/B,mCAAmC;AACrC;",
+  "names": []
+}

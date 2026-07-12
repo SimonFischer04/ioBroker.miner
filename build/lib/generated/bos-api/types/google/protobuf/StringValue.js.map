@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../src/lib/generated/bos-api/types/google/protobuf/StringValue.ts"],
+  "sourcesContent": ["// Original file: null\n\n\nexport interface StringValue {\n  'value'?: (string);\n}\n\nexport interface StringValue__Output {\n  'value'?: (string);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

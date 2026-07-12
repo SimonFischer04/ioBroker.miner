@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/GetTunerStateResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/performance.proto\n\nimport type { TunerState as _braiins_bos_v1_TunerState, TunerState__Output as _braiins_bos_v1_TunerState__Output } from '../../../braiins/bos/v1/TunerState';\nimport type { PowerTargetModeState as _braiins_bos_v1_PowerTargetModeState, PowerTargetModeState__Output as _braiins_bos_v1_PowerTargetModeState__Output } from '../../../braiins/bos/v1/PowerTargetModeState';\nimport type { HashrateTargetModeState as _braiins_bos_v1_HashrateTargetModeState, HashrateTargetModeState__Output as _braiins_bos_v1_HashrateTargetModeState__Output } from '../../../braiins/bos/v1/HashrateTargetModeState';\n\nexport interface GetTunerStateResponse {\n  'overallTunerState'?: (_braiins_bos_v1_TunerState);\n  'powerTargetModeState'?: (_braiins_bos_v1_PowerTargetModeState | null);\n  'hashrateTargetModeState'?: (_braiins_bos_v1_HashrateTargetModeState | null);\n  'modeState'?: \"powerTargetModeState\"|\"hashrateTargetModeState\";\n}\n\nexport interface GetTunerStateResponse__Output {\n  'overallTunerState'?: (_braiins_bos_v1_TunerState__Output);\n  'powerTargetModeState'?: (_braiins_bos_v1_PowerTargetModeState__Output);\n  'hashrateTargetModeState'?: (_braiins_bos_v1_HashrateTargetModeState__Output);\n  'modeState'?: \"powerTargetModeState\"|\"hashrateTargetModeState\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

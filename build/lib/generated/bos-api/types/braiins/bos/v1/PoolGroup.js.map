@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/PoolGroup.ts"],
+  "sourcesContent": ["// Original file: bos/v1/pool.proto\n\nimport type { Quota as _braiins_bos_v1_Quota, Quota__Output as _braiins_bos_v1_Quota__Output } from '../../../braiins/bos/v1/Quota';\nimport type { FixedShareRatio as _braiins_bos_v1_FixedShareRatio, FixedShareRatio__Output as _braiins_bos_v1_FixedShareRatio__Output } from '../../../braiins/bos/v1/FixedShareRatio';\nimport type { Pool as _braiins_bos_v1_Pool, Pool__Output as _braiins_bos_v1_Pool__Output } from '../../../braiins/bos/v1/Pool';\n\nexport interface PoolGroup {\n  'name'?: (string);\n  'quota'?: (_braiins_bos_v1_Quota | null);\n  'fixedShareRatio'?: (_braiins_bos_v1_FixedShareRatio | null);\n  'pools'?: (_braiins_bos_v1_Pool)[];\n  'uid'?: (string);\n  'strategy'?: \"quota\"|\"fixedShareRatio\";\n}\n\nexport interface PoolGroup__Output {\n  'name'?: (string);\n  'quota'?: (_braiins_bos_v1_Quota__Output);\n  'fixedShareRatio'?: (_braiins_bos_v1_FixedShareRatio__Output);\n  'pools'?: (_braiins_bos_v1_Pool__Output)[];\n  'uid'?: (string);\n  'strategy'?: \"quota\"|\"fixedShareRatio\";\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

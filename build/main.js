@@ -76,6 +76,7 @@ class MinerAdapter extends utils.Adapter {
     await this.createBasicObjectStructure();
     await this.tryKnownDevices();
     this.subscribeStates("miner.*.control.*");
+    this.subscribeStates("miner.*.enabled");
   }
   /**
    * Is called when adapter shuts down - callback has to be called under any circumstances!
@@ -114,6 +115,7 @@ class MinerAdapter extends utils.Adapter {
    * @param state - the new state value
    */
   async onStateChange(id, state) {
+    var _a, _b;
     if (state) {
       this.log.info(`state ${id} changed: ${state.val} (ack = ${state.ack})`);
       if (state.ack) {
@@ -130,13 +132,24 @@ class MinerAdapter extends utils.Adapter {
         this.log.warn(`Object ${deviceObjectId} not found`);
         return;
       }
-      const deviceSettings = obj.native;
+      const deviceSettings = (0, import_IOBrokerMinerSettings.decryptDeviceSettings)(
+        obj.native,
+        (value) => this.decrypt(value)
+      );
       if (!(0, import_IOBrokerMinerSettings.isMiner)(deviceSettings)) {
         this.log.warn(`category ${deviceSettings.category} not yet supported`);
         return;
       }
+      deviceSettings.enabled = ((_b = (_a = await this.getStateAsync(`${deviceObjectId}.enabled`)) == null ? void 0 : _a.val) != null ? _b : true) === true;
       const minerObjectId = parts.slice(4).join(".");
       switch (minerObjectId) {
+        case "enabled": {
+          const enabled = state.val === true;
+          this.log.info(`${enabled ? "enable" : "disable"} requested for device ${deviceSettings.name}`);
+          await this.setDeviceEnabled(deviceObjectId, deviceSettings, enabled);
+          await this.setState(id, { val: enabled, ack: true });
+          break;
+        }
         case (0, import_MinerFeature.getMinerFeatureFullId)(import_MinerFeature.MinerFeatureKey.running): {
           this.log.debug(`running state changed to ${state.val}`);
           if (deviceSettings.settings.id === void 0) {
@@ -173,6 +186,21 @@ class MinerAdapter extends utils.Adapter {
           }
           await this.minerManager.setProfile(deviceSettings.settings.id, profile);
           await this.setState(id, { val: profile, ack: true });
+          break;
+        }
+        case (0, import_MinerFeature.getMinerFeatureFullId)(import_MinerFeature.MinerFeatureKey.powerTarget): {
+          const powerTarget = Number(state.val);
+          this.log.debug(`power target state changed to ${powerTarget}`);
+          if (!Number.isFinite(powerTarget) || powerTarget <= 0) {
+            this.log.warn(`invalid power target value for device ${deviceSettings.name}: ${state.val}`);
+            return;
+          }
+          if (deviceSettings.settings.id === void 0) {
+            this.log.error(`device ${deviceSettings.name} has no id`);
+            return;
+          }
+          await this.minerManager.setPowerTarget(deviceSettings.settings.id, powerTarget);
+          await this.setState(id, { val: powerTarget, ack: true });
           break;
         }
         default: {
@@ -224,12 +252,13 @@ class MinerAdapter extends utils.Adapter {
     }
     const id = this.getDeviceObjectId(settings);
     this.log.debug(`extended object ${id} with: ${JSON.stringify(settings)}`);
+    const { enabled: _enabled, ...nativeSettings } = settings;
     await this.extendObject(id, {
       type: "device",
       common: {
         name: settings.name || settings.settings.host
       },
-      native: (0, import_IOBrokerMinerSettings.encryptDeviceSettings)(settings, (value) => this.encrypt(value))
+      native: (0, import_IOBrokerMinerSettings.encryptDeviceSettings)(nativeSettings, (value) => this.encrypt(value))
     });
     await this.extendObject(`${id}.empty`, {
       type: "state",
@@ -255,7 +284,7 @@ class MinerAdapter extends utils.Adapter {
       this.log.error(`could not create device object for ${JSON.stringify(settings)}`);
       return;
     }
-    await this.initDevice(obj);
+    await this.initDevice(obj, (0, import_IOBrokerMinerSettings.isMiner)(settings) ? settings.enabled : void 0);
   }
   /**
    *
@@ -266,6 +295,10 @@ class MinerAdapter extends utils.Adapter {
       this.log.error(`category ${settings.category} is not yet supported.`);
       return;
     }
+    await this.setState(`${this.getDeviceObjectId(settings)}.enabled`, {
+      val: settings.enabled,
+      ack: true
+    });
     if (!await this.tryCloseMiner(settings)) {
       this.log.error(`updateDevice could not close miner ${settings.settings.id}`);
       return;
@@ -318,7 +351,8 @@ class MinerAdapter extends utils.Adapter {
     await this.minerManager.close(settings.settings.id);
     return true;
   }
-  async initDevice(device) {
+  async initDevice(device, initialEnabled) {
+    var _a, _b;
     const settings = (0, import_IOBrokerMinerSettings.decryptDeviceSettings)(
       device.native,
       (value) => this.decrypt(value)
@@ -329,16 +363,23 @@ class MinerAdapter extends utils.Adapter {
       return;
     }
     await this.createDeviceStateObjects(settings);
+    const enabledState = await this.getStateAsync(`${device._id}.enabled`);
+    settings.enabled = (_b = (_a = enabledState == null ? void 0 : enabledState.val) != null ? _a : initialEnabled) != null ? _b : true;
     await this.writeStaticInfoStates(settings);
     if (!settings.enabled) {
       this.log.info(`device ${settings.name} is disabled`);
       return;
     }
-    const miner = await this.minerManager.init(settings.settings);
-    miner.subscribeToStats(async (stats) => {
-      this.log.debug(`received stats: ${JSON.stringify(stats)}`);
-      await this.processNewStats(miner, settings, stats);
-    });
+    try {
+      const miner = await this.minerManager.init(settings.settings);
+      miner.subscribeToStats(async (stats) => {
+        this.log.debug(`received stats: ${JSON.stringify(stats)}`);
+        await this.processNewStats(miner, settings, stats);
+      });
+    } catch (e) {
+      this.log.error(`could not initialize device ${settings.name || settings.settings.host}: ${String(e)}`);
+      await this.setState(`${this.getDeviceObjectId(settings)}.info.online`, { val: false, ack: true });
+    }
   }
   /**
    * Write static info states that come from the device configuration, not from API polling.
@@ -349,7 +390,33 @@ class MinerAdapter extends utils.Adapter {
     const deviceId = this.getDeviceObjectId(settings);
     await this.setState(`${deviceId}.info.minerType`, { val: settings.settings.minerType, ack: true });
     await this.setState(`${deviceId}.info.host`, { val: settings.settings.host, ack: true });
+    await this.setState(`${deviceId}.enabled`, { val: settings.enabled, ack: true });
     await this.setState(`${deviceId}.info.online`, { val: false, ack: true });
+  }
+  async setDeviceEnabled(deviceObjectId, settings, enabled) {
+    if (settings.settings.id === void 0) {
+      this.log.error(`device ${settings.name} has no id`);
+      return;
+    }
+    if (settings.enabled === enabled && this.minerManager.hasMiner(settings.settings.id) === enabled) {
+      return;
+    }
+    if (enabled) {
+      if (this.minerManager.hasMiner(settings.settings.id)) {
+        return;
+      }
+      const obj = await this.getObjectAsync(deviceObjectId);
+      if (obj == null) {
+        this.log.warn(`Object ${deviceObjectId} not found`);
+        return;
+      }
+      await this.initDevice(obj, enabled);
+      return;
+    }
+    if (this.minerManager.hasMiner(settings.settings.id)) {
+      await this.minerManager.close(settings.settings.id);
+    }
+    await this.setState(`${deviceObjectId}.info.online`, { val: false, ack: true });
   }
   async processNewStats(miner, settings, stats) {
     const supported = miner.getSupportedFeatures();
@@ -376,6 +443,7 @@ class MinerAdapter extends utils.Adapter {
       const statsValues = {
         totalHashrate: stats.totalHashrate,
         power: stats.power,
+        dynamicPowerTarget: stats.dynamicPowerTarget,
         efficiency: stats.efficiency,
         acceptedShares: stats.acceptedShares,
         rejectedShares: stats.rejectedShares
@@ -410,6 +478,16 @@ class MinerAdapter extends utils.Adapter {
       });
     }
     await this.cleanupLegacyStates(deviceId);
+    await this.extendObject(`${deviceId}.enabled`, {
+      type: "state",
+      common: {
+        name: "Enabled",
+        type: "boolean",
+        role: "switch.enable",
+        read: true,
+        write: true
+      }
+    });
     const infoStates = {
       minerType: { name: "Miner Type", type: "string", read: true, write: false },
       host: { name: "Host", type: "string", read: true, write: false },
@@ -428,6 +506,13 @@ class MinerAdapter extends utils.Adapter {
       const statsStates = {
         totalHashrate: { name: "Total Hashrate", type: "number", unit: "h/s", read: true, write: false },
         power: { name: "Power", type: "number", unit: "W", read: true, write: false },
+        dynamicPowerTarget: {
+          name: "Dynamic Power Target",
+          type: "number",
+          unit: "W",
+          read: true,
+          write: false
+        },
         efficiency: { name: "Efficiency", type: "number", unit: "H/W", read: true, write: false },
         acceptedShares: { name: "Accepted Shares", type: "number", read: true, write: false },
         rejectedShares: { name: "Rejected Shares", type: "number", read: true, write: false }

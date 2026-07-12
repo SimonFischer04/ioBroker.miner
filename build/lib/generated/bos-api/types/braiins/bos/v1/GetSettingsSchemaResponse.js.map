@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/GetSettingsSchemaResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/advanced_settings.proto\n\nimport type { Struct as _google_protobuf_Struct, Struct__Output as _google_protobuf_Struct__Output } from '../../../google/protobuf/Struct';\n\nexport interface GetSettingsSchemaResponse {\n  'schema'?: (_google_protobuf_Struct | null);\n}\n\nexport interface GetSettingsSchemaResponse__Output {\n  'schema'?: (_google_protobuf_Struct__Output);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

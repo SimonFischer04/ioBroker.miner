@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/GetMinerStatsResponse.ts"],
+  "sourcesContent": ["// Original file: bos/v1/miner.proto\n\nimport type { PoolStats as _braiins_bos_v1_PoolStats, PoolStats__Output as _braiins_bos_v1_PoolStats__Output } from '../../../braiins/bos/v1/PoolStats';\nimport type { WorkSolverStats as _braiins_bos_v1_WorkSolverStats, WorkSolverStats__Output as _braiins_bos_v1_WorkSolverStats__Output } from '../../../braiins/bos/v1/WorkSolverStats';\nimport type { MinerPowerStats as _braiins_bos_v1_MinerPowerStats, MinerPowerStats__Output as _braiins_bos_v1_MinerPowerStats__Output } from '../../../braiins/bos/v1/MinerPowerStats';\n\nexport interface GetMinerStatsResponse {\n  'poolStats'?: (_braiins_bos_v1_PoolStats | null);\n  'minerStats'?: (_braiins_bos_v1_WorkSolverStats | null);\n  'powerStats'?: (_braiins_bos_v1_MinerPowerStats | null);\n}\n\nexport interface GetMinerStatsResponse__Output {\n  'poolStats'?: (_braiins_bos_v1_PoolStats__Output);\n  'minerStats'?: (_braiins_bos_v1_WorkSolverStats__Output);\n  'powerStats'?: (_braiins_bos_v1_MinerPowerStats__Output);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}

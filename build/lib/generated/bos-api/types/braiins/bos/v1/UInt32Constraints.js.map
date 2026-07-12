@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../../../../../../src/lib/generated/bos-api/types/braiins/bos/v1/UInt32Constraints.ts"],
+  "sourcesContent": ["// Original file: bos/v1/constraints.proto\n\n\nexport interface UInt32Constraints {\n  'default'?: (number);\n  'min'?: (number);\n  'max'?: (number);\n}\n\nexport interface UInt32Constraints__Output {\n  'default'?: (number);\n  'min'?: (number);\n  'max'?: (number);\n}\n"],
+  "mappings": ";;;;;;;;;;;;;;AAAA;AAAA;",
+  "names": []
+}
