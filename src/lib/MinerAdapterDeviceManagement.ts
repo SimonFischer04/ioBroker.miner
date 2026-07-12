@@ -249,7 +249,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         trim: true,
                         label: I18n.getTranslatedObject('username'),
                         tooltip: 'username used to login to the device API',
-                        hidden: "data.category !== 'miner' || data.minerType != 'bos'",
+                        hidden: "data.category !== 'miner' || !(data.minerType == 'bos' || data.minerType == 'bosMiner')",
                     },
                     password: {
                         type: 'text',
@@ -259,7 +259,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         label: I18n.getTranslatedObject('password'),
                         tooltip:
                             'password used to connect to the device api. Adapter generates a random, secure and unique one for each device by default. But can of course be changed if needed.',
-                        hidden: "data.category !== 'miner' || !(data.minerType == 'claymoreMiner' || data.minerType == 'xmRig' || data.minerType == 'iceRiverOcMiner' || data.minerType == 'teamRedMiner' || data.minerType == 'bos')", // TODO: improve this
+                        hidden: "data.category !== 'miner' || !(data.minerType == 'claymoreMiner' || data.minerType == 'xmRig' || data.minerType == 'iceRiverOcMiner' || data.minerType == 'teamRedMiner' || data.minerType == 'bos' || data.minerType == 'bosMiner')", // TODO: improve this
                     },
                     enabled: {
                         type: 'checkbox',
@@ -474,6 +474,9 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 const bosSettings: Omit<BOSMinerSettings, keyof MinerSettings> = {
                     pollInterval,
                     port: 4028, // TODO: make configurable
+                    sshPort: 22,
+                    username: result.username ?? BOS_DEFAULT_USERNAME,
+                    password: result.password ?? BOS_DEFAULT_PASSWORD,
                 };
                 minerSettings = {
                     ...minerSettings,
@@ -809,6 +812,10 @@ function getPasswordFormValue(settings: PartialDeep<IOBrokerMinerSettings>): str
                     >
                 ).password ?? (settings.settings.minerType === 'bos' ? BOS_DEFAULT_PASSWORD : '')
             );
+        }
+
+        case 'bosMiner': {
+            return (settings.settings as PartialDeep<BOSMinerSettings>).password ?? BOS_DEFAULT_PASSWORD;
         }
 
         default: {

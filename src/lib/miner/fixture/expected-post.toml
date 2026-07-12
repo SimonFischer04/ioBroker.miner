@@ -1,0 +1,31 @@
+[format]
+version = '2.0'
+model = 'Antminer S9'
+generator = 'BOSer (boser-openwrt 0.1.0-26ba61b9)'
+timestamp = 1783875900
+
+[temp_control]
+target_temp = 80.0
+hot_temp = 90.0
+dangerous_temp = 95.0
+
+[fan_control]
+min_fans = 1
+
+[[group]]
+name = 'Default'
+
+[[group.pool]]
+url = 'stratum2+tcp://v2.eu.stratum.braiins.com/u95GEReVMjK6k5YqiSFNqqTnKU4ypU2Wm8awa6tmbmDmk1bWt'
+user = 'example.S9i01'
+password = 'anything123'
+
+[autotuning]
+enabled = true
+mode = 'power_target'
+power_target = 100
+
+[performance_scaling]
+enabled = true
+power_step = 100
+min_power_target = 100

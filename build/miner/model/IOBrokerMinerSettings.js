@@ -61,6 +61,13 @@ function encryptDeviceSettings(settings, encryptFunction) {
       }
       break;
     }
+    case "bosMiner": {
+      const bosMinerSettings = settings.settings;
+      if (bosMinerSettings.password) {
+        bosMinerSettings.password = encryptFunction(bosMinerSettings.password);
+      }
+      break;
+    }
     default: {
       break;
     }
@@ -97,6 +104,13 @@ function decryptDeviceSettings(settings, decryptFunction) {
       const bosSettings = settings.settings;
       if (bosSettings.password) {
         bosSettings.password = decryptFunction(bosSettings.password);
+      }
+      break;
+    }
+    case "bosMiner": {
+      const bosMinerSettings = settings.settings;
+      if (bosMinerSettings.password) {
+        bosMinerSettings.password = decryptFunction(bosMinerSettings.password);
       }
       break;
     }

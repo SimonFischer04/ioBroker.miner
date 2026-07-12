@@ -141,6 +141,18 @@ export interface BOSMinerSettings extends CGMinerSettings {
      *
      */
     minerType: (typeof minerTypeKeys)[5];
+    /**
+     * SSH port used for legacy config-file workarounds.
+     */
+    sshPort: number;
+    /**
+     *
+     */
+    username: string;
+    /**
+     *
+     */
+    password: string;
 }
 
 /**

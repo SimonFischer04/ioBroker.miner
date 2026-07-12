@@ -1,4 +1,5 @@
 import type {
+    BOSMinerSettings,
     BOSSettings,
     ClaymoreMinerSettings,
     IceRiverOcMinerSettings,
@@ -126,6 +127,14 @@ export function encryptDeviceSettings(
             break;
         }
 
+        case 'bosMiner': {
+            const bosMinerSettings = settings.settings as BOSMinerSettings;
+            if (bosMinerSettings.password) {
+                bosMinerSettings.password = encryptFunction(bosMinerSettings.password);
+            }
+            break;
+        }
+
         default: {
             break;
         }
@@ -182,6 +191,14 @@ export function decryptDeviceSettings(
             const bosSettings = settings.settings as BOSSettings;
             if (bosSettings.password) {
                 bosSettings.password = decryptFunction(bosSettings.password);
+            }
+            break;
+        }
+
+        case 'bosMiner': {
+            const bosMinerSettings = settings.settings as BOSMinerSettings;
+            if (bosMinerSettings.password) {
+                bosMinerSettings.password = decryptFunction(bosMinerSettings.password);
             }
             break;
         }

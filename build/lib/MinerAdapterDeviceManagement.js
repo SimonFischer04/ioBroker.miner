@@ -126,7 +126,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
     return { refresh: true };
   }
   async showDeviceConfigurationForm(context, existingSettings, title) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n;
     this.adapter.log.debug(`showDeviceConfigurationForm existingSettings: ${JSON.stringify(existingSettings)}`);
     if (!(0, import_IOBrokerMinerSettings.isMiner)(existingSettings)) {
       this.adapter.log.error(
@@ -226,7 +226,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             trim: true,
             label: import_adapter_core.I18n.getTranslatedObject("username"),
             tooltip: "username used to login to the device API",
-            hidden: "data.category !== 'miner' || data.minerType != 'bos'"
+            hidden: "data.category !== 'miner' || !(data.minerType == 'bos' || data.minerType == 'bosMiner')"
           },
           password: {
             type: "text",
@@ -235,7 +235,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
             newLine: true,
             label: import_adapter_core.I18n.getTranslatedObject("password"),
             tooltip: "password used to connect to the device api. Adapter generates a random, secure and unique one for each device by default. But can of course be changed if needed.",
-            hidden: "data.category !== 'miner' || !(data.minerType == 'claymoreMiner' || data.minerType == 'xmRig' || data.minerType == 'iceRiverOcMiner' || data.minerType == 'teamRedMiner' || data.minerType == 'bos')"
+            hidden: "data.category !== 'miner' || !(data.minerType == 'claymoreMiner' || data.minerType == 'xmRig' || data.minerType == 'iceRiverOcMiner' || data.minerType == 'teamRedMiner' || data.minerType == 'bos' || data.minerType == 'bosMiner')"
             // TODO: improve this
           },
           enabled: {
@@ -378,8 +378,11 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         const pollInterval = (_h = result.pollInterval) != null ? _h : this.adapter.config.pollInterval;
         const bosSettings = {
           pollInterval,
-          port: 4028
+          port: 4028,
           // TODO: make configurable
+          sshPort: 22,
+          username: (_i = result.username) != null ? _i : import_MinerSettings.BOS_DEFAULT_USERNAME,
+          password: (_j = result.password) != null ? _j : import_MinerSettings.BOS_DEFAULT_PASSWORD
         };
         minerSettings = {
           ...minerSettings,
@@ -388,13 +391,13 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         break;
       }
       case "bos": {
-        const pollInterval = (_i = result.pollInterval) != null ? _i : this.adapter.config.pollInterval;
+        const pollInterval = (_k = result.pollInterval) != null ? _k : this.adapter.config.pollInterval;
         const bosSettings = {
           pollInterval,
           port: 50051,
           // BOS gRPC API default
-          username: (_j = result.username) != null ? _j : import_MinerSettings.BOS_DEFAULT_USERNAME,
-          password: (_k = result.password) != null ? _k : import_MinerSettings.BOS_DEFAULT_PASSWORD,
+          username: (_l = result.username) != null ? _l : import_MinerSettings.BOS_DEFAULT_USERNAME,
+          password: (_m = result.password) != null ? _m : import_MinerSettings.BOS_DEFAULT_PASSWORD,
           secure: false
         };
         minerSettings = {
@@ -404,7 +407,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
         break;
       }
       case "avalonMiner": {
-        const pollInterval = (_l = result.pollInterval) != null ? _l : this.adapter.config.pollInterval;
+        const pollInterval = (_n = result.pollInterval) != null ? _n : this.adapter.config.pollInterval;
         const avalonSettings = {
           pollInterval,
           port: 4028
@@ -643,7 +646,7 @@ class MinerAdapterDeviceManagement extends import_dm_utils.DeviceManagement {
 }
 var MinerAdapterDeviceManagement_default = MinerAdapterDeviceManagement;
 function getPasswordFormValue(settings) {
-  var _a, _b, _c, _d;
+  var _a, _b, _c, _d, _e;
   switch ((_a = settings.settings) == null ? void 0 : _a.minerType) {
     case "teamRedMiner": {
       return (_c = (_b = settings.settings.claymore) == null ? void 0 : _b.password) != null ? _c : "";
@@ -653,6 +656,9 @@ function getPasswordFormValue(settings) {
     case "iceRiverOcMiner":
     case "bos": {
       return (_d = settings.settings.password) != null ? _d : settings.settings.minerType === "bos" ? import_MinerSettings.BOS_DEFAULT_PASSWORD : "";
+    }
+    case "bosMiner": {
+      return (_e = settings.settings.password) != null ? _e : import_MinerSettings.BOS_DEFAULT_PASSWORD;
     }
     default: {
       return "";
