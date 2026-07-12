@@ -147,7 +147,7 @@ export class BosApiClient {
 
     /**
      *
-     * @param options
+     * @param options Connection and authentication options for the Braiins OS API client.
      */
     public constructor(options: BosApiClientOptions) {
         const credentials = options.secure ? grpc.credentials.createSsl() : grpc.credentials.createInsecure();
@@ -238,7 +238,7 @@ export class BosApiClient {
 
     /**
      *
-     * @param watt
+     * @param watt Target power value in watts to send to the Braiins OS API.
      */
     public setPowerTarget(watt: number): Promise<BosSetPowerTargetResponse> {
         return this.authenticatedUnary(
