@@ -586,6 +586,18 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         })),
                     };
                 }
+
+                if (supportedFeatures.includes(MinerFeatureKey.powerTarget)) {
+                    const stateId = `${device._id}.${getMinerFeatureFullId(MinerFeatureKey.powerTarget)}`;
+                    customInfoItems.powerTarget = {
+                        type: 'state',
+                        oid: stateId,
+                        foreign: true,
+                        control: 'number',
+                        unit: 'W',
+                        label: I18n.getTranslatedObject('Power Target'),
+                    };
+                }
             }
 
             context.addDevice({
