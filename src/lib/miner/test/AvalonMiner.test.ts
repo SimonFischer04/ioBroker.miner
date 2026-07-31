@@ -47,7 +47,7 @@ describe('AvalonMiner', () => {
 
     describe('parseSummaryVersionStatsResponse', () => {
         it('should parse summary+version+stats fixture data correctly', () => {
-            const fixture = summaryVersionStatsFixture as SummaryVersionStatsResponse;
+            const fixture = summaryVersionStatsFixture as unknown as SummaryVersionStatsResponse;
             const stats = miner.parseSummaryVersionStatsResponse(fixture);
 
             // Base stats from summary+version (inherited from CGMiner)
@@ -61,6 +61,10 @@ describe('AvalonMiner', () => {
             // Power from Avalon MM ID telemetry: PS[0 0 27687 4 0 3678 131] → watt (index 6) = 131 W
             expect(stats.power).to.be.a('number');
             expect(stats.power).to.equal(131);
+
+            // RSSI from litestats telemetry: RSSI[-55] → -55 dBm
+            expect(stats.rssi).to.be.a('number');
+            expect(stats.rssi).to.equal(-55);
 
             // Efficiency: totalHashrate / power
             expect(stats.efficiency).to.be.a('number');
@@ -78,6 +82,7 @@ describe('AvalonMiner', () => {
                 summary: [{ STATUS: [], SUMMARY: [], id: 1 }],
                 version: [{ STATUS: [], VERSION: [], id: 1 }],
                 stats: [{ STATUS: [], STATS: [], id: 1 }],
+                litestats: [{ STATUS: [], STATS: [], id: 1 }],
                 id: 1,
             };
 
@@ -88,6 +93,7 @@ describe('AvalonMiner', () => {
             expect(stats.totalHashrate).to.be.undefined;
             expect(stats.power).to.be.undefined;
             expect(stats.efficiency).to.be.undefined;
+            expect(stats.rssi).to.be.undefined;
         });
 
         it('should handle stats without MM ID field', () => {
@@ -114,6 +120,7 @@ describe('AvalonMiner', () => {
                         id: 1,
                     },
                 ],
+                litestats: [{ STATUS: [], STATS: [], id: 1 }],
                 id: 1,
             };
 
@@ -145,6 +152,7 @@ describe('AvalonMiner', () => {
                         id: 1,
                     },
                 ],
+                litestats: [{ STATUS: [], STATS: [], id: 1 }],
                 id: 1,
             };
 
@@ -176,6 +184,7 @@ describe('AvalonMiner', () => {
                         id: 1,
                     },
                 ],
+                litestats: [{ STATUS: [], STATS: [], id: 1 }],
                 id: 1,
             };
 
@@ -189,6 +198,11 @@ describe('AvalonMiner', () => {
         it('should include the profile feature', () => {
             const features = miner.getSupportedFeatures();
             expect(features).to.include(MinerFeatureKey.profile);
+        });
+
+        it('should include the rssi feature', () => {
+            const features = miner.getSupportedFeatures();
+            expect(features).to.include(MinerFeatureKey.rssi);
         });
 
         it('should not include cliArgs', () => {

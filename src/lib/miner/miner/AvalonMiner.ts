@@ -2,7 +2,12 @@ import { CGMiner } from './CGMiner';
 import type { AvalonMinerSettings } from '../model/MinerSettings';
 import { MinerFeatureKey } from '../model/MinerFeature';
 import type { MinerStats } from '../model/MinerStats';
-import { CGMinerCommand, type CombinedResponse, type StatsDeviceData } from '../model/CGMinerApiTypes';
+import {
+    CGMinerCommand,
+    type CombinedResponse,
+    type StatsDeviceData,
+    type LiteStatsData,
+} from '../model/CGMinerApiTypes';
 import { safeParseFloat } from '../../utils/parse-utils';
 
 // Avalon devices use the CGMiner-compatible socket API on port 4028
@@ -34,9 +39,9 @@ const AVALON_PROFILE_PARAM_MAP: Record<string, string> = {
 
 const AVALON_PROFILES = Object.keys(AVALON_PROFILE_PARAM_MAP);
 
-/** Type alias for the summary+version+stats combined response. */
+/** Type alias for the summary+version+stats+litestats combined response. */
 export type SummaryVersionStatsResponse = CombinedResponse<
-    CGMinerCommand.summary | CGMinerCommand.version | CGMinerCommand.stats
+    CGMinerCommand.summary | CGMinerCommand.version | CGMinerCommand.stats | CGMinerCommand.liteStats
 >;
 
 /**
@@ -60,7 +65,7 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
         // TODO: also fetch profile (workmode). control.profile is for control, info.profile for profile fetched from stats
         try {
             const response = await this.sendCommand<SummaryVersionStatsResponse>(
-                [CGMinerCommand.summary, CGMinerCommand.version, CGMinerCommand.stats],
+                [CGMinerCommand.summary, CGMinerCommand.version, CGMinerCommand.stats, CGMinerCommand.liteStats],
                 '',
                 true,
             );
@@ -91,6 +96,7 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
         return [
             ...super.getSupportedFeatures().filter(feature => !unsupportedFeatures.includes(feature)),
             MinerFeatureKey.profile,
+            MinerFeatureKey.rssi,
             // MinerFeatureKey.running,
         ];
     }
@@ -173,10 +179,14 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
         // Extract power from the stats response
         const power = this.extractPowerFromStats(response.stats?.[0]?.STATS);
 
+        // Extract RSSI from the litestats response
+        const rssi = this.extractRssiFromLiteStats(response.litestats?.[0]?.STATS);
+
         return {
             ...baseStats,
             power,
             efficiency: power != null && baseStats.totalHashrate ? baseStats.totalHashrate / power : undefined,
+            rssi,
         };
     }
 
@@ -225,5 +235,42 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
 
         const watts = safeParseFloat(parts[6]);
         return watts > 0 ? watts : undefined;
+    }
+
+    /**
+     * Extract RSSI (WiFi signal strength) from the litestats response.
+     *
+     * The first `MM ID<n>` telemetry string may contain `RSSI[-55]`.
+     *
+     * @param liteStatsEntries - STATS array from a litestats response
+     * @returns RSSI in dBm, or undefined if not available
+     */
+    private extractRssiFromLiteStats(liteStatsEntries: LiteStatsData[] | undefined): number | undefined {
+        if (!liteStatsEntries) {
+            return undefined;
+        }
+
+        const entry = liteStatsEntries[0];
+        if (!entry) {
+            return undefined;
+        }
+
+        const mmIdKey = Object.keys(entry).find(key => key.startsWith('MM ID'));
+        if (!mmIdKey) {
+            return undefined;
+        }
+
+        const telemetry = entry[mmIdKey as `MM ID${number}`];
+        if (!telemetry) {
+            return undefined;
+        }
+
+        const parsed = this.parseAvalonTelemetry(telemetry);
+        const rssiValue = parsed.get('RSSI');
+        if (!rssiValue) {
+            return undefined;
+        }
+
+        return safeParseFloat(rssiValue);
     }
 }
