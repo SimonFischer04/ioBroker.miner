@@ -1,0 +1,7 @@
+{
+	"include": ["src/**/*.ts"],
+	"exclude": ["src/**/*.test.ts", "src/lib/generated/**"],
+	"extension": [".ts"],
+	"reporter": ["text", "lcov"],
+	"all": true
+}
