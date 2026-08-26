@@ -39,10 +39,13 @@ const AVALON_PROFILE_PARAM_MAP: Record<string, string> = {
 
 const AVALON_PROFILES = Object.keys(AVALON_PROFILE_PARAM_MAP);
 
-/** Type alias for the summary+version+stats+litestats combined response. */
+/** Type alias for the summary+version+stats combined response. */
 export type SummaryVersionStatsResponse = CombinedResponse<
-    CGMinerCommand.summary | CGMinerCommand.version | CGMinerCommand.stats | CGMinerCommand.liteStats
+    CGMinerCommand.summary | CGMinerCommand.version | CGMinerCommand.stats
 >;
+
+/** Type alias for the litestats response. */
+export type LiteStatsCommandResponse = CombinedResponse<CGMinerCommand.liteStats>;
 
 /**
  *
@@ -65,12 +68,24 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
         // TODO: also fetch profile (workmode). control.profile is for control, info.profile for profile fetched from stats
         try {
             const response = await this.sendCommand<SummaryVersionStatsResponse>(
-                [CGMinerCommand.summary, CGMinerCommand.version, CGMinerCommand.stats, CGMinerCommand.liteStats],
+                [CGMinerCommand.summary, CGMinerCommand.version, CGMinerCommand.stats],
                 '',
                 true,
             );
 
-            return this.parseSummaryVersionStatsResponse(response);
+            // Fetch litestats separately so a firmware that rejects the combo doesn't break core stats
+            let liteStatsResponse: LiteStatsCommandResponse | undefined;
+            try {
+                liteStatsResponse = await this.sendCommand<LiteStatsCommandResponse>(
+                    [CGMinerCommand.liteStats],
+                    '',
+                    true,
+                );
+            } catch {
+                this.logger.debug('litestats request failed, RSSI will not be available');
+            }
+
+            return this.parseSummaryVersionStatsResponse(response, liteStatsResponse);
         } catch (e) {
             return Promise.reject(e instanceof Error ? e : new Error(String(e)));
         }
@@ -170,9 +185,13 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
      * where `watt` (index 6) is total power consumption in watts.
      *
      * @param response - raw combined API response
+     * @param liteStatsResponse - optional separate litestats response
      * @returns parsed miner statistics including power
      */
-    public parseSummaryVersionStatsResponse(response: SummaryVersionStatsResponse): MinerStats {
+    public parseSummaryVersionStatsResponse(
+        response: SummaryVersionStatsResponse,
+        liteStatsResponse?: LiteStatsCommandResponse,
+    ): MinerStats {
         // Parse summary+version via the parent method
         const baseStats = this.parseSummaryVersionResponse(response);
 
@@ -180,7 +199,7 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
         const power = this.extractPowerFromStats(response.stats?.[0]?.STATS);
 
         // Extract RSSI from the litestats response
-        const rssi = this.extractRssiFromLiteStats(response.litestats?.[0]?.STATS);
+        const rssi = this.extractRssiFromLiteStats(liteStatsResponse?.litestats?.[0]?.STATS);
 
         return {
             ...baseStats,
@@ -250,7 +269,8 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
             return undefined;
         }
 
-        const entry = liteStatsEntries[0];
+        // Find the device entry (has 'MM Count'), same pattern as extractPowerFromStats
+        const entry = liteStatsEntries.find(e => 'MM Count' in e);
         if (!entry) {
             return undefined;
         }
@@ -267,7 +287,7 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
 
         const parsed = this.parseAvalonTelemetry(telemetry);
         const rssiValue = parsed.get('RSSI');
-        if (!rssiValue) {
+        if (rssiValue == null || rssiValue === '') {
             return undefined;
         }
 

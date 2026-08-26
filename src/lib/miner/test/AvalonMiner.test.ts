@@ -1,6 +1,7 @@
 import { expect } from 'chai';
-import { AvalonMiner, type SummaryVersionStatsResponse } from '../miner/AvalonMiner';
+import { AvalonMiner, type SummaryVersionStatsResponse, type LiteStatsCommandResponse } from '../miner/AvalonMiner';
 import summaryVersionStatsFixture from '../fixture/nano3s-summary+version+stats.json';
+import liteStatsFixture from '../fixture/nano3s-litestats.json';
 import { MinerFeatureKey } from '../model/MinerFeature';
 
 describe('AvalonMiner', () => {
@@ -48,7 +49,8 @@ describe('AvalonMiner', () => {
     describe('parseSummaryVersionStatsResponse', () => {
         it('should parse summary+version+stats fixture data correctly', () => {
             const fixture = summaryVersionStatsFixture as unknown as SummaryVersionStatsResponse;
-            const stats = miner.parseSummaryVersionStatsResponse(fixture);
+            const liteStats = { litestats: [liteStatsFixture], id: 1 } as unknown as LiteStatsCommandResponse;
+            const stats = miner.parseSummaryVersionStatsResponse(fixture, liteStats);
 
             // Base stats from summary+version (inherited from CGMiner)
             expect(stats.version).to.equal('4.11.1');
@@ -82,7 +84,6 @@ describe('AvalonMiner', () => {
                 summary: [{ STATUS: [], SUMMARY: [], id: 1 }],
                 version: [{ STATUS: [], VERSION: [], id: 1 }],
                 stats: [{ STATUS: [], STATS: [], id: 1 }],
-                litestats: [{ STATUS: [], STATS: [], id: 1 }],
                 id: 1,
             };
 
@@ -120,7 +121,6 @@ describe('AvalonMiner', () => {
                         id: 1,
                     },
                 ],
-                litestats: [{ STATUS: [], STATS: [], id: 1 }],
                 id: 1,
             };
 
@@ -152,7 +152,6 @@ describe('AvalonMiner', () => {
                         id: 1,
                     },
                 ],
-                litestats: [{ STATUS: [], STATS: [], id: 1 }],
                 id: 1,
             };
 
@@ -184,7 +183,6 @@ describe('AvalonMiner', () => {
                         id: 1,
                     },
                 ],
-                litestats: [{ STATUS: [], STATS: [], id: 1 }],
                 id: 1,
             };
 
