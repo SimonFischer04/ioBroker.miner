@@ -38,35 +38,47 @@ class TestPollingMiner extends PollingMiner<PollingMinerSettings> {
 }
 
 describe('PollingMiner exponential backoff', () => {
-    const delays: number[] = [];
-    let resolveDelay: (() => void) | undefined;
+    const scheduledDelays: number[] = [];
     let pollCount: number;
-    const maxPolls = 6;
+    let maxPolls: number;
+    let resolveDone: (() => void) | undefined;
 
+    /**
+     * Fake timer backend that executes scheduled callbacks synchronously (via microtask)
+     * and records the timeout values passed to `schedule`.
+     */
     const fakeBackend: TimerBackend = {
-        schedule: (cb, timeout) => setTimeout(cb, timeout),
-        clear: timer => clearTimeout(timer as ReturnType<typeof setTimeout>),
+        schedule: (cb, ms) => {
+            scheduledDelays.push(ms);
+            pollCount++;
+            if (pollCount >= maxPolls) {
+                if (resolveDone) {
+                    resolveDone();
+                }
+                // Return a dummy handle; don't invoke cb so loop stops
+                return 'stopped';
+            }
+            // Execute cb on next microtask to allow async flow
+            const p = Promise.resolve().then(cb);
+            return p;
+        },
+        clear: () => {
+            /* no-op for tests */
+        },
         scheduleInterval: (cb, interval) => setInterval(cb, interval),
         clearInterval: timer => clearInterval(timer as ReturnType<typeof setInterval>),
-        delay: (ms: number) => {
-            delays.push(ms);
-            pollCount++;
-            if (pollCount >= maxPolls && resolveDelay) {
-                resolveDelay();
-            }
-            return Promise.resolve();
-        },
+        delay: ms => new Promise(resolve => setTimeout(resolve, ms)),
     };
 
     beforeEach(() => {
-        delays.length = 0;
+        scheduledDelays.length = 0;
         pollCount = 0;
-        resolveDelay = undefined;
+        maxPolls = 6;
+        resolveDone = undefined;
         setTimerBackend(fakeBackend);
     });
 
     afterEach(() => {
-        // restore node backend
         setTimerBackend({
             schedule: (cb, timeout) => setTimeout(cb, timeout),
             clear: timer => clearTimeout(timer as ReturnType<typeof setTimeout>),
@@ -81,15 +93,15 @@ describe('PollingMiner exponential backoff', () => {
         miner.fetchStatsStub = () => Promise.resolve({} as MinerStats);
 
         const done = new Promise<void>(resolve => {
-            resolveDelay = resolve;
+            resolveDone = resolve;
         });
 
         await miner.init();
         await done;
         await miner.close();
 
-        // All delays should be the base interval (1000ms) since no failures
-        for (const d of delays) {
+        // All scheduled delays should be the base interval (1000ms) since no failures
+        for (const d of scheduledDelays) {
             expect(d).to.equal(1000);
         }
     });
@@ -99,23 +111,24 @@ describe('PollingMiner exponential backoff', () => {
         miner.fetchStatsStub = () => Promise.reject(new Error('connection failed'));
 
         const done = new Promise<void>(resolve => {
-            resolveDelay = resolve;
+            resolveDone = resolve;
         });
 
         await miner.init();
         await done;
         await miner.close();
 
-        // First poll succeeds at base, then failures: 2000, 4000, 8000, 16000, 32000
-        expect(delays[0]).to.equal(2000); // 1000 * 2^1
-        expect(delays[1]).to.equal(4000); // 1000 * 2^2
-        expect(delays[2]).to.equal(8000); // 1000 * 2^3
-        expect(delays[3]).to.equal(16000); // 1000 * 2^4
-        expect(delays[4]).to.equal(32000); // 1000 * 2^5 (max)
-        expect(delays[5]).to.equal(32000); // stays at max
+        // Consecutive failures: 2000, 4000, 8000, 16000, 32000, 32000 (capped)
+        expect(scheduledDelays[0]).to.equal(2000); // 1000 * 2^1
+        expect(scheduledDelays[1]).to.equal(4000); // 1000 * 2^2
+        expect(scheduledDelays[2]).to.equal(8000); // 1000 * 2^3
+        expect(scheduledDelays[3]).to.equal(16000); // 1000 * 2^4
+        expect(scheduledDelays[4]).to.equal(32000); // 1000 * 2^5 (max)
+        expect(scheduledDelays[5]).to.equal(32000); // stays at max
     });
 
     it('resets delay after successful poll', async () => {
+        maxPolls = 6;
         const miner = new TestPollingMiner(1000);
         let callCount = 0;
         miner.fetchStatsStub = () => {
@@ -128,7 +141,7 @@ describe('PollingMiner exponential backoff', () => {
         };
 
         const done = new Promise<void>(resolve => {
-            resolveDelay = resolve;
+            resolveDone = resolve;
         });
 
         await miner.init();
@@ -136,10 +149,31 @@ describe('PollingMiner exponential backoff', () => {
         await miner.close();
 
         // First 3 failures: 2000, 4000, 8000
-        expect(delays[0]).to.equal(2000);
-        expect(delays[1]).to.equal(4000);
-        expect(delays[2]).to.equal(8000);
+        expect(scheduledDelays[0]).to.equal(2000);
+        expect(scheduledDelays[1]).to.equal(4000);
+        expect(scheduledDelays[2]).to.equal(8000);
         // After success, reset to base
-        expect(delays[3]).to.equal(1000);
+        expect(scheduledDelays[3]).to.equal(1000);
+    });
+
+    it('close() cancels the pending timer immediately', async () => {
+        let clearCalled = false;
+        const customBackend: TimerBackend = {
+            ...fakeBackend,
+            schedule: (_cb, ms) => {
+                scheduledDelays.push(ms);
+                return 'timer-handle';
+            },
+            clear: () => {
+                clearCalled = true;
+            },
+        };
+        setTimerBackend(customBackend);
+
+        const miner = new TestPollingMiner(1000);
+        await miner.init();
+        await miner.close();
+
+        expect(clearCalled).to.equal(true);
     });
 });

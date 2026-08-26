@@ -1,7 +1,7 @@
 import { Miner } from './Miner';
 import type { PollingMinerSettings } from '../model/MinerSettings';
 import type { AsyncIntervalReturnType } from '../../utils/delay';
-import { delay } from '../../utils/delay';
+import { asyncBackoffInterval } from '../../utils/delay';
 import type { MinerStats } from '../model/MinerStats';
 
 /** Maximum backoff multiplier (interval * 2^MAX_BACKOFF_EXPONENT is the ceiling). */
@@ -27,11 +27,11 @@ export abstract class PollingMiner<S extends PollingMinerSettings> extends Miner
             return Promise.resolve();
         }
 
-        // start polling with exponential backoff on failure
-        let stopped = false;
+        this.consecutiveFailures = 0;
 
-        const poll = async (): Promise<void> => {
-            while (!stopped) {
+        // start polling with exponential backoff on failure
+        this.pollHandle = asyncBackoffInterval(
+            async () => {
                 this.logger.debug('next poll interval time reached. calling fetchData()');
                 try {
                     const stats: MinerStats = await this.fetchStats();
@@ -49,17 +49,11 @@ export abstract class PollingMiner<S extends PollingMinerSettings> extends Miner
                         `backing off: next retry in ${nextDelay}ms (failure #${this.consecutiveFailures})`,
                     );
                 }
-                await delay(nextDelay);
-            }
-        };
-
-        void poll();
-
-        this.pollHandle = {
-            clear: (): void => {
-                stopped = true;
+                return nextDelay;
             },
-        };
+            this.settings.pollInterval,
+            true,
+        );
 
         return Promise.resolve();
     }
@@ -70,6 +64,7 @@ export abstract class PollingMiner<S extends PollingMinerSettings> extends Miner
     public override async close(): Promise<void> {
         await super.close();
         this.pollHandle?.clear();
+        this.consecutiveFailures = 0;
     }
 
     /**

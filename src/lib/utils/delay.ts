@@ -138,6 +138,46 @@ export function asyncInterval(
 }
 
 /**
+ * Like {@link asyncInterval} but the callback returns the delay (in ms) to use
+ * before the next invocation, enabling dynamic backoff.
+ *
+ * The returned handle's `clear()` cancels the pending timer immediately.
+ *
+ * @param asyncCallback - async function that returns the next delay in ms
+ * @param initialDelayMs - delay before the first invocation (ignored when shouldExecuteImmediately is true)
+ * @param shouldExecuteImmediately - whether to run the callback immediately
+ */
+export function asyncBackoffInterval(
+    asyncCallback: () => Promise<number>,
+    initialDelayMs: number,
+    shouldExecuteImmediately = false,
+): AsyncIntervalReturnType {
+    let timeout: unknown;
+
+    const callbackWrapper = (): void => {
+        void (async (): Promise<void> => {
+            const nextDelay = await asyncCallback();
+            timeout = timerBackend.schedule(callbackWrapper, nextDelay);
+        })();
+    };
+
+    if (shouldExecuteImmediately) {
+        void (async (): Promise<void> => {
+            const nextDelay = await asyncCallback();
+            timeout = timerBackend.schedule(callbackWrapper, nextDelay);
+        })();
+    } else {
+        timeout = timerBackend.schedule(callbackWrapper, initialDelayMs);
+    }
+
+    return {
+        clear: (): void => {
+            timerBackend.clear(timeout);
+        },
+    };
+}
+
+/**
  *
  * @param callback - the callback to execute
  * @param ms - the timeout in milliseconds
