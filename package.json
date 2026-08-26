@@ -84,7 +84,8 @@
       "src/**/*.ts"
     ],
     "exclude": [
-      "src/**/*.test.ts"
+      "src/**/*.test.ts",
+      "src/lib/generated/**"
     ],
     "extension": [
       ".ts"
@@ -94,7 +95,8 @@
     ],
     "reporter": [
       "text-summary",
-      "html"
+      "html",
+      "lcov"
     ],
     "sourceMap": true,
     "instrument": true

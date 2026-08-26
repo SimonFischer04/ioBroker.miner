@@ -79,6 +79,7 @@ jobs:
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: coverage/lcov.info
 
   # Deploys the final package to NPM using Trusted Publishing (OIDC)
   deploy:
