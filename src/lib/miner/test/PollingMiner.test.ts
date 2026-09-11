@@ -176,4 +176,49 @@ describe('PollingMiner exponential backoff', () => {
 
         expect(clearCalled).to.equal(true);
     });
+
+    it('close() stops the loop even while a poll is still in flight', async () => {
+        // Manual backend: the test decides when a scheduled callback runs, so the poll can be kept
+        // in flight across the close() call.
+        let pending: (() => void) | undefined;
+        const manualBackend: TimerBackend = {
+            ...fakeBackend,
+            schedule: (cb, ms) => {
+                scheduledDelays.push(ms);
+                pending = cb;
+                return 'timer-handle';
+            },
+            clear: () => {
+                pending = undefined;
+            },
+        };
+        setTimerBackend(manualBackend);
+
+        const miner = new TestPollingMiner(1000);
+        let fetchCount = 0;
+        let finishPoll: (() => void) | undefined;
+        miner.fetchStatsStub = () => {
+            fetchCount++;
+            // never resolves until the test says so
+            return new Promise<MinerStats>(resolve => {
+                finishPoll = () => resolve({});
+            });
+        };
+
+        // init() polls immediately, so the first fetchStats is now pending
+        await miner.init();
+        expect(fetchCount).to.equal(1);
+        expect(finishPoll).to.not.be.undefined;
+
+        // close() while that poll is still awaited
+        await miner.close();
+
+        // let the in-flight poll settle completely (fetchStats -> onStats -> re-arm)
+        finishPoll?.();
+        await new Promise<void>(resolve => setImmediate(resolve));
+
+        // the resolved poll must not have re-armed the timer
+        expect(pending).to.be.undefined;
+        expect(fetchCount).to.equal(1);
+    });
 });
