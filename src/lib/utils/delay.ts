@@ -110,28 +110,62 @@ export function asyncInterval(
     msBetweenExecutions: number,
     shouldExecuteImmediately = false,
 ): AsyncIntervalReturnType {
+    // a fixed interval is just a backoff interval that always asks for the same delay
+    return asyncBackoffInterval(
+        async () => {
+            await asyncCallback();
+            return msBetweenExecutions;
+        },
+        msBetweenExecutions,
+        shouldExecuteImmediately,
+    );
+}
+
+/**
+ * Like {@link asyncInterval} but the callback returns the delay (in ms) to use
+ * before the next invocation, enabling dynamic backoff.
+ *
+ * The returned handle's `clear()` cancels the pending timer and stops the loop. A callback that is
+ * already in flight when `clear()` is called still runs to completion, but no further invocation is
+ * scheduled.
+ *
+ * @param asyncCallback - async function that returns the next delay in ms
+ * @param initialDelayMs - delay before the first invocation (ignored when shouldExecuteImmediately is true)
+ * @param shouldExecuteImmediately - whether to run the callback immediately
+ */
+export function asyncBackoffInterval(
+    asyncCallback: () => Promise<number>,
+    initialDelayMs: number,
+    shouldExecuteImmediately = false,
+): AsyncIntervalReturnType {
     let timeout: unknown;
+    let stopped = false;
 
     const callbackWrapper = (): void => {
         // make eslint not complain about no-misused-promises
-        // recursive setTimeout makes sure callback is completed before next execution
+        // recursive scheduling makes sure callback is completed before next execution
         void (async (): Promise<void> => {
-            await asyncCallback();
-            timeout = timerBackend.schedule(callbackWrapper, msBetweenExecutions);
+            const nextDelay = await asyncCallback();
+
+            // clearing an already fired timer is a no-op, so a clear() that happened while the
+            // callback was awaited has to be caught here - otherwise the loop would run forever
+            if (stopped) {
+                return;
+            }
+
+            timeout = timerBackend.schedule(callbackWrapper, nextDelay);
         })();
     };
 
     if (shouldExecuteImmediately) {
-        void (async (): Promise<void> => {
-            await asyncCallback();
-            timeout = timerBackend.schedule(callbackWrapper, msBetweenExecutions);
-        })();
+        callbackWrapper();
     } else {
-        timeout = timerBackend.schedule(callbackWrapper, msBetweenExecutions);
+        timeout = timerBackend.schedule(callbackWrapper, initialDelayMs);
     }
 
     return {
         clear: (): void => {
+            stopped = true;
             timerBackend.clear(timeout);
         },
     };
