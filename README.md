@@ -145,6 +145,9 @@ miner.0
     Placeholder for the next version (at the beginning of the line):
     ### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (copilot) **CI/CD**: Added Node.js 26.x to the testing matrix (closes #191)
+
 ### 1.1.0 (2026-07-12)
 - (copilot) Adapter requires node.js >= 22 now
 * (SimonFischer04) **NEW**: Added a new `bos` miner type for newer Braiins OS firmware using the Braiins Public API
