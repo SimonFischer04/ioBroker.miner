@@ -145,6 +145,10 @@ miner.0
     Placeholder for the next version (at the beginning of the line):
     ### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (copilot) **CI/CD**: Added Node.js 26 to the adapter-tests matrix (fixes #191, W3026)
+* (copilot) **ENHANCED**: Updated `@iobroker/testing` dev dependency to 6.1.0 (S0064)
+
 ### 1.1.0 (2026-07-12)
 - (copilot) Adapter requires node.js >= 22 now
 * (SimonFischer04) **NEW**: Added a new `bos` miner type for newer Braiins OS firmware using the Braiins Public API
