@@ -1,6 +1,7 @@
 import { expect } from 'chai';
-import { AvalonMiner, type SummaryVersionStatsResponse } from '../miner/AvalonMiner';
+import { AvalonMiner, type SummaryVersionStatsResponse, type LiteStatsCommandResponse } from '../miner/AvalonMiner';
 import summaryVersionStatsFixture from '../fixture/nano3s-summary+version+stats.json';
+import liteStatsFixture from '../fixture/nano3s-litestats.json';
 import { MinerFeatureKey } from '../model/MinerFeature';
 
 describe('AvalonMiner', () => {
@@ -47,8 +48,9 @@ describe('AvalonMiner', () => {
 
     describe('parseSummaryVersionStatsResponse', () => {
         it('should parse summary+version+stats fixture data correctly', () => {
-            const fixture = summaryVersionStatsFixture as SummaryVersionStatsResponse;
-            const stats = miner.parseSummaryVersionStatsResponse(fixture);
+            const fixture = summaryVersionStatsFixture as unknown as SummaryVersionStatsResponse;
+            const liteStats = { litestats: [liteStatsFixture], id: 1 } as unknown as LiteStatsCommandResponse;
+            const stats = miner.parseSummaryVersionStatsResponse(fixture, liteStats);
 
             // Base stats from summary+version (inherited from CGMiner)
             expect(stats.version).to.equal('4.11.1');
@@ -61,6 +63,10 @@ describe('AvalonMiner', () => {
             // Power from Avalon MM ID telemetry: PS[0 0 27687 4 0 3678 131] → watt (index 6) = 131 W
             expect(stats.power).to.be.a('number');
             expect(stats.power).to.equal(131);
+
+            // RSSI from litestats telemetry: RSSI[-55] → -55 dBm
+            expect(stats.rssi).to.be.a('number');
+            expect(stats.rssi).to.equal(-55);
 
             // Efficiency: totalHashrate / power
             expect(stats.efficiency).to.be.a('number');
@@ -88,6 +94,7 @@ describe('AvalonMiner', () => {
             expect(stats.totalHashrate).to.be.undefined;
             expect(stats.power).to.be.undefined;
             expect(stats.efficiency).to.be.undefined;
+            expect(stats.rssi).to.be.undefined;
         });
 
         it('should handle stats without MM ID field', () => {
@@ -189,6 +196,11 @@ describe('AvalonMiner', () => {
         it('should include the profile feature', () => {
             const features = miner.getSupportedFeatures();
             expect(features).to.include(MinerFeatureKey.profile);
+        });
+
+        it('should include the rssi feature', () => {
+            const features = miner.getSupportedFeatures();
+            expect(features).to.include(MinerFeatureKey.rssi);
         });
 
         it('should not include cliArgs', () => {

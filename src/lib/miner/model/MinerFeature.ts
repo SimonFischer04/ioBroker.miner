@@ -12,6 +12,9 @@ export enum MinerFeatureKey {
     // stats – indicates the miner provides live performance metrics
     stats = 'stats',
 
+    // connectivity
+    rssi = 'rssi',
+
     // raw
     rawStats = 'rawStats',
 
@@ -156,6 +159,21 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
         label: 'CLI Arguments',
         description: 'Command line arguments needed to enable API access on the miner.',
         type: 'string',
+        readable: true,
+        writable: false,
+    },
+
+    /*
+        info – connectivity
+     */
+    [MinerFeatureKey.rssi]: {
+        category: MinerFeatureCategory.info,
+        id: 'rssi',
+        label: 'RSSI',
+        description: 'WiFi signal strength in dBm.',
+        type: 'number',
+        unit: 'dBm',
+        role: 'value.rssi',
         readable: true,
         writable: false,
     },

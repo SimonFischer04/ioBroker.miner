@@ -528,6 +528,12 @@ export class MinerAdapter extends utils.Adapter {
                 ack: true,
             });
         }
+        if (supported.includes(MinerFeatureKey.rssi) && stats.rssi !== undefined) {
+            await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.rssi), {
+                val: stats.rssi,
+                ack: true,
+            });
+        }
         // Stats sub-states: write whatever the miner provides
         if (supported.includes(MinerFeatureKey.stats)) {
             const statsValues: Record<string, ioBroker.StateValue | undefined> = {

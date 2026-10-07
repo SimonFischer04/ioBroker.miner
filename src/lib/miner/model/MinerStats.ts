@@ -35,6 +35,10 @@ export interface MinerStats {
      */
     rejectedShares?: number;
     /**
+     * WiFi signal strength in dBm.
+     */
+    rssi?: number;
+    /**
      * Raw API response payload.
      */
     raw?: object;
