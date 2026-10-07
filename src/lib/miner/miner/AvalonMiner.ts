@@ -4,6 +4,7 @@ import { MinerFeatureKey } from '../model/MinerFeature';
 import type { MinerStats } from '../model/MinerStats';
 import { CGMinerCommand, type CombinedResponse, type StatsDeviceData } from '../model/CGMinerApiTypes';
 import { safeParseFloat } from '../../utils/parse-utils';
+import { AvalonWebAuthClient } from '../api/AvalonWebAuthClient';
 
 // Avalon devices use the CGMiner-compatible socket API on port 4028
 // Control commands use the 'ascset' command with different parameters
@@ -43,6 +44,18 @@ export type SummaryVersionStatsResponse = CombinedResponse<
  *
  */
 export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand> {
+    private webAuthClient: AvalonWebAuthClient | undefined;
+
+    /**
+     * Get the web auth client for this miner (if webPort is configured).
+     * Returns undefined if webPort is not set.
+     */
+    public getWebAuthClient(): AvalonWebAuthClient | undefined {
+        if (!this.webAuthClient && this.settings.webPort) {
+            this.webAuthClient = new AvalonWebAuthClient(this.settings.host, this.settings.webPort, this.logger);
+        }
+        return this.webAuthClient;
+    }
     /**
      *
      */
