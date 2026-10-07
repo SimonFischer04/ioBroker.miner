@@ -3,10 +3,10 @@ import { expect } from 'chai';
 import type { PollingMinerSettings } from '../model/MinerSettings';
 import type { MinerFeatureKey } from '../model/MinerFeature';
 import type { MinerStats } from '../model/MinerStats';
-import { setTimerBackend, type TimerBackend } from '../../utils/delay';
+import { resetTimerBackend, setTimerBackend, type TimerBackend } from '../../utils/delay';
 
 class TestPollingMiner extends PollingMiner<PollingMinerSettings> {
-    public fetchStatsStub: () => Promise<MinerStats> = () => Promise.resolve({} as MinerStats);
+    public fetchStatsStub: () => Promise<MinerStats> = () => Promise.resolve({});
 
     constructor(pollInterval: number) {
         super({
@@ -37,163 +37,130 @@ class TestPollingMiner extends PollingMiner<PollingMinerSettings> {
     }
 }
 
-describe('PollingMiner exponential backoff', () => {
-    const scheduledDelays: number[] = [];
-    let pollCount: number;
-    let maxPolls: number;
-    let resolveDone: (() => void) | undefined;
+/**
+ * Waits until all pending promise continuations have run.
+ */
+function settle(): Promise<void> {
+    return new Promise(resolve => setImmediate(resolve));
+}
 
-    /**
-     * Fake timer backend that executes scheduled callbacks synchronously (via microtask)
-     * and records the timeout values passed to `schedule`.
-     */
-    const fakeBackend: TimerBackend = {
-        schedule: (cb, ms) => {
-            scheduledDelays.push(ms);
-            pollCount++;
-            if (pollCount >= maxPolls) {
-                if (resolveDone) {
-                    resolveDone();
-                }
-                // Return a dummy handle; don't invoke cb so loop stops
-                return 'stopped';
-            }
-            // Execute cb on next microtask to allow async flow
-            const p = Promise.resolve().then(cb);
-            return p;
+// The backoff policy itself is covered in utils/delay.test.ts - these tests cover how PollingMiner uses it.
+describe('PollingMiner', () => {
+    let scheduled: { callback: () => void; ms: number }[];
+
+    // timers never fire on their own: the test decides when the next poll runs
+    const manualBackend: TimerBackend = {
+        schedule: (callback, ms) => {
+            const timer = { callback, ms };
+            scheduled.push(timer);
+            return timer;
         },
-        clear: () => {
-            /* no-op for tests */
+        clear: timer => {
+            scheduled = scheduled.filter(t => t !== timer);
         },
-        scheduleInterval: (cb, interval) => setInterval(cb, interval),
-        clearInterval: timer => clearInterval(timer as ReturnType<typeof setInterval>),
-        delay: ms => new Promise(resolve => setTimeout(resolve, ms)),
+        scheduleInterval: () => {
+            throw new Error('not used by these tests');
+        },
+        clearInterval: () => {
+            throw new Error('not used by these tests');
+        },
+        delay: () => {
+            throw new Error('not used by these tests');
+        },
     };
 
+    /**
+     * Runs the next scheduled poll and waits for it to settle.
+     */
+    async function pollAgain(): Promise<void> {
+        const timer = scheduled.shift();
+        if (!timer) {
+            throw new Error('no poll scheduled');
+        }
+        timer.callback();
+        await settle();
+    }
+
     beforeEach(() => {
-        scheduledDelays.length = 0;
-        pollCount = 0;
-        maxPolls = 6;
-        resolveDone = undefined;
-        setTimerBackend(fakeBackend);
+        scheduled = [];
+        setTimerBackend(manualBackend);
     });
 
     afterEach(() => {
-        setTimerBackend({
-            schedule: (cb, timeout) => setTimeout(cb, timeout),
-            clear: timer => clearTimeout(timer as ReturnType<typeof setTimeout>),
-            scheduleInterval: (cb, interval) => setInterval(cb, interval),
-            clearInterval: timer => clearInterval(timer as ReturnType<typeof setInterval>),
-            delay: ms => new Promise(resolve => setTimeout(resolve, ms)),
-        });
+        resetTimerBackend();
     });
 
-    it('uses base interval on success', async () => {
+    it('polls immediately on init and then every pollInterval while polls succeed', async () => {
         const miner = new TestPollingMiner(1000);
-        miner.fetchStatsStub = () => Promise.resolve({} as MinerStats);
-
-        const done = new Promise<void>(resolve => {
-            resolveDone = resolve;
-        });
-
-        await miner.init();
-        await done;
-        await miner.close();
-
-        // All scheduled delays should be the base interval (1000ms) since no failures
-        for (const d of scheduledDelays) {
-            expect(d).to.equal(1000);
-        }
-    });
-
-    it('increases delay exponentially on consecutive failures', async () => {
-        const miner = new TestPollingMiner(1000);
-        miner.fetchStatsStub = () => Promise.reject(new Error('connection failed'));
-
-        const done = new Promise<void>(resolve => {
-            resolveDone = resolve;
-        });
-
-        await miner.init();
-        await done;
-        await miner.close();
-
-        // Consecutive failures: 2000, 4000, 8000, 16000, 32000, 32000 (capped)
-        expect(scheduledDelays[0]).to.equal(2000); // 1000 * 2^1
-        expect(scheduledDelays[1]).to.equal(4000); // 1000 * 2^2
-        expect(scheduledDelays[2]).to.equal(8000); // 1000 * 2^3
-        expect(scheduledDelays[3]).to.equal(16000); // 1000 * 2^4
-        expect(scheduledDelays[4]).to.equal(32000); // 1000 * 2^5 (max)
-        expect(scheduledDelays[5]).to.equal(32000); // stays at max
-    });
-
-    it('resets delay after successful poll', async () => {
-        maxPolls = 6;
-        const miner = new TestPollingMiner(1000);
-        let callCount = 0;
+        let fetchCount = 0;
         miner.fetchStatsStub = () => {
-            callCount++;
-            // Fail first 3, then succeed
-            if (callCount <= 3) {
-                return Promise.reject(new Error('fail'));
-            }
-            return Promise.resolve({} as MinerStats);
+            fetchCount++;
+            return Promise.resolve({});
         };
 
-        const done = new Promise<void>(resolve => {
-            resolveDone = resolve;
+        await miner.init();
+        await settle();
+        expect(fetchCount).to.equal(1);
+        expect(scheduled.map(t => t.ms)).to.deep.equal([1000]);
+
+        await pollAgain();
+        expect(fetchCount).to.equal(2);
+        expect(scheduled.map(t => t.ms)).to.deep.equal([1000]);
+
+        await miner.close();
+    });
+
+    it('publishes the stats of a successful poll to subscribers', async () => {
+        const miner = new TestPollingMiner(1000);
+        miner.fetchStatsStub = () => Promise.resolve({ power: 1234 });
+        const received: MinerStats[] = [];
+        miner.subscribeToStats(stats => {
+            received.push(stats);
+            return Promise.resolve();
         });
 
         await miner.init();
-        await done;
-        await miner.close();
+        await settle();
 
-        // First 3 failures: 2000, 4000, 8000
-        expect(scheduledDelays[0]).to.equal(2000);
-        expect(scheduledDelays[1]).to.equal(4000);
-        expect(scheduledDelays[2]).to.equal(8000);
-        // After success, reset to base
-        expect(scheduledDelays[3]).to.equal(1000);
+        expect(received).to.deep.equal([{ power: 1234 }]);
+        await miner.close();
     });
 
-    it('close() cancels the pending timer immediately', async () => {
-        let clearCalled = false;
-        const customBackend: TimerBackend = {
-            ...fakeBackend,
-            schedule: (_cb, ms) => {
-                scheduledDelays.push(ms);
-                return 'timer-handle';
-            },
-            clear: () => {
-                clearCalled = true;
-            },
-        };
-        setTimerBackend(customBackend);
-
+    it('backs off while fetchStats fails and returns to pollInterval after a successful poll', async () => {
         const miner = new TestPollingMiner(1000);
-        await miner.init();
-        await miner.close();
+        let fetchCount = 0;
+        miner.fetchStatsStub = () => {
+            fetchCount++;
+            // fail the first three polls, then recover
+            return fetchCount <= 3 ? Promise.reject(new Error('connection refused')) : Promise.resolve({});
+        };
 
-        expect(clearCalled).to.equal(true);
+        await miner.init();
+        await settle();
+        const delays = [scheduled[0].ms];
+        for (let i = 0; i < 3; i++) {
+            await pollAgain();
+            delays.push(scheduled[0].ms);
+        }
+
+        // a failing fetchStats has to reach the backoff helper, so PollingMiner must not swallow it
+        expect(delays).to.deep.equal([2000, 4000, 8000, 1000]);
+        await miner.close();
     });
 
-    it('close() stops the loop even while a poll is still in flight', async () => {
-        // Manual backend: the test decides when a scheduled callback runs, so the poll can be kept
-        // in flight across the close() call.
-        let pending: (() => void) | undefined;
-        const manualBackend: TimerBackend = {
-            ...fakeBackend,
-            schedule: (cb, ms) => {
-                scheduledDelays.push(ms);
-                pending = cb;
-                return 'timer-handle';
-            },
-            clear: () => {
-                pending = undefined;
-            },
-        };
-        setTimerBackend(manualBackend);
+    it('close() cancels the pending poll', async () => {
+        const miner = new TestPollingMiner(1000);
 
+        await miner.init();
+        await settle();
+        expect(scheduled).to.have.length(1);
+
+        await miner.close();
+
+        expect(scheduled).to.have.length(0);
+    });
+
+    it('close() stops polling even while a poll is still in flight', async () => {
         const miner = new TestPollingMiner(1000);
         let fetchCount = 0;
         let finishPoll: (() => void) | undefined;
@@ -215,10 +182,10 @@ describe('PollingMiner exponential backoff', () => {
 
         // let the in-flight poll settle completely (fetchStats -> onStats -> re-arm)
         finishPoll?.();
-        await new Promise<void>(resolve => setImmediate(resolve));
+        await settle();
 
-        // the resolved poll must not have re-armed the timer
-        expect(pending).to.be.undefined;
+        // the resolved poll must not have scheduled another one
+        expect(scheduled).to.have.length(0);
         expect(fetchCount).to.equal(1);
     });
 });

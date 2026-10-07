@@ -56,6 +56,13 @@ export function setTimerBackend(backend: TimerBackend): void {
 }
 
 /**
+ * Restores the default node.js timer backend, e.g. after a test replaced it via {@link setTimerBackend}.
+ */
+export function resetTimerBackend(): void {
+    timerBackend = nodeTimerBackend;
+}
+
+/**
  *
  * @param ms - the delay in milliseconds
  */
@@ -98,32 +105,10 @@ export interface AsyncIntervalReturnType {
 }
 
 /**
- * Utility function to create an "interval" with async callback, that waits given ms between executions.
+ * Interval with an async callback that decides the delay (in ms) before its next invocation.
  *
- * @param asyncCallback The async callback function to run
- * @param msBetweenExecutions The amount of ms to wait between executions
- * @param shouldExecuteImmediately Whether to execute the callback immediately or after the specified delay
- * @returns An object with a `clear` method to stop the interval
- */
-export function asyncInterval(
-    asyncCallback: () => Promise<void>,
-    msBetweenExecutions: number,
-    shouldExecuteImmediately = false,
-): AsyncIntervalReturnType {
-    // a fixed interval is just a backoff interval that always asks for the same delay
-    return asyncBackoffInterval(
-        async () => {
-            await asyncCallback();
-            return msBetweenExecutions;
-        },
-        msBetweenExecutions,
-        shouldExecuteImmediately,
-    );
-}
-
-/**
- * Like {@link asyncInterval} but the callback returns the delay (in ms) to use
- * before the next invocation, enabling dynamic backoff.
+ * This is the single scheduling implementation the other interval helpers build on. The next
+ * invocation is only scheduled once the callback has completed, so invocations never overlap.
  *
  * The returned handle's `clear()` cancels the pending timer and stops the loop. A callback that is
  * already in flight when `clear()` is called still runs to completion, but no further invocation is
@@ -133,7 +118,7 @@ export function asyncInterval(
  * @param initialDelayMs - delay before the first invocation (ignored when shouldExecuteImmediately is true)
  * @param shouldExecuteImmediately - whether to run the callback immediately
  */
-export function asyncBackoffInterval(
+export function asyncDynamicInterval(
     asyncCallback: () => Promise<number>,
     initialDelayMs: number,
     shouldExecuteImmediately = false,
@@ -169,6 +154,97 @@ export function asyncBackoffInterval(
             timerBackend.clear(timeout);
         },
     };
+}
+
+/**
+ * Utility function to create an "interval" with async callback, that waits given ms between executions.
+ *
+ * @param asyncCallback The async callback function to run
+ * @param msBetweenExecutions The amount of ms to wait between executions
+ * @param shouldExecuteImmediately Whether to execute the callback immediately or after the specified delay
+ * @returns An object with a `clear` method to stop the interval
+ */
+export function asyncInterval(
+    asyncCallback: () => Promise<void>,
+    msBetweenExecutions: number,
+    shouldExecuteImmediately = false,
+): AsyncIntervalReturnType {
+    // a fixed interval is just a dynamic interval that always asks for the same delay
+    return asyncDynamicInterval(
+        async () => {
+            await asyncCallback();
+            return msBetweenExecutions;
+        },
+        msBetweenExecutions,
+        shouldExecuteImmediately,
+    );
+}
+
+/**
+ * Default cap for the backoff exponent of {@link asyncBackoffInterval}: at most 2^5 = 32x the base delay.
+ */
+export const DEFAULT_MAX_BACKOFF_EXPONENT = 5;
+
+/**
+ * Options for {@link asyncBackoffInterval}.
+ */
+export interface AsyncBackoffIntervalOptions {
+    /**
+     * Run the callback immediately instead of waiting `baseDelayMs` first. Default: false.
+     */
+    shouldExecuteImmediately?: boolean;
+    /**
+     * Cap for the backoff exponent: the delay never exceeds `baseDelayMs * 2^maxBackoffExponent`.
+     * Default: {@link DEFAULT_MAX_BACKOFF_EXPONENT}.
+     */
+    maxBackoffExponent?: number;
+    /**
+     * Called after every failed invocation.
+     *
+     * @param error - what the callback threw
+     * @param consecutiveFailures - failures in a row, including this one
+     * @param nextDelayMs - delay until the next attempt
+     */
+    onError?: (error: unknown, consecutiveFailures: number, nextDelayMs: number) => void;
+}
+
+/**
+ * Interval with an async callback that backs off exponentially while the callback keeps failing.
+ *
+ * A callback that resolves counts as success: the next invocation follows after `baseDelayMs`.
+ * A callback that throws counts as failure: the delay doubles with every failure in a row
+ * (`baseDelayMs * 2^failures`, capped at `2^maxBackoffExponent`), and drops back to `baseDelayMs`
+ * on the next success. The failure count lives in this interval, so every new interval starts fresh.
+ *
+ * @param asyncCallback - async function to run; throwing marks the invocation as failed
+ * @param baseDelayMs - delay between invocations while the callback succeeds
+ * @param options - see {@link AsyncBackoffIntervalOptions}
+ * @returns An object with a `clear` method to stop the interval
+ */
+export function asyncBackoffInterval(
+    asyncCallback: () => Promise<void>,
+    baseDelayMs: number,
+    options: AsyncBackoffIntervalOptions = {},
+): AsyncIntervalReturnType {
+    const { shouldExecuteImmediately = false, maxBackoffExponent = DEFAULT_MAX_BACKOFF_EXPONENT, onError } = options;
+    let consecutiveFailures = 0;
+
+    return asyncDynamicInterval(
+        async () => {
+            try {
+                await asyncCallback();
+                consecutiveFailures = 0;
+                return baseDelayMs;
+            } catch (e) {
+                consecutiveFailures++;
+                const nextDelayMs = baseDelayMs * 2 ** Math.min(consecutiveFailures, maxBackoffExponent);
+                onError?.(e, consecutiveFailures, nextDelayMs);
+                return nextDelayMs;
+            }
+        },
+        baseDelayMs,
+        shouldExecuteImmediately,
+    );
 }
 
 /**

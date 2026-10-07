@@ -4,15 +4,11 @@ import type { AsyncIntervalReturnType } from '../../utils/delay';
 import { asyncBackoffInterval } from '../../utils/delay';
 import type { MinerStats } from '../model/MinerStats';
 
-/** Maximum backoff multiplier (interval * 2^MAX_BACKOFF_EXPONENT is the ceiling). */
-const MAX_BACKOFF_EXPONENT = 5; // max 32x the base interval
-
 /**
  *
  */
 export abstract class PollingMiner<S extends PollingMinerSettings> extends Miner<S> {
     private pollHandle: AsyncIntervalReturnType | undefined;
-    private consecutiveFailures = 0;
 
     public abstract fetchStats(): Promise<MinerStats>;
 
@@ -27,32 +23,22 @@ export abstract class PollingMiner<S extends PollingMinerSettings> extends Miner
             return Promise.resolve();
         }
 
-        this.consecutiveFailures = 0;
-
-        // start polling with exponential backoff on failure
+        // start polling, backing off exponentially while polls keep failing
         this.pollHandle = asyncBackoffInterval(
             async () => {
                 this.logger.debug('next poll interval time reached. calling fetchData()');
-                try {
-                    const stats: MinerStats = await this.fetchStats();
-                    await this.onStats(stats);
-                    this.consecutiveFailures = 0;
-                } catch (e) {
-                    this.consecutiveFailures++;
-                    this.logger.error(`fetchStats failed: ${String(e)}`);
-                }
-
-                const backoffExponent = Math.min(this.consecutiveFailures, MAX_BACKOFF_EXPONENT);
-                const nextDelay = this.settings.pollInterval * Math.pow(2, backoffExponent);
-                if (this.consecutiveFailures > 0) {
-                    this.logger.debug(
-                        `backing off: next retry in ${nextDelay}ms (failure #${this.consecutiveFailures})`,
-                    );
-                }
-                return nextDelay;
+                const stats: MinerStats = await this.fetchStats();
+                await this.onStats(stats);
             },
             this.settings.pollInterval,
-            true,
+            {
+                shouldExecuteImmediately: true,
+                onError: (e, consecutiveFailures, nextDelayMs) => {
+                    this.logger.error(
+                        `fetchStats failed (failure #${consecutiveFailures}, next retry in ${nextDelayMs}ms): ${String(e)}`,
+                    );
+                },
+            },
         );
 
         return Promise.resolve();
@@ -64,7 +50,6 @@ export abstract class PollingMiner<S extends PollingMinerSettings> extends Miner
     public override async close(): Promise<void> {
         await super.close();
         this.pollHandle?.clear();
-        this.consecutiveFailures = 0;
     }
 
     /**
