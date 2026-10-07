@@ -81,13 +81,39 @@ describe('PollingMiner', () => {
         await settle();
     }
 
+    const realRandom = Math.random;
+
+    /**
+     * Starts a miner whose polls keep failing and collects the delay scheduled after each of them.
+     *
+     * @param pollInterval - the miner's pollInterval in ms
+     * @param failures - how many failing polls to run
+     */
+    async function backoffDelays(pollInterval: number, failures: number): Promise<number[]> {
+        const miner = new TestPollingMiner(pollInterval);
+        miner.fetchStatsStub = () => Promise.reject(new Error('connection refused'));
+
+        await miner.init();
+        await settle();
+        const delays = [scheduled[0].ms];
+        for (let i = 1; i < failures; i++) {
+            await pollAgain();
+            delays.push(scheduled[0].ms);
+        }
+        await miner.close();
+        return delays;
+    }
+
     beforeEach(() => {
         scheduled = [];
         setTimerBackend(manualBackend);
+        // backoff delays are randomized - start from a draw that leaves them untouched
+        Math.random = () => 0;
     });
 
     afterEach(() => {
         resetTimerBackend();
+        Math.random = realRandom;
     });
 
     it('polls immediately on init and then every pollInterval while polls succeed', async () => {
@@ -146,6 +172,17 @@ describe('PollingMiner', () => {
         // a failing fetchStats has to reach the backoff helper, so PollingMiner must not swallow it
         expect(delays).to.deep.equal([2000, 4000, 8000, 1000]);
         await miner.close();
+    });
+
+    it('never waits more than 5 minutes between polls, however long pollInterval is', async () => {
+        // with only the 2^5 cap, a 60s interval would back off to 32 minutes
+        expect(await backoffDelays(60_000, 5)).to.deep.equal([120_000, 240_000, 300_000, 300_000, 300_000]);
+    });
+
+    it('randomly shortens backoff delays by up to 20 %', async () => {
+        Math.random = () => 0.5;
+        // 0.2 * 0.5 = 10 % shorter
+        expect(await backoffDelays(1000, 3)).to.deep.equal([1800, 3600, 7200]);
     });
 
     it('close() cancels the pending poll', async () => {

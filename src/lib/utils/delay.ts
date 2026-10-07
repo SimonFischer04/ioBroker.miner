@@ -199,6 +199,22 @@ export interface AsyncBackoffIntervalOptions {
      */
     maxBackoffExponent?: number;
     /**
+     * Absolute upper limit in ms for the delay after a failure, independent of `baseDelayMs`, so the worst
+     * case stays predictable however long the base delay is. The delay never drops below `baseDelayMs`,
+     * so a value below it effectively disables backing off.
+     * Default: no limit besides `maxBackoffExponent`.
+     */
+    maxDelayMs?: number;
+    /**
+     * Randomly shortens each delay after a failure by up to this fraction (0 to 1), so intervals that failed
+     * together - e.g. several devices behind the same network outage - don't all retry at the same moment.
+     * Only delays after a failure are randomized: while the callback succeeds, the interval stays exactly
+     * `baseDelayMs`. Because it only ever shortens, `maxDelayMs` stays a hard limit; the result never
+     * drops below `baseDelayMs`.
+     * Default: 0 (no randomness).
+     */
+    jitter?: number;
+    /**
      * Called after every failed invocation.
      *
      * @param error - what the callback threw
@@ -213,8 +229,9 @@ export interface AsyncBackoffIntervalOptions {
  *
  * A callback that resolves counts as success: the next invocation follows after `baseDelayMs`.
  * A callback that throws counts as failure: the delay doubles with every failure in a row
- * (`baseDelayMs * 2^failures`, capped at `2^maxBackoffExponent`), and drops back to `baseDelayMs`
- * on the next success. The failure count lives in this interval, so every new interval starts fresh.
+ * (`baseDelayMs * 2^failures`, capped at `2^maxBackoffExponent` and at `maxDelayMs`, then optionally
+ * shortened by `jitter`), and drops back to `baseDelayMs` on the next success. The failure count lives
+ * in this interval, so every new interval starts fresh.
  *
  * @param asyncCallback - async function to run; throwing marks the invocation as failed
  * @param baseDelayMs - delay between invocations while the callback succeeds
@@ -226,7 +243,13 @@ export function asyncBackoffInterval(
     baseDelayMs: number,
     options: AsyncBackoffIntervalOptions = {},
 ): AsyncIntervalReturnType {
-    const { shouldExecuteImmediately = false, maxBackoffExponent = DEFAULT_MAX_BACKOFF_EXPONENT, onError } = options;
+    const {
+        shouldExecuteImmediately = false,
+        maxBackoffExponent = DEFAULT_MAX_BACKOFF_EXPONENT,
+        maxDelayMs = Infinity,
+        jitter = 0,
+        onError,
+    } = options;
     let consecutiveFailures = 0;
 
     return asyncDynamicInterval(
@@ -237,7 +260,11 @@ export function asyncBackoffInterval(
                 return baseDelayMs;
             } catch (e) {
                 consecutiveFailures++;
-                const nextDelayMs = baseDelayMs * 2 ** Math.min(consecutiveFailures, maxBackoffExponent);
+                const exponentialMs = baseDelayMs * 2 ** Math.min(consecutiveFailures, maxBackoffExponent);
+                const cappedMs = Math.min(exponentialMs, maxDelayMs);
+                // jitter only ever shortens the delay, so maxDelayMs stays a hard limit
+                const jitteredMs = cappedMs * (1 - jitter * Math.random());
+                const nextDelayMs = Math.max(baseDelayMs, Math.round(jitteredMs));
                 onError?.(e, consecutiveFailures, nextDelayMs);
                 return nextDelayMs;
             }

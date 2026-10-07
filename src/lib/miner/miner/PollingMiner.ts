@@ -5,6 +5,16 @@ import { asyncBackoffInterval } from '../../utils/delay';
 import type { MinerStats } from '../model/MinerStats';
 
 /**
+ * Upper limit for the time between polls while a miner keeps failing, however long its pollInterval is.
+ */
+const MAX_POLL_BACKOFF_MS = 5 * 60 * 1000;
+
+/**
+ * Shorten each backoff delay randomly by up to 20 %, so miners behind the same outage don't all retry at once.
+ */
+const POLL_BACKOFF_JITTER = 0.2;
+
+/**
  *
  */
 export abstract class PollingMiner<S extends PollingMinerSettings> extends Miner<S> {
@@ -33,6 +43,8 @@ export abstract class PollingMiner<S extends PollingMinerSettings> extends Miner
             this.settings.pollInterval,
             {
                 shouldExecuteImmediately: true,
+                maxDelayMs: MAX_POLL_BACKOFF_MS,
+                jitter: POLL_BACKOFF_JITTER,
                 onError: (e, consecutiveFailures, nextDelayMs) => {
                     this.logger.error(
                         `fetchStats failed (failure #${consecutiveFailures}, next retry in ${nextDelayMs}ms): ${String(e)}`,

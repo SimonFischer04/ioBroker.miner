@@ -5,6 +5,7 @@ import {
     asyncInterval,
     resetTimerBackend,
     setTimerBackend,
+    type AsyncBackoffIntervalOptions,
     type TimerBackend,
 } from './delay';
 
@@ -174,10 +175,13 @@ describe('delay', () => {
          * Starts an immediately-executing backoff interval and collects the delay scheduled after each invocation.
          *
          * @param script - `true` for success, `false` for failure, one entry per invocation
-         * @param maxBackoffExponent - optional cap, defaults to the helper's default
+         * @param options - backoff options besides shouldExecuteImmediately
          */
-        async function delaysFor(script: boolean[], maxBackoffExponent?: number): Promise<number[]> {
-            asyncBackoffInterval(scripted(script), 1000, { shouldExecuteImmediately: true, maxBackoffExponent });
+        async function delaysFor(
+            script: boolean[],
+            options: Omit<AsyncBackoffIntervalOptions, 'shouldExecuteImmediately'> = {},
+        ): Promise<number[]> {
+            asyncBackoffInterval(scripted(script), 1000, { ...options, shouldExecuteImmediately: true });
             await settle();
 
             const delays: number[] = [];
@@ -200,7 +204,93 @@ describe('delay', () => {
         });
 
         it('respects a custom maxBackoffExponent', async () => {
-            expect(await delaysFor([false, false, false, false], 2)).to.deep.equal([2000, 4000, 4000, 4000]);
+            expect(await delaysFor([false, false, false, false], { maxBackoffExponent: 2 })).to.deep.equal([
+                2000, 4000, 4000, 4000,
+            ]);
+        });
+
+        it('limits the delay to maxDelayMs, however large the exponential delay gets', async () => {
+            expect(await delaysFor([false, false, false, false, false], { maxDelayMs: 5000 })).to.deep.equal([
+                2000, 4000, 5000, 5000, 5000,
+            ]);
+        });
+
+        it('never waits less than the base delay, even with maxDelayMs below it', async () => {
+            expect(await delaysFor([false, false, false], { maxDelayMs: 500 })).to.deep.equal([1000, 1000, 1000]);
+        });
+
+        describe('jitter', () => {
+            const realRandom = Math.random;
+
+            /**
+             * Makes Math.random return a fixed value for the rest of the test.
+             *
+             * @param value - what Math.random returns, in [0, 1)
+             */
+            function randomReturns(value: number): void {
+                Math.random = () => value;
+            }
+
+            afterEach(() => {
+                Math.random = realRandom;
+            });
+
+            it('shortens each failure delay by a random share of up to the given fraction', async () => {
+                randomReturns(0.5);
+                // 0.2 * 0.5 = 10 % shorter
+                expect(await delaysFor([false, false, false], { jitter: 0.2 })).to.deep.equal([1800, 3600, 7200]);
+            });
+
+            it('changes nothing when the random draw is 0', async () => {
+                randomReturns(0);
+                expect(await delaysFor([false, false, false], { jitter: 0.2 })).to.deep.equal([2000, 4000, 8000]);
+            });
+
+            it('does not randomize the interval while the callback succeeds', async () => {
+                randomReturns(0.99);
+                expect(await delaysFor([true, true, false, true], { jitter: 0.5 })).to.deep.equal([
+                    1000,
+                    1000,
+                    Math.round(2000 * (1 - 0.5 * 0.99)),
+                    1000,
+                ]);
+            });
+
+            it('reaches exactly maxDelayMs at the lowest random draw', async () => {
+                randomReturns(0);
+                expect(await delaysFor([false, false, false, false], { maxDelayMs: 5000, jitter: 0.2 })).to.deep.equal([
+                    2000, 4000, 5000, 5000,
+                ]);
+            });
+
+            it('keeps maxDelayMs a hard limit at any random draw, since it only ever shortens', async () => {
+                randomReturns(0.99);
+                // the cap applies first, then jitter shortens: 5000 * (1 - 0.2 * 0.99) = 4010
+                const delays = await delaysFor([false, false, false, false], { maxDelayMs: 5000, jitter: 0.2 });
+
+                expect(delays).to.deep.equal([1604, 3208, 4010, 4010]);
+                expect(delays.every(d => d <= 5000)).to.equal(true);
+            });
+
+            it('never shortens a delay below the base delay', async () => {
+                randomReturns(0.99);
+                // a full-strength jitter would bring 2000 down to 20
+                expect(await delaysFor([false, false], { jitter: 1 })).to.deep.equal([1000, 1000]);
+            });
+
+            it('reports the actual, randomized delay to onError', async () => {
+                randomReturns(0.5);
+                const reported: number[] = [];
+                asyncBackoffInterval(scripted([false]), 1000, {
+                    shouldExecuteImmediately: true,
+                    jitter: 0.2,
+                    onError: (_e, _failures, nextDelayMs) => reported.push(nextDelayMs),
+                });
+                await settle();
+
+                expect(reported).to.deep.equal([1800]);
+                expect(timers.scheduled.map(t => t.ms)).to.deep.equal([1800]);
+            });
         });
 
         it('drops back to the base delay after a success, and starts counting from scratch', async () => {
