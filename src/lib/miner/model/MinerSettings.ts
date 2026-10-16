@@ -193,4 +193,9 @@ export interface AvalonMinerSettings extends CGMinerSettings {
      *
      */
     minerType: (typeof minerTypeKeys)[7];
+    /**
+     * Port of the Avalon web interface (used for QR-code-based login).
+     * Typically 80. If set, the adapter can facilitate web authentication.
+     */
+    webPort?: number;
 }
