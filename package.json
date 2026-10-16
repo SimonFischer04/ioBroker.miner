@@ -69,7 +69,7 @@
     "build:ts": "build-adapter ts",
     "postbuild:ts": "node scripts/postbuild.js",
     "watch:ts": "build-adapter ts --watch",
-    "test:unit": "mocha --config test/mocharc.custom.json src/**/*.test.ts",
+    "test:unit": "mocha --config test/mocharc.custom.json \"src/**/*.test.ts\"",
     "test:package": "mocha test/package --exit",
     "test:integration": "mocha test/integration --exit",
     "test": "npm run test:unit && npm run test:package",
