@@ -586,6 +586,16 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         })),
                     };
                 }
+
+                if (supportedFeatures.includes(MinerFeatureKey.rssi)) {
+                    const stateId = `${device._id}.${getMinerFeatureFullId(MinerFeatureKey.rssi)}`;
+                    customInfoItems.rssi = {
+                        type: 'state',
+                        oid: stateId,
+                        foreign: true,
+                        label: I18n.getTranslatedObject('RSSI'),
+                    };
+                }
             }
 
             context.addDevice({

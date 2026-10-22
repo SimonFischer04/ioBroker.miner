@@ -2,7 +2,12 @@ import { CGMiner } from './CGMiner';
 import type { AvalonMinerSettings } from '../model/MinerSettings';
 import { MinerFeatureKey } from '../model/MinerFeature';
 import type { MinerStats } from '../model/MinerStats';
-import { CGMinerCommand, type CombinedResponse, type StatsDeviceData } from '../model/CGMinerApiTypes';
+import {
+    CGMinerCommand,
+    type CombinedResponse,
+    type StatsDeviceData,
+    type LiteStatsData,
+} from '../model/CGMinerApiTypes';
 import { safeParseFloat } from '../../utils/parse-utils';
 
 // Avalon devices use the CGMiner-compatible socket API on port 4028
@@ -39,6 +44,9 @@ export type SummaryVersionStatsResponse = CombinedResponse<
     CGMinerCommand.summary | CGMinerCommand.version | CGMinerCommand.stats
 >;
 
+/** Type alias for the litestats response. */
+export type LiteStatsCommandResponse = CombinedResponse<CGMinerCommand.liteStats>;
+
 /**
  *
  */
@@ -65,7 +73,19 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
                 true,
             );
 
-            return this.parseSummaryVersionStatsResponse(response);
+            // Fetch litestats separately so a firmware that rejects the combo doesn't break core stats
+            let liteStatsResponse: LiteStatsCommandResponse | undefined;
+            try {
+                liteStatsResponse = await this.sendCommand<LiteStatsCommandResponse>(
+                    [CGMinerCommand.liteStats],
+                    '',
+                    true,
+                );
+            } catch {
+                this.logger.debug('litestats request failed, RSSI will not be available');
+            }
+
+            return this.parseSummaryVersionStatsResponse(response, liteStatsResponse);
         } catch (e) {
             return Promise.reject(e instanceof Error ? e : new Error(String(e)));
         }
@@ -91,6 +111,7 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
         return [
             ...super.getSupportedFeatures().filter(feature => !unsupportedFeatures.includes(feature)),
             MinerFeatureKey.profile,
+            MinerFeatureKey.rssi,
             // MinerFeatureKey.running,
         ];
     }
@@ -164,19 +185,27 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
      * where `watt` (index 6) is total power consumption in watts.
      *
      * @param response - raw combined API response
+     * @param liteStatsResponse - optional separate litestats response
      * @returns parsed miner statistics including power
      */
-    public parseSummaryVersionStatsResponse(response: SummaryVersionStatsResponse): MinerStats {
+    public parseSummaryVersionStatsResponse(
+        response: SummaryVersionStatsResponse,
+        liteStatsResponse?: LiteStatsCommandResponse,
+    ): MinerStats {
         // Parse summary+version via the parent method
         const baseStats = this.parseSummaryVersionResponse(response);
 
         // Extract power from the stats response
         const power = this.extractPowerFromStats(response.stats?.[0]?.STATS);
 
+        // Extract RSSI from the litestats response
+        const rssi = this.extractRssiFromLiteStats(liteStatsResponse?.litestats?.[0]?.STATS);
+
         return {
             ...baseStats,
             power,
             efficiency: power != null && baseStats.totalHashrate ? baseStats.totalHashrate / power : undefined,
+            rssi,
         };
     }
 
@@ -225,5 +254,43 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
 
         const watts = safeParseFloat(parts[6]);
         return watts > 0 ? watts : undefined;
+    }
+
+    /**
+     * Extract RSSI (WiFi signal strength) from the litestats response.
+     *
+     * The first `MM ID<n>` telemetry string may contain `RSSI[-55]`.
+     *
+     * @param liteStatsEntries - STATS array from a litestats response
+     * @returns RSSI in dBm, or undefined if not available
+     */
+    private extractRssiFromLiteStats(liteStatsEntries: LiteStatsData[] | undefined): number | undefined {
+        if (!liteStatsEntries) {
+            return undefined;
+        }
+
+        // Find the device entry (has 'MM Count'), same pattern as extractPowerFromStats
+        const entry = liteStatsEntries.find(e => 'MM Count' in e);
+        if (!entry) {
+            return undefined;
+        }
+
+        const mmIdKey = Object.keys(entry).find(key => key.startsWith('MM ID'));
+        if (!mmIdKey) {
+            return undefined;
+        }
+
+        const telemetry = entry[mmIdKey as `MM ID${number}`];
+        if (!telemetry) {
+            return undefined;
+        }
+
+        const parsed = this.parseAvalonTelemetry(telemetry);
+        const rssiValue = parsed.get('RSSI');
+        if (rssiValue == null || rssiValue === '') {
+            return undefined;
+        }
+
+        return safeParseFloat(rssiValue);
     }
 }
