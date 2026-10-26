@@ -22,7 +22,16 @@
     "enabled": "habilitado",
     "id": "ID",
     "password": "senha",
-    "poll interval": "intervalo de consulta"
+    "poll interval": "intervalo de consulta",
+    "Check miners for updates": "Verificar atualizações dos mineradores",
+    "Update check finished: %s miner(s) checked, %s with an update available, %s failed": "Verificação de atualizações concluída: %s minerador(es) verificado(s), %s com atualização disponível, %s com falha",
+    "Installed version": "Versão instalada",
+    "Latest version": "Versão mais recente",
+    "Update": "Atualização",
+    "Update available": "Atualização disponível",
+    "Up to date": "Atualizado",
+    "Unknown": "Desconhecido",
+    "Auto-upgrade": "Atualização automática"
 }
 
 

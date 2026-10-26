@@ -22,7 +22,16 @@
     "enabled": "aktiviert",
     "id": "ID",
     "password": "Passwort",
-    "poll interval": "Abrufintervall"
+    "poll interval": "Abrufintervall",
+    "Check miners for updates": "Miner auf Updates prüfen",
+    "Update check finished: %s miner(s) checked, %s with an update available, %s failed": "Update-Prüfung abgeschlossen: %s Miner geprüft, %s mit verfügbarem Update, %s fehlgeschlagen",
+    "Installed version": "Installierte Version",
+    "Latest version": "Neueste Version",
+    "Update": "Update",
+    "Update available": "Update verfügbar",
+    "Up to date": "Aktuell",
+    "Unknown": "Unbekannt",
+    "Auto-upgrade": "Automatisches Upgrade"
 }
 
 

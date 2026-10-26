@@ -1,9 +1,12 @@
 import { PollingMiner } from './PollingMiner';
+import { toUpdateCheckResult, type UpdateCheckResult } from '../model/UpdateCheckResult';
+import type { UpdateSources } from '../../update/UpdateSources';
+import { compareSemver, extractSemver } from '../../update/version-compare';
 import type { TeamRedMinerSettings } from '../model/MinerSettings';
 import { ClaymoreMiner } from './ClaymoreMiner';
 import { CGMiner } from './CGMiner';
 import type { MinerStats } from '../model/MinerStats';
-import type { MinerFeatureKey } from '../model/MinerFeature';
+import { MinerFeatureKey } from '../model/MinerFeature';
 import { distinct } from '../../utils/array-utils';
 
 /**
@@ -81,10 +84,34 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
     }
 
     /**
+     * Compares the running TeamRedMiner version with its latest GitHub release.
+     * The version comes from the Claymore-compatible API, whose exact format TeamRedMiner doesn't document,
+     * so the first version number in it is used; without one the result stays unknown.
+     *
+     * @param sources - shared upstream lookups
+     */
+    public override async checkForUpdate(sources: UpdateSources): Promise<UpdateCheckResult> {
+        const reported = (await this.claymoreMiner.fetchStats()).version;
+        const installed = extractSemver(reported) ?? reported;
+        const latestTag = await sources.githubLatestRelease('todxx', 'teamredminer');
+        return toUpdateCheckResult(
+            installed,
+            extractSemver(latestTag) ?? latestTag,
+            compareSemver(extractSemver(reported), latestTag),
+        );
+    }
+
+    /**
      *
      */
     public override getSupportedFeatures(): MinerFeatureKey[] {
-        return distinct([...this.claymoreMiner.getSupportedFeatures(), ...this.cgMiner.getSupportedFeatures()]);
+        return distinct([
+            ...this.claymoreMiner.getSupportedFeatures(),
+            ...this.cgMiner.getSupportedFeatures(),
+            // TeamRedMiner itself publishes releases, unlike the plain Claymore / CGMiner protocols it speaks
+            MinerFeatureKey.latestVersion,
+            MinerFeatureKey.updateAvailable,
+        ]);
     }
 
     /**

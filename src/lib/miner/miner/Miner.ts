@@ -1,8 +1,10 @@
 import type { MinerSettings } from '../model/MinerSettings';
 import * as crypto from 'node:crypto';
-import type { MinerFeatureKey } from '../model/MinerFeature';
+import { MinerFeatureKey } from '../model/MinerFeature';
 import { Logger } from '../model/Logger';
 import type { MinerStats } from '../model/MinerStats';
+import type { UpdateCheckResult } from '../model/UpdateCheckResult';
+import type { UpdateSources } from '../../update/UpdateSources';
 
 /**
  *
@@ -66,6 +68,24 @@ export abstract class Miner<S extends MinerSettings> {
     public setProfile(_profile: string): Promise<void> {
         this.logger.error('setProfile() not implemented for this miner');
         return Promise.resolve();
+    }
+
+    /**
+     * Look up whether a newer firmware/software version is available for this miner.
+     * Miners that support it override this and declare {@link MinerFeatureKey.updateAvailable}
+     * and {@link MinerFeatureKey.latestVersion}.
+     *
+     * @param _sources - shared, cached lookups of the upstream sources
+     */
+    public checkForUpdate(_sources: UpdateSources): Promise<UpdateCheckResult> {
+        return Promise.reject(new Error('update check is not supported for this miner type'));
+    }
+
+    /**
+     * The feature whose state holds the version {@link checkForUpdate} compares, shown next to the latest version.
+     */
+    public getInstalledVersionFeature(): MinerFeatureKey.version | MinerFeatureKey.firmwareVersion {
+        return MinerFeatureKey.version;
     }
 
     /**
