@@ -5,7 +5,9 @@
         "allowJs": false,
         "checkJs": false,
         "noEmit": false,
-        "declaration": false
+        "declaration": false,
+        // test runner globals are only for the test files excluded below
+        "types": ["node"]
     },
     "include": [
         "src/**/*.ts"
