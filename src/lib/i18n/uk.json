@@ -22,7 +22,16 @@
     "enabled": "увімкнути",
     "id": "ID",
     "password": "пароль",
-    "poll interval": "інтервал опитування"
+    "poll interval": "інтервал опитування",
+    "Check miners for updates": "Перевірити оновлення майнерів",
+    "Update check finished: %s miner(s) checked, %s with an update available, %s failed": "Перевірку оновлень завершено: перевірено майнерів: %s, доступно оновлень: %s, помилок: %s",
+    "Installed version": "Встановлена версія",
+    "Latest version": "Остання версія",
+    "Update": "Оновлення",
+    "Update available": "Доступне оновлення",
+    "Up to date": "Актуально",
+    "Unknown": "Невідомо",
+    "Auto-upgrade": "Автооновлення"
 }
 
 

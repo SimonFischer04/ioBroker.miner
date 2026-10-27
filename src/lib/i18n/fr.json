@@ -22,7 +22,16 @@
     "enabled": "activé",
     "id": "ID",
     "password": "mot de passe",
-    "poll interval": "intervalle de sondage"
+    "poll interval": "intervalle de sondage",
+    "Check miners for updates": "Rechercher des mises à jour pour les mineurs",
+    "Update check finished: %s miner(s) checked, %s with an update available, %s failed": "Vérification des mises à jour terminée : %s mineur(s) vérifié(s), %s avec une mise à jour disponible, %s en échec",
+    "Installed version": "Version installée",
+    "Latest version": "Dernière version",
+    "Update": "Mise à jour",
+    "Update available": "Mise à jour disponible",
+    "Up to date": "À jour",
+    "Unknown": "Inconnu",
+    "Auto-upgrade": "Mise à niveau automatique"
 }
 
 

@@ -2,7 +2,16 @@ import { CGMiner } from './CGMiner';
 import type { AvalonMinerSettings } from '../model/MinerSettings';
 import { MinerFeatureKey } from '../model/MinerFeature';
 import type { MinerStats } from '../model/MinerStats';
-import { CGMinerCommand, type CombinedResponse, type StatsDeviceData } from '../model/CGMinerApiTypes';
+import {
+    CGMinerCommand,
+    type CombinedResponse,
+    type StatsDeviceData,
+    type VersionData,
+    type VersionResponse,
+} from '../model/CGMinerApiTypes';
+import { toUpdateCheckResult, type UpdateCheckResult } from '../model/UpdateCheckResult';
+import type { UpdateSources } from '../../update/UpdateSources';
+import { parseAvalonBuild } from '../../update/version-compare';
 import { safeParseFloat } from '../../utils/parse-utils';
 
 // Avalon devices use the CGMiner-compatible socket API on port 4028
@@ -92,7 +101,57 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
             ...super.getSupportedFeatures().filter(feature => !unsupportedFeatures.includes(feature)),
             MinerFeatureKey.profile,
             // MinerFeatureKey.running,
+            MinerFeatureKey.latestVersion,
+            MinerFeatureKey.updateAvailable,
         ];
+    }
+
+    /**
+     * Compares the installed firmware with the latest one Canaan publishes, for the models Canaan's
+     * update file covers (Nano 3 / 3S). Other models report only the installed version.
+     *
+     * @param sources - shared upstream lookups
+     */
+    public override async checkForUpdate(sources: UpdateSources): Promise<UpdateCheckResult> {
+        const response = await this.sendCommand<VersionResponse>(CGMinerCommand.version, '', true);
+        return this.checkVersionForUpdate(response.VERSION?.[0], sources);
+    }
+
+    /**
+     * The update check compares the firmware build, not the miner software version.
+     */
+    public override getInstalledVersionFeature(): MinerFeatureKey.firmwareVersion {
+        return MinerFeatureKey.firmwareVersion;
+    }
+
+    // public to allow unit tests
+    /**
+     * Update check for an already fetched `version` response.
+     *
+     * @param version - version data reported by the miner
+     * @param sources - shared upstream lookups
+     * @returns the update check result
+     */
+    public async checkVersionForUpdate(
+        version: VersionData | undefined,
+        sources: UpdateSources,
+    ): Promise<UpdateCheckResult> {
+        const installed = version?.LVERSION;
+
+        // Canaan's update file only has an entry for the Nano 3 / 3S ("heater_nano3_all")
+        if (!/^nano\s*3/i.test(version?.MODEL ?? '')) {
+            this.logger.debug(`no update source for Avalon model ${version?.MODEL ?? '(unknown)'}`);
+            return { installedVersion: installed };
+        }
+
+        const latest = await sources.avalonNano3LatestBuild();
+        const installedBuild = parseAvalonBuild(installed);
+        return toUpdateCheckResult(
+            installed,
+            latest,
+            // the same comparison Canaan's own app uses
+            installedBuild === undefined ? undefined : installedBuild - Number(latest),
+        );
     }
 
     /**

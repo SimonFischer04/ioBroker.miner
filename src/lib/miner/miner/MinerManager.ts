@@ -72,6 +72,13 @@ export class MinerManager {
     }
 
     /**
+     * All currently initialized miners (a copy, so callers can't change the managed list).
+     */
+    public getMiners(): Miner<MinerSettings>[] {
+        return [...this.miners];
+    }
+
+    /**
      *
      * @param id - the miner id to check
      */

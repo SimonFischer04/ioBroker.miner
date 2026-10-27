@@ -22,7 +22,16 @@
     "enabled": "ingeschakeld",
     "id": "ID",
     "password": "wachtwoord",
-    "poll interval": "poll-interval"
+    "poll interval": "poll-interval",
+    "Check miners for updates": "Miners controleren op updates",
+    "Update check finished: %s miner(s) checked, %s with an update available, %s failed": "Updatecontrole voltooid: %s miner(s) gecontroleerd, %s met beschikbare update, %s mislukt",
+    "Installed version": "Geïnstalleerde versie",
+    "Latest version": "Nieuwste versie",
+    "Update": "Update",
+    "Update available": "Update beschikbaar",
+    "Up to date": "Up-to-date",
+    "Unknown": "Onbekend",
+    "Auto-upgrade": "Automatische upgrade"
 }
 
 

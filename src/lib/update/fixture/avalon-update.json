@@ -1,0 +1,20 @@
+{
+  "nano3": {
+    "timestamp": "1762153257",
+    "name": "heater_nano3_all_2025103101_151231.swu",
+    "version": "25103101",
+    "url": "https://d4co46ec8lf18.cloudfront.net/app/cache/heater_nano3_all_2025103101_151231.swu",
+    "md5": "592a7e14967b47b30b79beb17fa1d933",
+    "required": true,
+    "description": "1.The pool worker length supports 128-byte buffers.\n2.Fixed a device crash that occurred after 24 days.\n"
+  },
+  "knode": {
+    "timestamp": "1791454045",
+    "name": "Avalon_KNode_debug_OTA_2026100800_49e4295.aup",
+    "version": "26100800",
+    "url": "https://sinh1-aws-app01.s3.ap-southeast-1.amazonaws.com/app/cache/Avalon_KNode_debug_OTA_2026100800_49e4295.aup",
+    "md5": "66075d1edc052498fc5d07931fbe139d",
+    "required": true,
+    "description": "knode testing"
+  }
+}

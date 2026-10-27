@@ -1,4 +1,7 @@
 {
     "Devices": "Устройства",
-    "miner adapter settings": "Настройки адаптера для miner"
+    "miner adapter settings": "Настройки адаптера для miner",
+    "Settings": "Настройки",
+    "Check miners for available updates": "Проверять наличие обновлений для майнеров",
+    "Once a day, looks up the latest firmware/software version for supported miners from public release information. Never downloads or installs anything.": "Раз в день ищет последнюю версию прошивки/ПО поддерживаемых майнеров в публичной информации о релизах. Ничего не скачивает и не устанавливает."
 }
