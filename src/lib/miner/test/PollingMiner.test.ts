@@ -185,6 +185,131 @@ describe('PollingMiner', () => {
         expect(await backoffDelays(1000, 3)).to.deep.equal([1800, 3600, 7200]);
     });
 
+    describe('online status', () => {
+        /**
+         * Starts a miner whose polls follow the given outcomes (true = success) and collects the online statuses it reports.
+         *
+         * @param outcomes - result of each poll, in order
+         */
+        async function onlineStatuses(outcomes: boolean[]): Promise<boolean[]> {
+            const miner = new TestPollingMiner(1000);
+            let poll = 0;
+            miner.fetchStatsStub = () =>
+                outcomes[poll++] ? Promise.resolve({}) : Promise.reject(new Error('connection refused'));
+            const statuses: boolean[] = [];
+            miner.subscribeToOnlineStatus(online => {
+                statuses.push(online);
+                return Promise.resolve();
+            });
+
+            await miner.init();
+            await settle();
+            for (let i = 1; i < outcomes.length; i++) {
+                await pollAgain();
+            }
+            await miner.close();
+            return statuses;
+        }
+
+        it('reports online on the first successful poll, and not again while polls keep succeeding', async () => {
+            expect(await onlineStatuses([true, true, true])).to.deep.equal([true]);
+        });
+
+        it('reports offline once 3 polls in a row failed, and only once', async () => {
+            expect(await onlineStatuses([true, false, false])).to.deep.equal([true]);
+            expect(await onlineStatuses([true, false, false, false])).to.deep.equal([true, false]);
+            expect(await onlineStatuses([true, false, false, false, false, false])).to.deep.equal([true, false]);
+        });
+
+        it('reports a miner that never answered as offline after 3 failed polls', async () => {
+            expect(await onlineStatuses([false, false, false])).to.deep.equal([false]);
+        });
+
+        it('does not count failures that a successful poll interrupted', async () => {
+            expect(await onlineStatuses([true, false, false, true, false, false])).to.deep.equal([true]);
+        });
+
+        it('reports online again on the first successful poll after being offline', async () => {
+            expect(await onlineStatuses([true, false, false, false, true, true])).to.deep.equal([true, false, true]);
+        });
+
+        it('stops reporting after close()', async () => {
+            const miner = new TestPollingMiner(1000);
+            miner.fetchStatsStub = () => Promise.reject(new Error('connection refused'));
+            const statuses: boolean[] = [];
+            miner.subscribeToOnlineStatus(online => {
+                statuses.push(online);
+                return Promise.resolve();
+            });
+
+            await miner.init();
+            await settle();
+            await pollAgain();
+            const thirdPoll = scheduled[0];
+            await miner.close();
+            // a poll that was already due when close() ran
+            thirdPoll.callback();
+            await settle();
+
+            expect(statuses).to.deep.equal([]);
+        });
+    });
+
+    describe('poll timeout', () => {
+        it('counts a poll that hangs as failed once its pollInterval has passed', async () => {
+            const miner = new TestPollingMiner(60_000);
+            // never settles
+            miner.fetchStatsStub = () => new Promise<MinerStats>(() => {});
+
+            await miner.init();
+            await settle();
+            // only the timeout of the hanging poll is pending
+            expect(scheduled.map(t => t.ms)).to.deep.equal([60_000]);
+
+            await pollAgain();
+
+            // the timeout went through the backoff like any other failure
+            expect(scheduled.map(t => t.ms)).to.deep.equal([120_000]);
+            await miner.close();
+        });
+
+        it('allows a poll at least 30 seconds, however short pollInterval is', async () => {
+            const miner = new TestPollingMiner(1000);
+            miner.fetchStatsStub = () => new Promise<MinerStats>(() => {});
+
+            await miner.init();
+            await settle();
+
+            expect(scheduled.map(t => t.ms)).to.deep.equal([30_000]);
+            await miner.close();
+        });
+
+        it('does not publish stats that arrive after the timeout', async () => {
+            const miner = new TestPollingMiner(1000);
+            let finishPoll: (() => void) | undefined;
+            miner.fetchStatsStub = () =>
+                new Promise<MinerStats>(resolve => {
+                    finishPoll = () => resolve({ power: 1 });
+                });
+            const received: MinerStats[] = [];
+            miner.subscribeToStats(stats => {
+                received.push(stats);
+                return Promise.resolve();
+            });
+
+            await miner.init();
+            await settle();
+            // the timeout fires first ...
+            await pollAgain();
+            // ... then the stale poll finally answers
+            finishPoll?.();
+            await settle();
+
+            expect(received).to.deep.equal([]);
+            await miner.close();
+        });
+    });
+
     it('close() cancels the pending poll', async () => {
         const miner = new TestPollingMiner(1000);
 

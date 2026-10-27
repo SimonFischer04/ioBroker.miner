@@ -455,6 +455,9 @@ export class MinerAdapter extends utils.Adapter {
                 this.log.debug(`received stats: ${JSON.stringify(stats)}`);
                 await this.processNewStats(miner, settings, stats);
             });
+            miner.subscribeToOnlineStatus(async (online: boolean) => {
+                await this.setState(`${this.getDeviceObjectId(settings)}.info.online`, { val: online, ack: true });
+            });
         } catch (e) {
             this.log.error(`could not initialize device ${settings.name || settings.settings.host}: ${String(e)}`);
             await this.setState(`${this.getDeviceObjectId(settings)}.info.online`, { val: false, ack: true });
