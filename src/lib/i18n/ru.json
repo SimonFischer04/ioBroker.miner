@@ -22,7 +22,16 @@
     "enabled": "включен",
     "id": "ID",
     "password": "пароль",
-    "poll interval": "интервал опроса"
+    "poll interval": "интервал опроса",
+    "Check miners for updates": "Проверить обновления майнеров",
+    "Update check finished: %s miner(s) checked, %s with an update available, %s failed": "Проверка обновлений завершена: проверено майнеров: %s, доступно обновлений: %s, ошибок: %s",
+    "Installed version": "Установленная версия",
+    "Latest version": "Последняя версия",
+    "Update": "Обновление",
+    "Update available": "Доступно обновление",
+    "Up to date": "Актуально",
+    "Unknown": "Неизвестно",
+    "Auto-upgrade": "Автообновление"
 }
 
 

@@ -30,6 +30,25 @@ import { decryptDeviceSettings, isMiner } from '../miner/model/IOBrokerMinerSett
 import type { PartialDeep } from 'type-fest';
 import { createMiner } from './miner/miner/MinerFactory';
 import { getMinerFeatureFullId, MinerFeatureKey } from './miner/model/MinerFeature';
+import { describeUpdateStatus } from './update/updateStatus';
+
+/**
+ * Like `I18n.getTranslatedObject(key, ...args)`, but fills every `%s`: adapter-core only fills the first one
+ * (with the last argument) when given several arguments.
+ *
+ * @param key - translation key containing one `%s` per argument
+ * @param args - values for the placeholders, in order
+ * @returns the message in all available languages
+ */
+function translateWithArgs(key: string, ...args: (string | number)[]): ioBroker.Translated {
+    const template = I18n.getTranslatedObject(key);
+    return Object.fromEntries(
+        Object.entries(template).map(([lang, text]) => [
+            lang,
+            args.reduce<string>((message, arg) => message.replace('%s', String(arg)), text),
+        ]),
+    ) as ioBroker.Translated;
+}
 
 /**
  *
@@ -55,6 +74,13 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     title: '',
                     description: I18n.getTranslatedObject('Add new device to Miner'),
                     handler: this.handleNewDevice.bind(this),
+                },
+                {
+                    id: 'checkForUpdates',
+                    icon: 'update',
+                    title: '',
+                    description: I18n.getTranslatedObject('Check miners for updates'),
+                    handler: this.handleCheckForUpdates.bind(this),
                 },
                 // TODO
                 /*{
@@ -88,6 +114,25 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
      */
     handleRefresh(_context: ActionContext): { refresh: boolean } {
         this.adapter.log.info('handleRefresh');
+        return { refresh: true };
+    }
+
+    /**
+     * Checks all running miners for updates right away, asking the upstream sources again instead of using
+     * cached results, and reports the outcome.
+     *
+     * @param context - the action context for showing messages
+     */
+    async handleCheckForUpdates(context: ActionContext): Promise<{ refresh: boolean }> {
+        const summary = await this.adapter.checkForUpdates({ force: true });
+        await context.showMessage(
+            translateWithArgs(
+                'Update check finished: %s miner(s) checked, %s with an update available, %s failed',
+                summary.checked,
+                summary.updatesAvailable,
+                summary.failed,
+            ),
+        );
         return { refresh: true };
     }
 
@@ -537,6 +582,65 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         return settings;
     }
 
+    /**
+     * Device card rows for the update check: installed and latest version, and the update status.
+     *
+     * The status is computed when the card is built rather than bound to `info.updateAvailable` directly:
+     * the UI shows a null boolean like `false`, which would display "up to date" when the check failed.
+     *
+     * @param deviceId - full object id of the device
+     * @param installedVersionFeature - the state holding the version the check compares
+     * @param supportedFeatures - features of the miner
+     * @returns the card rows, keyed by name
+     */
+    private async getUpdateInfoItems(
+        deviceId: string,
+        installedVersionFeature: MinerFeatureKey,
+        supportedFeatures: MinerFeatureKey[],
+    ): Promise<Record<string, ConfigItemAny>> {
+        const oid = (key: MinerFeatureKey): string => `${deviceId}.${getMinerFeatureFullId(key)}`;
+        const items: Record<string, ConfigItemAny> = {};
+
+        if (supportedFeatures.includes(installedVersionFeature)) {
+            items.installedVersion = {
+                type: 'state',
+                oid: oid(installedVersionFeature),
+                foreign: true,
+                label: I18n.getTranslatedObject('Installed version'),
+            };
+        }
+        items.latestVersion = {
+            type: 'state',
+            oid: oid(MinerFeatureKey.latestVersion),
+            foreign: true,
+            label: I18n.getTranslatedObject('Latest version'),
+        };
+
+        const status = describeUpdateStatus(
+            (await this.adapter.getForeignStateAsync(oid(MinerFeatureKey.updateAvailable)))?.val,
+        );
+        items.updateStatus = {
+            type: 'staticInfo',
+            label: I18n.getTranslatedObject('Update'),
+            data: I18n.getTranslatedObject(status.text),
+            styleValue: { color: status.color },
+        };
+
+        if (supportedFeatures.includes(MinerFeatureKey.autoUpgrade)) {
+            const autoUpgrade = (await this.adapter.getForeignStateAsync(oid(MinerFeatureKey.autoUpgrade)))?.val;
+            // only when known: an older firmware without the setting must not show "OFF"
+            if (typeof autoUpgrade === 'boolean') {
+                items.autoUpgrade = {
+                    type: 'staticInfo',
+                    label: I18n.getTranslatedObject('Auto-upgrade'),
+                    data: I18n.getTranslatedObject(autoUpgrade ? 'ON' : 'OFF'),
+                };
+            }
+        }
+
+        return items;
+    }
+
     protected async loadDevices(context: DeviceLoadContext<string>): Promise<void> {
         const devices = await this.adapter.getDevicesAsync();
 
@@ -585,6 +689,17 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                             value: p,
                         })),
                     };
+                }
+
+                if (supportedFeatures.includes(MinerFeatureKey.updateAvailable)) {
+                    Object.assign(
+                        customInfoItems,
+                        await this.getUpdateInfoItems(
+                            device._id,
+                            dummyMiner.getInstalledVersionFeature(),
+                            supportedFeatures,
+                        ),
+                    );
                 }
             }
 

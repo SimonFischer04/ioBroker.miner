@@ -1,4 +1,7 @@
 {
     "Devices": "设备",
-    "miner adapter settings": "miner的适配器设置"
+    "miner adapter settings": "miner的适配器设置",
+    "Settings": "设置",
+    "Check miners for available updates": "检查矿机的可用更新",
+    "Once a day, looks up the latest firmware/software version for supported miners from public release information. Never downloads or installs anything.": "每天一次根据公开的发布信息查询受支持矿机的最新固件/软件版本。不会下载或安装任何内容。"
 }

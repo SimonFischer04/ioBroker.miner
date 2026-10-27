@@ -1,4 +1,7 @@
 {
     "Devices": "Devices",
-    "miner adapter settings": "Adapter settings for miner"
+    "miner adapter settings": "Adapter settings for miner",
+    "Settings": "Settings",
+    "Check miners for available updates": "Check miners for available updates",
+    "Once a day, looks up the latest firmware/software version for supported miners from public release information. Never downloads or installs anything.": "Once a day, looks up the latest firmware/software version for supported miners from public release information. Never downloads or installs anything."
 }

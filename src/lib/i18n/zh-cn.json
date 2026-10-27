@@ -22,7 +22,16 @@
     "enabled": "启用",
     "id": "ID",
     "password": "密码",
-    "poll interval": "民意调查间隔"
+    "poll interval": "民意调查间隔",
+    "Check miners for updates": "检查矿机更新",
+    "Update check finished: %s miner(s) checked, %s with an update available, %s failed": "更新检查完成：已检查 %s 台矿机，%s 台有可用更新，%s 台检查失败",
+    "Installed version": "已安装版本",
+    "Latest version": "最新版本",
+    "Update": "更新",
+    "Update available": "有可用更新",
+    "Up to date": "已是最新",
+    "Unknown": "未知",
+    "Auto-upgrade": "自动升级"
 }
 
 

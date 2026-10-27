@@ -22,7 +22,16 @@
     "enabled": "włączone",
     "id": "ID",
     "password": "hasło",
-    "poll interval": "przedział ankietowy"
+    "poll interval": "przedział ankietowy",
+    "Check miners for updates": "Sprawdź aktualizacje minerów",
+    "Update check finished: %s miner(s) checked, %s with an update available, %s failed": "Sprawdzanie aktualizacji zakończone: sprawdzono minerów: %s, z dostępną aktualizacją: %s, nieudanych: %s",
+    "Installed version": "Zainstalowana wersja",
+    "Latest version": "Najnowsza wersja",
+    "Update": "Aktualizacja",
+    "Update available": "Dostępna aktualizacja",
+    "Up to date": "Aktualne",
+    "Unknown": "Nieznane",
+    "Auto-upgrade": "Automatyczna aktualizacja"
 }
 
 
