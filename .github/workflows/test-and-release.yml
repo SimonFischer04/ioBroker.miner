@@ -62,11 +62,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '24.x'
           cache: 'npm'
@@ -79,7 +77,10 @@ jobs:
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: coverage/lcov.info
+          file: coverage/lcov.info
+          # coverage is reporting, not a gate: a Coveralls outage or a repository not (yet) enabled
+          # on coveralls.io must not turn CI red
+          fail-on-error: false
 
   # Deploys the final package to NPM using Trusted Publishing (OIDC)
   deploy:

@@ -16,10 +16,11 @@ export interface UpdateStatusDisplay {
  * Display for an `info.updateAvailable` value. Only an explicit `false` counts as up to date:
  * null or a missing value means the check failed or hasn't run yet.
  *
- * @param updateAvailable - current state value
+ * @param updateAvailable - current state value (deliberately `unknown` instead of `ioBroker.StateValue`: this module
+ *  must not depend on the ambient ioBroker types, which aren't loaded when nyc compiles it in isolation)
  * @returns text key and colour
  */
-export function describeUpdateStatus(updateAvailable: ioBroker.StateValue | undefined): UpdateStatusDisplay {
+export function describeUpdateStatus(updateAvailable: unknown): UpdateStatusDisplay {
     if (updateAvailable === true) {
         return { text: 'Update available', color: 'orange' };
     }
