@@ -8,7 +8,7 @@
 
 [![NPM](https://nodei.co/npm/iobroker.miner.png?downloads=true)](https://nodei.co/npm/iobroker.miner/)
 
-**Tests:** ![Test and Release](https://github.com/SimonFischer04/ioBroker.miner/workflows/Test%20and%20Release/badge.svg)
+**Tests:** ![Test and Release](https://github.com/SimonFischer04/ioBroker.miner/workflows/Test%20and%20Release/badge.svg) [![Coverage Status](https://coveralls.io/repos/github/SimonFischer04/ioBroker.miner/badge.svg?branch=main)](https://coveralls.io/github/SimonFischer04/ioBroker.miner?branch=main)
 
 ## miner adapter for ioBroker
 
