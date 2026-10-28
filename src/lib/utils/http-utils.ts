@@ -11,6 +11,7 @@ import type { Logger } from '../miner/model/Logger';
  * @param endpoint - the API endpoint path
  * @param httpMethod - the HTTP method (GET, POST, etc.)
  * @param body - optional request body
+ * @param timeoutMs - abort the request if it hasn't completed within this many milliseconds
  */
 export async function sendGenericHTTPRequest<T>(
     protocol: 'http' | 'https',
@@ -21,6 +22,7 @@ export async function sendGenericHTTPRequest<T>(
     endpoint: string,
     httpMethod: string,
     body?: object,
+    timeoutMs?: number,
 ): Promise<T> {
     try {
         const response = await fetch(`${protocol}://${host}:${port}/${endpoint}`, {
@@ -30,6 +32,7 @@ export async function sendGenericHTTPRequest<T>(
                 Authorization: `Bearer ${password}`,
             },
             body: body ? JSON.stringify(body) : null,
+            signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
         });
 
         if (response.status !== 200) {

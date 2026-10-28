@@ -141,6 +141,7 @@ export class XMRigMiner extends PollingMiner<XMRigSettings> {
             endpoint,
             httpMethod,
             body,
+            this.getPollTimeoutMs(),
         );
     }
 }

@@ -47,7 +47,7 @@ export abstract class PollingMiner<S extends PollingMinerSettings> extends Miner
 
         // a poll that hangs (e.g. a connection that is never answered) has to count as failed, or the miner would never
         // be reported offline
-        const pollTimeoutMs = Math.max(this.settings.pollInterval, MIN_POLL_TIMEOUT_MS);
+        const pollTimeoutMs = this.getPollTimeoutMs();
 
         // start polling, backing off exponentially while polls keep failing
         this.pollHandle = asyncBackoffInterval(
@@ -78,6 +78,14 @@ export abstract class PollingMiner<S extends PollingMinerSettings> extends Miner
         );
 
         return Promise.resolve();
+    }
+
+    /**
+     * How long a single poll may take before it counts as failed. Miners also use it as the timeout of the requests a
+     * poll makes, so that a request abandoned by a timed-out poll doesn't linger.
+     */
+    protected getPollTimeoutMs(): number {
+        return Math.max(this.settings.pollInterval, MIN_POLL_TIMEOUT_MS);
     }
 
     /**
