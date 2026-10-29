@@ -703,6 +703,20 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     };
                 }
 
+                if (supportedFeatures.includes(MinerFeatureKey.rssi)) {
+                    const stateId = `${device._id}.${getMinerFeatureFullId(MinerFeatureKey.rssi)}`;
+                    // only once reported: a wired miner has no signal strength, and an empty row would read as broken
+                    if (typeof (await this.adapter.getForeignStateAsync(stateId))?.val === 'number') {
+                        customInfoItems.rssi = {
+                            type: 'state',
+                            oid: stateId,
+                            foreign: true,
+                            label: I18n.getTranslatedObject('RSSI'),
+                            unit: 'dBm',
+                        };
+                    }
+                }
+
                 if (supportedFeatures.includes(MinerFeatureKey.updateAvailable)) {
                     Object.assign(
                         customInfoItems,

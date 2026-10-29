@@ -6,6 +6,7 @@ import {
     CGMinerCommand,
     type CGMinerStatus,
     type CombinedResponse,
+    type LiteStatsData,
     type StatsDeviceData,
     type VersionData,
     type VersionResponse,
@@ -50,10 +51,14 @@ const AVALON_PROFILES = Object.keys(AVALON_PROFILE_PARAM_MAP);
  */
 const AVALON_WEB_PORT = 80;
 
-/** Type alias for the summary+version+stats combined response. */
+/**
+ * Type alias for the summary+version+stats(+litestats) combined response. `litestats` has no STATS on firmware that
+ * doesn't know the command: cgminer then answers just that part of the combined request with "Invalid command".
+ */
 export type SummaryVersionStatsResponse = CombinedResponse<
     CGMinerCommand.summary | CGMinerCommand.version | CGMinerCommand.stats
->;
+> &
+    Partial<CombinedResponse<CGMinerCommand.liteStats>>;
 
 /**
  *
@@ -75,8 +80,9 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
     public override async fetchStats(): Promise<MinerStats> {
         // TODO: also fetch profile (workmode). control.profile is for control, info.profile for profile fetched from stats
         try {
+            // litestats carries the WiFi signal strength; it joins the same request instead of costing a second one
             const response = await this.sendCommand<SummaryVersionStatsResponse>(
-                [CGMinerCommand.summary, CGMinerCommand.version, CGMinerCommand.stats],
+                [CGMinerCommand.summary, CGMinerCommand.version, CGMinerCommand.stats, CGMinerCommand.liteStats],
                 '',
                 true,
             );
@@ -107,6 +113,7 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
         return [
             ...super.getSupportedFeatures().filter(feature => !unsupportedFeatures.includes(feature)),
             MinerFeatureKey.profile,
+            MinerFeatureKey.rssi,
             // MinerFeatureKey.running,
             MinerFeatureKey.latestVersion,
             MinerFeatureKey.updateAvailable,
@@ -284,6 +291,7 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
             ...baseStats,
             power,
             efficiency: power != null && baseStats.totalHashrate ? baseStats.totalHashrate / power : undefined,
+            rssi: this.extractRssiFromLiteStats(response.litestats?.[0]?.STATS),
         };
     }
 
@@ -332,5 +340,25 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
 
         const watts = safeParseFloat(parts[6]);
         return watts > 0 ? watts : undefined;
+    }
+
+    /**
+     * Extract the WiFi signal strength from the first device entry of a litestats response: `RSSI[-55]` in the first
+     * `MM ID<n>` telemetry string.
+     *
+     * @param liteStatsEntries - STATS array from a litestats response
+     * @returns RSSI in dBm, or undefined if not reported (e.g. a wired connection or a firmware without litestats)
+     */
+    private extractRssiFromLiteStats(liteStatsEntries: LiteStatsData[] | undefined): number | undefined {
+        const entry = liteStatsEntries?.find(e => 'MM Count' in e);
+        const mmIdKey = entry && Object.keys(entry).find(key => key.startsWith('MM ID'));
+        const telemetry = mmIdKey ? entry[mmIdKey as `MM ID${number}`] : undefined;
+        if (!telemetry) {
+            return undefined;
+        }
+
+        // not safeParseFloat: it turns garbage into 0, which would look like a (perfect) reading
+        const rssi = Number.parseFloat(this.parseAvalonTelemetry(telemetry).get('RSSI') ?? '');
+        return Number.isFinite(rssi) ? rssi : undefined;
     }
 }
