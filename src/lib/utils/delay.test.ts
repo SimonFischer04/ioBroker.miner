@@ -7,6 +7,7 @@ import {
     setTimerBackend,
     type AsyncBackoffIntervalOptions,
     type TimerBackend,
+    withTimeout,
 } from './delay';
 
 interface ScheduledTimer {
@@ -343,6 +344,49 @@ describe('delay', () => {
             asyncBackoffInterval(failing, 1000, { shouldExecuteImmediately: true });
             await settle();
             expect(timers.scheduled.map(t => t.ms)).to.deep.equal([2000]);
+        });
+    });
+
+    describe('withTimeout', () => {
+        it('resolves with the result and cancels the timer when the promise settles in time', async () => {
+            const result = await withTimeout(Promise.resolve(42), 1000, 'too slow');
+
+            expect(result).to.equal(42);
+            expect(timers.scheduled).to.have.length(0);
+        });
+
+        it('passes on a rejection and cancels the timer', async () => {
+            const error = await withTimeout(Promise.reject(new Error('down')), 1000, 'too slow').catch(
+                (e: unknown) => e,
+            );
+
+            expect((error as Error).message).to.equal('down');
+            expect(timers.scheduled).to.have.length(0);
+        });
+
+        it('rejects with the given message once the timeout is reached', async () => {
+            const hanging = new Promise<number>(() => {});
+            const outcome = withTimeout(hanging, 1000, 'too slow').catch((e: unknown) => e);
+
+            expect(timers.scheduled.map(t => t.ms)).to.deep.equal([1000]);
+            await timers.fireNext();
+
+            expect(((await outcome) as Error).message).to.equal('too slow');
+        });
+
+        it('ignores what the promise settles with after the timeout', async () => {
+            let lateReject: ((e: Error) => void) | undefined;
+            const late = new Promise<number>((_resolve, reject) => {
+                lateReject = reject;
+            });
+            const outcome = withTimeout(late, 1000, 'too slow').catch((e: unknown) => e);
+
+            await timers.fireNext();
+            // must not surface as an unhandled rejection or change the outcome
+            lateReject?.(new Error('late'));
+            await settle();
+
+            expect(((await outcome) as Error).message).to.equal('too slow');
         });
     });
 });

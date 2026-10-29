@@ -275,6 +275,24 @@ export function asyncBackoffInterval(
 }
 
 /**
+ * Settles like `promise`, but rejects with `message` if it hasn't settled within `ms`.
+ *
+ * The original promise is not cancelled: whatever it settles with after the timeout is ignored.
+ *
+ * @param promise - the promise to wait for
+ * @param ms - how long to wait in milliseconds
+ * @param message - error message used when the timeout is reached
+ */
+export function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+    let handle: unknown;
+    const timedOut = new Promise<never>((_resolve, reject) => {
+        handle = timerBackend.schedule(() => reject(new Error(message)), ms);
+    });
+
+    return Promise.race([promise, timedOut]).finally(() => timerBackend.clear(handle));
+}
+
+/**
  *
  * @param callback - the callback to execute
  * @param ms - the timeout in milliseconds

@@ -206,7 +206,8 @@ export class BOS extends PollingMiner<BOSSettings> {
             host: this.settings.host,
             port: this.settings.port,
             secure: this.settings.secure,
-            timeoutMs: this.settings.timeoutMs,
+            // without a deadline, a call to a hung miner would stay pending forever
+            timeoutMs: this.settings.timeoutMs ?? this.getPollTimeoutMs(),
             username: this.settings.username || BOS_DEFAULT_USERNAME,
             password: this.settings.password || BOS_DEFAULT_PASSWORD,
         });

@@ -119,6 +119,7 @@ export class IceRiverOcMiner extends PollingMiner<IceRiverOcMinerSettings> {
             endpoint,
             httpMethod,
             body,
+            this.getPollTimeoutMs(),
         );
     }
 }

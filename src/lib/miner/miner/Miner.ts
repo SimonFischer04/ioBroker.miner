@@ -12,6 +12,7 @@ import type { UpdateSources } from '../../update/UpdateSources';
 export abstract class Miner<S extends MinerSettings> {
     protected logger: Logger;
     private statSubscriptions: ((stats: MinerStats) => Promise<void>)[] = [];
+    private onlineStatusSubscriptions: ((online: boolean) => Promise<void>)[] = [];
 
     /**
      *
@@ -103,6 +104,7 @@ export abstract class Miner<S extends MinerSettings> {
      */
     public close(): Promise<void> {
         this.statSubscriptions = [];
+        this.onlineStatusSubscriptions = [];
         return Promise.resolve();
     }
 
@@ -132,6 +134,28 @@ export abstract class Miner<S extends MinerSettings> {
         this.logger.debug(`publishing new stats to subscribers: ${JSON.stringify(stats)}`);
         for (const sub of this.statSubscriptions) {
             await sub(stats);
+        }
+    }
+
+    /**
+     * Subscribe to changes of whether the miner is reachable
+     *
+     * @param callback - callback that gets called with the new status whenever it changes
+     */
+    public subscribeToOnlineStatus(callback: (online: boolean) => Promise<void>): void {
+        this.onlineStatusSubscriptions.push(callback);
+    }
+
+    /**
+     * Called by the miner when it becomes reachable or unreachable.
+     * Subscribers will be notified.
+     *
+     * @param online - whether the miner is reachable now
+     */
+    public async onOnlineStatus(online: boolean): Promise<void> {
+        this.logger.debug(`publishing online status to subscribers: ${online}`);
+        for (const sub of this.onlineStatusSubscriptions) {
+            await sub(online);
         }
     }
 
