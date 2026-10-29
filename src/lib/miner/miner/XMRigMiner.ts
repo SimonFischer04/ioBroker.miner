@@ -3,6 +3,9 @@ import type { XMRigSettings } from '../model/MinerSettings';
 import type { MinerStats } from '../model/MinerStats';
 import { PollingMiner } from './PollingMiner';
 import { sendGenericHTTPRequest } from '../../utils/http-utils';
+import { toUpdateCheckResult, type UpdateCheckResult } from '../model/UpdateCheckResult';
+import type { UpdateSources } from '../../update/UpdateSources';
+import { compareSemver, extractSemver } from '../../update/version-compare';
 
 // TODO: support more endpoints
 enum XMRigEndpoint {
@@ -67,6 +70,21 @@ export class XMRigMiner extends PollingMiner<XMRigSettings> {
     }
 
     /**
+     * Compares the running XMRig version with its latest GitHub release.
+     *
+     * @param sources - shared upstream lookups
+     */
+    public override async checkForUpdate(sources: UpdateSources): Promise<UpdateCheckResult> {
+        const installed = (await this.sendHTTPRequest<SummaryResponse>(XMRigEndpoint.summary, 'GET')).version;
+        const latestTag = await sources.githubLatestRelease('xmrig', 'xmrig');
+        return toUpdateCheckResult(
+            installed,
+            extractSemver(latestTag) ?? latestTag,
+            compareSemver(installed, latestTag),
+        );
+    }
+
+    /**
      *
      */
     public override getSupportedFeatures(): MinerFeatureKey[] {
@@ -76,6 +94,8 @@ export class XMRigMiner extends PollingMiner<XMRigSettings> {
             MinerFeatureKey.stats,
             MinerFeatureKey.rawStats,
             MinerFeatureKey.cliArgs,
+            MinerFeatureKey.latestVersion,
+            MinerFeatureKey.updateAvailable,
         ];
     }
 
@@ -121,6 +141,7 @@ export class XMRigMiner extends PollingMiner<XMRigSettings> {
             endpoint,
             httpMethod,
             body,
+            this.getPollTimeoutMs(),
         );
     }
 }

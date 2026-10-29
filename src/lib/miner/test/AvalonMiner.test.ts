@@ -1,6 +1,18 @@
 import { expect } from 'chai';
+import { createServer, type AddressInfo } from 'node:net';
 import { AvalonMiner, type SummaryVersionStatsResponse } from '../miner/AvalonMiner';
 import summaryVersionStatsFixture from '../fixture/nano3s-summary+version+stats.json';
+import liteStatsFixture from '../fixture/nano3s-litestats.json';
+import type { LiteStatsResponse } from '../model/CGMinerApiTypes';
+
+/**
+ * The summary+version+stats fixture with a litestats part joined in, as the combined request returns it.
+ *
+ * @param liteStats - the litestats part of the combined response
+ */
+function withLiteStats(liteStats: SummaryVersionStatsResponse['litestats']): SummaryVersionStatsResponse {
+    return { ...(summaryVersionStatsFixture as SummaryVersionStatsResponse), litestats: liteStats };
+}
 import { MinerFeatureKey } from '../model/MinerFeature';
 
 describe('AvalonMiner', () => {
@@ -46,8 +58,8 @@ describe('AvalonMiner', () => {
     });
 
     describe('parseSummaryVersionStatsResponse', () => {
-        it('should parse summary+version+stats fixture data correctly', () => {
-            const fixture = summaryVersionStatsFixture as SummaryVersionStatsResponse;
+        it('should parse summary+version+stats+litestats fixture data correctly', () => {
+            const fixture = withLiteStats([liteStatsFixture as LiteStatsResponse]);
             const stats = miner.parseSummaryVersionStatsResponse(fixture);
 
             // Base stats from summary+version (inherited from CGMiner)
@@ -62,6 +74,10 @@ describe('AvalonMiner', () => {
             expect(stats.power).to.be.a('number');
             expect(stats.power).to.equal(131);
 
+            // RSSI from litestats telemetry: RSSI[-55] → -55 dBm
+            expect(stats.rssi).to.be.a('number');
+            expect(stats.rssi).to.equal(-55);
+
             // Efficiency: totalHashrate / power
             expect(stats.efficiency).to.be.a('number');
             if (stats.totalHashrate === undefined || stats.power === undefined) {
@@ -71,6 +87,29 @@ describe('AvalonMiner', () => {
 
             // raw response preserved
             expect(stats.raw).to.equal(fixture);
+        });
+
+        it('still parses everything else when the firmware does not know litestats', () => {
+            // cgminer answers an unknown command within a combined request with just an error status for that part
+            const fixture = withLiteStats([
+                {
+                    STATUS: [{ STATUS: 'E', When: 0, Code: 14, Msg: 'Invalid command', Description: 'cgminer 4.11.1' }],
+                    id: 1,
+                } as unknown as LiteStatsResponse,
+            ]);
+
+            const stats = miner.parseSummaryVersionStatsResponse(fixture);
+
+            expect(stats.rssi).to.be.undefined;
+            expect(stats.power).to.equal(131);
+            expect(stats.version).to.equal('4.11.1');
+        });
+
+        it('reports no RSSI rather than 0 when the value is not a number', () => {
+            const garbled = structuredClone(liteStatsFixture) as LiteStatsResponse;
+            garbled.STATS[0]['MM ID0'] = garbled.STATS[0]['MM ID0'].replace('RSSI[-55]', 'RSSI[]');
+
+            expect(miner.parseSummaryVersionStatsResponse(withLiteStats([garbled])).rssi).to.be.undefined;
         });
 
         it('should handle missing stats data gracefully', () => {
@@ -88,6 +127,7 @@ describe('AvalonMiner', () => {
             expect(stats.totalHashrate).to.be.undefined;
             expect(stats.power).to.be.undefined;
             expect(stats.efficiency).to.be.undefined;
+            expect(stats.rssi).to.be.undefined;
         });
 
         it('should handle stats without MM ID field', () => {
@@ -191,6 +231,11 @@ describe('AvalonMiner', () => {
             expect(features).to.include(MinerFeatureKey.profile);
         });
 
+        it('should include the rssi feature', () => {
+            const features = miner.getSupportedFeatures();
+            expect(features).to.include(MinerFeatureKey.rssi);
+        });
+
         it('should not include cliArgs', () => {
             const features = miner.getSupportedFeatures();
             expect(features).to.not.include(MinerFeatureKey.cliArgs);
@@ -214,5 +259,39 @@ describe('AvalonMiner', () => {
             const profiles = miner.getProfiles();
             expect(profiles).to.deep.equal(['low', 'medium', 'high']);
         });
+    });
+});
+
+describe('AvalonMiner.fetchStats', () => {
+    it('gets summary, version, stats and litestats in one combined request', async () => {
+        const requests: string[] = [];
+        const reply = JSON.stringify({
+            ...(summaryVersionStatsFixture as SummaryVersionStatsResponse),
+            litestats: [liteStatsFixture],
+        });
+        const server = createServer(socket => {
+            socket.on('data', data => {
+                requests.push((JSON.parse(data.toString()) as { command: string }).command);
+                socket.end(reply);
+            });
+        });
+        await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+
+        try {
+            const miner = new AvalonMiner({
+                minerType: 'avalonMiner',
+                host: '127.0.0.1',
+                port: (server.address() as AddressInfo).port,
+                pollInterval: 10000,
+            });
+
+            const stats = await miner.fetchStats();
+
+            expect(requests).to.deep.equal(['summary+version+stats+litestats']);
+            expect(stats.rssi).to.equal(-55);
+            expect(stats.power).to.equal(131);
+        } finally {
+            await new Promise(resolve => server.close(resolve));
+        }
     });
 });

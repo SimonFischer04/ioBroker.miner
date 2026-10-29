@@ -62,6 +62,24 @@
         "height": "100%",
         "overflow": "hidden"
       }
+    },
+    "_settings": {
+      "type": "panel",
+      "label": "Settings",
+      "items": {
+        "checkForUpdates": {
+          "type": "checkbox",
+          "label": "Check miners for available updates",
+          "help": "Once a day, looks up the latest firmware/software version for supported miners from public release information. Never downloads or installs anything.",
+          "default": true,
+          "newLine": true,
+          "xs": 12,
+          "sm": 12,
+          "md": 12,
+          "lg": 12,
+          "xl": 12
+        }
+      }
     }
   }
 }

@@ -18,6 +18,8 @@
 
         // This is necessary for the automatic typing of the adapter config
         "resolveJsonModule": true,
+        // @tsconfig/node22 >= 22.0.6 limits global types to "node" - add the test runner's globals back
+        "types": ["node", "mocha"],
 
         // If you want to disable the stricter type checks (not recommended), uncomment the following line
         // "strict": false,

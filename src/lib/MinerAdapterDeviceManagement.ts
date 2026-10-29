@@ -30,6 +30,27 @@ import { decryptDeviceSettings, isMiner } from '../miner/model/IOBrokerMinerSett
 import type { PartialDeep } from 'type-fest';
 import { createMiner } from './miner/miner/MinerFactory';
 import { getMinerFeatureFullId, MinerFeatureKey } from './miner/model/MinerFeature';
+import { describeUpdateStatus } from './update/updateStatus';
+import { AvalonMiner } from './miner/miner/AvalonMiner';
+import { isWrongPasswordError } from './miner/api/AvalonWebLogin';
+
+/**
+ * Like `I18n.getTranslatedObject(key, ...args)`, but fills every `%s`: adapter-core only fills the first one
+ * (with the last argument) when given several arguments.
+ *
+ * @param key - translation key containing one `%s` per argument
+ * @param args - values for the placeholders, in order
+ * @returns the message in all available languages
+ */
+function translateWithArgs(key: string, ...args: (string | number)[]): ioBroker.Translated {
+    const template = I18n.getTranslatedObject(key);
+    return Object.fromEntries(
+        Object.entries(template).map(([lang, text]) => [
+            lang,
+            args.reduce<string>((message, arg) => message.replace('%s', String(arg)), text),
+        ]),
+    ) as ioBroker.Translated;
+}
 
 /**
  *
@@ -55,6 +76,13 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     title: '',
                     description: I18n.getTranslatedObject('Add new device to Miner'),
                     handler: this.handleNewDevice.bind(this),
+                },
+                {
+                    id: 'checkForUpdates',
+                    icon: 'update',
+                    title: '',
+                    description: I18n.getTranslatedObject('Check miners for updates'),
+                    handler: this.handleCheckForUpdates.bind(this),
                 },
                 // TODO
                 /*{
@@ -88,6 +116,25 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
      */
     handleRefresh(_context: ActionContext): { refresh: boolean } {
         this.adapter.log.info('handleRefresh');
+        return { refresh: true };
+    }
+
+    /**
+     * Checks all running miners for updates right away, asking the upstream sources again instead of using
+     * cached results, and reports the outcome.
+     *
+     * @param context - the action context for showing messages
+     */
+    async handleCheckForUpdates(context: ActionContext): Promise<{ refresh: boolean }> {
+        const summary = await this.adapter.checkForUpdates({ force: true });
+        await context.showMessage(
+            translateWithArgs(
+                'Update check finished: %s miner(s) checked, %s with an update available, %s failed',
+                summary.checked,
+                summary.updatesAvailable,
+                summary.failed,
+            ),
+        );
         return { refresh: true };
     }
 
@@ -261,6 +308,14 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                             'password used to connect to the device api. Adapter generates a random, secure and unique one for each device by default. But can of course be changed if needed.',
                         hidden: "data.category !== 'miner' || !(data.minerType == 'claymoreMiner' || data.minerType == 'xmRig' || data.minerType == 'iceRiverOcMiner' || data.minerType == 'teamRedMiner' || data.minerType == 'bos' || data.minerType == 'bosMiner')", // TODO: improve this
                     },
+                    webPassword: {
+                        type: 'password',
+                        newLine: true,
+                        label: I18n.getTranslatedObject('web password'),
+                        tooltip:
+                            'password of the miner web interface, as set in the Avalon Family app. Only needed for the "Approve web login" action, which logs a browser in without scanning the QR code.',
+                        hidden: "data.category !== 'miner' || data.minerType != 'avalonMiner'",
+                    },
                     enabled: {
                         type: 'checkbox',
                         newLine: true,
@@ -282,6 +337,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     pollInterval: (existingSettings.settings as PollingMinerSettings).pollInterval ?? 10000, // TODO: implement this properly
                     username: (existingSettings.settings as BOSSettings).username ?? BOS_DEFAULT_USERNAME, // TODO: implement this properly
                     password: getPasswordFormValue(existingSettings), // TODO: implement this properly
+                    webPassword: (existingSettings.settings as PartialDeep<AvalonMinerSettings>).webPassword ?? '',
                     enabled: existingSettings.enabled,
                 },
                 title,
@@ -508,6 +564,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 const avalonSettings: Omit<AvalonMinerSettings, keyof MinerSettings> = {
                     pollInterval,
                     port: 4028, // TODO: make configurable
+                    webPassword: result.webPassword || undefined,
                 };
                 minerSettings = {
                     ...minerSettings,
@@ -535,6 +592,65 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         };
 
         return settings;
+    }
+
+    /**
+     * Device card rows for the update check: installed and latest version, and the update status.
+     *
+     * The status is computed when the card is built rather than bound to `info.updateAvailable` directly:
+     * the UI shows a null boolean like `false`, which would display "up to date" when the check failed.
+     *
+     * @param deviceId - full object id of the device
+     * @param installedVersionFeature - the state holding the version the check compares
+     * @param supportedFeatures - features of the miner
+     * @returns the card rows, keyed by name
+     */
+    private async getUpdateInfoItems(
+        deviceId: string,
+        installedVersionFeature: MinerFeatureKey,
+        supportedFeatures: MinerFeatureKey[],
+    ): Promise<Record<string, ConfigItemAny>> {
+        const oid = (key: MinerFeatureKey): string => `${deviceId}.${getMinerFeatureFullId(key)}`;
+        const items: Record<string, ConfigItemAny> = {};
+
+        if (supportedFeatures.includes(installedVersionFeature)) {
+            items.installedVersion = {
+                type: 'state',
+                oid: oid(installedVersionFeature),
+                foreign: true,
+                label: I18n.getTranslatedObject('Installed version'),
+            };
+        }
+        items.latestVersion = {
+            type: 'state',
+            oid: oid(MinerFeatureKey.latestVersion),
+            foreign: true,
+            label: I18n.getTranslatedObject('Latest version'),
+        };
+
+        const status = describeUpdateStatus(
+            (await this.adapter.getForeignStateAsync(oid(MinerFeatureKey.updateAvailable)))?.val,
+        );
+        items.updateStatus = {
+            type: 'staticInfo',
+            label: I18n.getTranslatedObject('Update'),
+            data: I18n.getTranslatedObject(status.text),
+            styleValue: { color: status.color },
+        };
+
+        if (supportedFeatures.includes(MinerFeatureKey.autoUpgrade)) {
+            const autoUpgrade = (await this.adapter.getForeignStateAsync(oid(MinerFeatureKey.autoUpgrade)))?.val;
+            // only when known: an older firmware without the setting must not show "OFF"
+            if (typeof autoUpgrade === 'boolean') {
+                items.autoUpgrade = {
+                    type: 'staticInfo',
+                    label: I18n.getTranslatedObject('Auto-upgrade'),
+                    data: I18n.getTranslatedObject(autoUpgrade ? 'ON' : 'OFF'),
+                };
+            }
+        }
+
+        return items;
     }
 
     protected async loadDevices(context: DeviceLoadContext<string>): Promise<void> {
@@ -589,14 +705,49 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
 
                 if (supportedFeatures.includes(MinerFeatureKey.powerTarget)) {
                     const stateId = `${device._id}.${getMinerFeatureFullId(MinerFeatureKey.powerTarget)}`;
+                    // the range the miner reported, see MinerAdapter.applyPowerTargetConstraints
+                    const range = (
+                        (await this.adapter.getForeignObjectAsync(stateId)) as ioBroker.StateObject | null | undefined
+                    )?.common;
                     customInfoItems.powerTarget = {
                         type: 'state',
                         oid: stateId,
                         foreign: true,
                         control: 'number',
                         unit: 'W',
+                        min: range?.min ?? 1,
+                        max: range?.max,
+                        step: 1,
+                        // every write reconfigures the miner's tuner: send the finished value only, not each keystroke
+                        showEnterButton: I18n.getTranslatedObject('Set'),
+                        setOnEnterKey: true,
                         label: I18n.getTranslatedObject('Power Target'),
                     };
+                }
+
+                if (supportedFeatures.includes(MinerFeatureKey.rssi)) {
+                    const stateId = `${device._id}.${getMinerFeatureFullId(MinerFeatureKey.rssi)}`;
+                    // only once reported: a wired miner has no signal strength, and an empty row would read as broken
+                    if (typeof (await this.adapter.getForeignStateAsync(stateId))?.val === 'number') {
+                        customInfoItems.rssi = {
+                            type: 'state',
+                            oid: stateId,
+                            foreign: true,
+                            label: I18n.getTranslatedObject('RSSI'),
+                            unit: 'dBm',
+                        };
+                    }
+                }
+
+                if (supportedFeatures.includes(MinerFeatureKey.updateAvailable)) {
+                    Object.assign(
+                        customInfoItems,
+                        await this.getUpdateInfoItems(
+                            device._id,
+                            dummyMiner.getInstalledVersionFeature(),
+                            supportedFeatures,
+                        ),
+                    );
                 }
             }
 
@@ -653,6 +804,16 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         description: I18n.getTranslatedObject('enabled'),
                         handler: this.handleEnableDisableDevice.bind(this),
                     },
+                    ...(isMiner(settings) && settings.settings.minerType === 'avalonMiner'
+                        ? [
+                              {
+                                  id: 'approveWebLogin',
+                                  icon: 'qrcode',
+                                  description: I18n.getTranslatedObject('Approve web login'),
+                                  handler: this.handleApproveWebLogin.bind(this),
+                              },
+                          ]
+                        : []),
                 ],
             });
         }
@@ -665,6 +826,57 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         await this.adapter.setForeignStateAsync(stateId, { val: !enabled, ack: false });
 
         return { refresh: 'devices' };
+    }
+
+    /**
+     * Approves the login a browser is waiting for on an Avalon miner's web interface, instead of scanning the QR code
+     * with the Avalon Family app.
+     *
+     * @param id - the device object id
+     * @param context - the action context for showing messages
+     */
+    protected async handleApproveWebLogin(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
+        const obj = await this.adapter.getObjectAsync(id);
+        if (obj == null) {
+            this.adapter.log.error(`MinerAdapterDeviceManagement/handleApproveWebLogin object ${id} not found`);
+            return { refresh: 'none' };
+        }
+        const settings = decryptDeviceSettings(obj.native as IOBrokerDeviceSettings, value =>
+            this.adapter.decrypt(value),
+        );
+        const minerId = isMiner(settings) ? settings.settings.id : undefined;
+        const miner = minerId ? this.adapter.minerManager.getMiner(minerId) : undefined;
+
+        if (!(miner instanceof AvalonMiner)) {
+            await context.showMessage(I18n.getTranslatedObject('The device is disabled.'));
+            return { refresh: 'none' };
+        }
+        if (!miner.settings.webPassword) {
+            await context.showMessage(
+                I18n.getTranslatedObject(
+                    'Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.',
+                ),
+            );
+            return { refresh: 'none' };
+        }
+
+        try {
+            await miner.approveWebLogin();
+            await context.showMessage(
+                I18n.getTranslatedObject(
+                    "Login approved: the browser showing the miner's login page is logged in within 5 seconds.",
+                ),
+            );
+        } catch (e) {
+            const message = e instanceof Error ? e.message : JSON.stringify(e);
+            this.adapter.log.warn(`approving the web login of ${id} failed: ${message}`);
+            await context.showMessage(
+                isWrongPasswordError(message)
+                    ? I18n.getTranslatedObject('The miner rejected the web password. Check it in the device settings.')
+                    : translateWithArgs('Could not approve the web login: %s', message),
+            );
+        }
+        return { refresh: 'none' };
     }
 
     protected async handleDeleteDevice(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {

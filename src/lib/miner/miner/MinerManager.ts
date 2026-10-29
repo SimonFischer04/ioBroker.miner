@@ -64,11 +64,27 @@ export class MinerManager {
     }
 
     /**
+     * The initialized miner with the given id, if it is running.
+     *
+     * @param id - the miner id to look up
+     */
+    public getMiner(id: string): Miner<MinerSettings> | undefined {
+        return this.getMinerById(id);
+    }
+
+    /**
      *
      * @param id - the miner id to look up
      */
     private getMinerById(id: string): Miner<MinerSettings> | undefined {
         return this.miners.find(miner => miner.settings.id === id);
+    }
+
+    /**
+     * All currently initialized miners (a copy, so callers can't change the managed list).
+     */
+    public getMiners(): Miner<MinerSettings>[] {
+        return [...this.miners];
     }
 
     /**

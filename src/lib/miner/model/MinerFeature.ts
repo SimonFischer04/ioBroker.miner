@@ -9,8 +9,17 @@ export enum MinerFeatureKey {
     version = 'version',
     firmwareVersion = 'firmwareVersion',
 
+    // info – update check (see Miner.checkForUpdate)
+    latestVersion = 'latestVersion',
+    updateAvailable = 'updateAvailable',
+    autoUpgrade = 'autoUpgrade',
+    autoUpgradeNextRun = 'autoUpgradeNextRun',
+
     // stats – indicates the miner provides live performance metrics
     stats = 'stats',
+
+    // connectivity
+    rssi = 'rssi',
 
     // raw
     rawStats = 'rawStats',
@@ -148,6 +157,50 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
     },
 
     /*
+        info – update check: latest upstream version and whether it's newer than the installed one
+     */
+    [MinerFeatureKey.latestVersion]: {
+        category: MinerFeatureCategory.info,
+        id: 'latestVersion',
+        label: 'Latest Version',
+        description: 'Latest firmware/software version available for this miner.',
+        type: 'string',
+        role: 'text',
+        readable: true,
+        writable: false,
+    },
+    [MinerFeatureKey.updateAvailable]: {
+        category: MinerFeatureCategory.info,
+        id: 'updateAvailable',
+        label: 'Update Available',
+        description: 'Whether a newer version is available. Empty if unknown.',
+        type: 'boolean',
+        role: 'indicator',
+        readable: true,
+        writable: false,
+    },
+    [MinerFeatureKey.autoUpgrade]: {
+        category: MinerFeatureCategory.info,
+        id: 'autoUpgrade',
+        label: 'Auto-Upgrade',
+        description: 'Whether the miner installs firmware upgrades automatically.',
+        type: 'boolean',
+        role: 'indicator',
+        readable: true,
+        writable: false,
+    },
+    [MinerFeatureKey.autoUpgradeNextRun]: {
+        category: MinerFeatureCategory.info,
+        id: 'autoUpgradeNextRun',
+        label: 'Next Auto-Upgrade',
+        description: 'Next scheduled automatic upgrade run.',
+        type: 'number',
+        role: 'date',
+        readable: true,
+        writable: false,
+    },
+
+    /*
         info – CLI arguments
      */
     [MinerFeatureKey.cliArgs]: {
@@ -156,6 +209,21 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
         label: 'CLI Arguments',
         description: 'Command line arguments needed to enable API access on the miner.',
         type: 'string',
+        readable: true,
+        writable: false,
+    },
+
+    /*
+        info – connectivity
+     */
+    [MinerFeatureKey.rssi]: {
+        category: MinerFeatureCategory.info,
+        id: 'rssi',
+        label: 'RSSI',
+        description: 'WiFi signal strength in dBm.',
+        type: 'number',
+        unit: 'dBm',
+        role: 'value.rssi',
         readable: true,
         writable: false,
     },

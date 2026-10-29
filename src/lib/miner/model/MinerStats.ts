@@ -23,6 +23,11 @@ export interface MinerStats {
      */
     dynamicPowerTarget?: number;
     /**
+     * Configured power target in watts: what the power target control was set to, which Dynamic Performance Scaling
+     * may lower temporarily (see {@link dynamicPowerTarget}).
+     */
+    powerTarget?: number;
+    /**
      * Energy efficiency in H/W.
      */
     efficiency?: number;
@@ -34,6 +39,10 @@ export interface MinerStats {
      * Total number of rejected shares.
      */
     rejectedShares?: number;
+    /**
+     * WiFi signal strength in dBm.
+     */
+    rssi?: number;
     /**
      * Raw API response payload.
      */

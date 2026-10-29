@@ -14,10 +14,17 @@ import {
 } from './lib/miner/model/MinerFeature';
 import { createMiner } from './lib/miner/miner/MinerFactory';
 import { Logger } from './lib/miner/model/Logger';
-import type { Miner } from './lib/miner/miner/Miner';
+import { isWithinPowerTargetConstraints, type Miner } from './lib/miner/miner/Miner';
 import type { MinerSettings } from './lib/miner/model/MinerSettings';
 import type { MinerStats } from './lib/miner/model/MinerStats';
-import { setTimerBackend } from './lib/utils/delay';
+import { asyncDynamicInterval, setTimerBackend, type AsyncIntervalReturnType } from './lib/utils/delay';
+import { UpdateSources } from './lib/update/UpdateSources';
+import { runUpdateChecks, type UpdateCheckSummary } from './lib/update/runUpdateChecks';
+import type { UpdateCheckResult } from './lib/miner/model/UpdateCheckResult';
+
+/** First update check shortly after start, once the miners are initialized and reachable. */
+const UPDATE_CHECK_INITIAL_DELAY_MS = 60_000;
+const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 /**
  *
@@ -25,6 +32,8 @@ import { setTimerBackend } from './lib/utils/delay';
 export class MinerAdapter extends utils.Adapter {
     private readonly deviceManagement: MinerAdapterDeviceManagement;
     public readonly minerManager: MinerManager = new MinerManager();
+    private readonly updateSources = new UpdateSources();
+    private updateCheckHandle: AsyncIntervalReturnType | undefined;
 
     /**
      *
@@ -72,6 +81,8 @@ export class MinerAdapter extends utils.Adapter {
         // this is correct RELATIVE path! actually means "miner.X.miner.<minerid>.control"
         this.subscribeStates('miner.*.control.*');
         this.subscribeStates('miner.*.enabled');
+
+        this.scheduleUpdateChecks();
     }
 
     /**
@@ -81,6 +92,7 @@ export class MinerAdapter extends utils.Adapter {
      */
     private async onUnload(callback: () => void): Promise<void> {
         try {
+            this.updateCheckHandle?.clear();
             await this.minerManager.closeAll();
 
             if (this.deviceManagement) {
@@ -213,6 +225,15 @@ export class MinerAdapter extends utils.Adapter {
 
                     if (!Number.isFinite(powerTarget) || powerTarget <= 0) {
                         this.log.warn(`invalid power target value for device ${deviceSettings.name}: ${state.val}`);
+                        return;
+                    }
+
+                    // the range the miner reported (see applyPowerTargetConstraints): don't send what it would reject
+                    const range = ((await this.getObjectAsync(id)) as ioBroker.StateObject | null | undefined)?.common;
+                    if (!isWithinPowerTargetConstraints(powerTarget, range)) {
+                        this.log.warn(
+                            `power target ${powerTarget} W for device ${deviceSettings.name} is outside the range the miner accepts (${range?.min ?? '?'}-${range?.max ?? '?'} W)`,
+                        );
                         return;
                     }
 
@@ -443,6 +464,13 @@ export class MinerAdapter extends utils.Adapter {
                 this.log.debug(`received stats: ${JSON.stringify(stats)}`);
                 await this.processNewStats(miner, settings, stats);
             });
+            miner.subscribeToOnlineStatus(async (online: boolean) => {
+                await this.setState(`${this.getDeviceObjectId(settings)}.info.online`, { val: online, ack: true });
+            });
+            if (miner.getSupportedFeatures().includes(MinerFeatureKey.powerTarget)) {
+                // not awaited: an unreachable miner must not hold up the adapter start
+                void this.applyPowerTargetConstraints(miner, settings);
+            }
         } catch (e) {
             this.log.error(`could not initialize device ${settings.name || settings.settings.host}: ${String(e)}`);
             await this.setState(`${this.getDeviceObjectId(settings)}.info.online`, { val: false, ack: true });
@@ -498,6 +526,31 @@ export class MinerAdapter extends utils.Adapter {
         await this.setState(`${deviceObjectId}.info.online`, { val: false, ack: true });
     }
 
+    /**
+     * Stores the power target range the miner accepts as min/max of the control state, so the UI can enforce it
+     * and out-of-range values are rejected before they reach the miner.
+     *
+     * @param miner - the initialized miner
+     * @param settings - the device settings
+     */
+    private async applyPowerTargetConstraints(
+        miner: Miner<MinerSettings>,
+        settings: IOBrokerDeviceSettings,
+    ): Promise<void> {
+        try {
+            const range = await miner.getPowerTargetConstraints();
+            if (range) {
+                await this.extendObject(this.getStateFullObjectId(settings, MinerFeatureKey.powerTarget), {
+                    common: { min: range.min, max: range.max },
+                });
+            }
+        } catch (e) {
+            this.log.debug(
+                `power target constraints of ${this.getDeviceObjectId(settings)} not available: ${String(e)}`,
+            );
+        }
+    }
+
     private async processNewStats(
         miner: Miner<MinerSettings>,
         settings: IOBrokerDeviceSettings,
@@ -525,6 +578,20 @@ export class MinerAdapter extends utils.Adapter {
         if (supported.includes(MinerFeatureKey.rawStats) && stats.raw !== undefined) {
             await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.rawStats), {
                 val: JSON.stringify(stats.raw),
+                ack: true,
+            });
+        }
+        if (supported.includes(MinerFeatureKey.powerTarget) && stats.powerTarget !== undefined) {
+            // reflect the configured target, also when it was changed elsewhere (e.g. in the miner's web interface);
+            // only on change, so a poll doesn't rewrite the control state every few seconds
+            await this.setStateChangedAsync(this.getStateFullObjectId(settings, MinerFeatureKey.powerTarget), {
+                val: stats.powerTarget,
+                ack: true,
+            });
+        }
+        if (supported.includes(MinerFeatureKey.rssi) && stats.rssi !== undefined) {
+            await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.rssi), {
+                val: stats.rssi,
                 ack: true,
             });
         }
@@ -692,6 +759,89 @@ export class MinerAdapter extends utils.Adapter {
                 // Object doesn't exist or can't be deleted — ignore
             }
         }
+    }
+
+    private scheduleUpdateChecks(): void {
+        // instances created before the setting existed have no value for it: treat that as the default (on)
+        if (this.config.checkForUpdates === false) {
+            this.log.info('automatic update checks are turned off in the instance settings');
+            return;
+        }
+
+        this.updateCheckHandle = asyncDynamicInterval(async () => {
+            try {
+                await this.checkForUpdates();
+            } catch (e) {
+                // an error escaping here would end the daily schedule
+                this.log.error(`update check failed: ${String(e)}`);
+            }
+            return UPDATE_CHECK_INTERVAL_MS;
+        }, UPDATE_CHECK_INITIAL_DELAY_MS);
+    }
+
+    /**
+     * Checks all running miners that support it for a newer firmware/software version and updates their
+     * `info.latestVersion` / `info.updateAvailable` states. A failed check sets both to null (unknown).
+     *
+     * @param options - `force` skips the cached upstream lookups, e.g. for a manual check
+     * @param options.force - ask the upstream sources again instead of using cached results
+     * @returns how many miners were checked, have an update, or failed
+     */
+    public async checkForUpdates(options: { force?: boolean } = {}): Promise<UpdateCheckSummary> {
+        if (options.force) {
+            this.updateSources.clearCache();
+        }
+
+        const summary = await runUpdateChecks(
+            this.minerManager.getMiners(),
+            this.updateSources,
+            async (miner, result, error) => {
+                const deviceId = this.getMinerDeviceObjectId(miner);
+                if (error !== undefined) {
+                    const reason = error instanceof Error ? error.message : JSON.stringify(error);
+                    this.log.warn(`update check for ${deviceId} failed: ${reason}`);
+                } else if (result.updateAvailable === true) {
+                    this.log.info(
+                        `update available for ${deviceId}: ${result.installedVersion ?? '?'} -> ${result.latestVersion ?? '?'}`,
+                    );
+                }
+
+                try {
+                    await this.writeUpdateStates(deviceId, miner, result);
+                } catch (e) {
+                    // keep checking the remaining miners
+                    this.log.error(`could not write update states for ${deviceId}: ${String(e)}`);
+                }
+            },
+        );
+
+        this.log.debug(`update check finished: ${JSON.stringify(summary)}`);
+        return summary;
+    }
+
+    private async writeUpdateStates(
+        deviceId: string,
+        miner: Miner<MinerSettings>,
+        result: UpdateCheckResult,
+    ): Promise<void> {
+        const supported = miner.getSupportedFeatures();
+        const values: [MinerFeatureKey, ioBroker.StateValue][] = [
+            [MinerFeatureKey.latestVersion, result.latestVersion ?? null],
+            [MinerFeatureKey.updateAvailable, result.updateAvailable ?? null],
+            [MinerFeatureKey.autoUpgrade, result.autoUpgrade?.enabled ?? null],
+            [MinerFeatureKey.autoUpgradeNextRun, result.autoUpgrade?.nextRun ?? null],
+        ];
+        for (const [key, val] of values) {
+            if (supported.includes(key)) {
+                await this.setState(`${deviceId}.${getMinerFeatureFullId(key)}`, { val, ack: true });
+            }
+        }
+    }
+
+    private getMinerDeviceObjectId(miner: Miner<MinerSettings>): string {
+        // same id scheme as getDeviceObjectId() for devices of the 'miner' category
+        const category: (typeof categoryKeys)[number] = 'miner';
+        return `${category}.${miner.settings.id}`;
     }
 
     private getDeviceObjectId(settings: IOBrokerDeviceSettings): string {

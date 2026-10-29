@@ -18,12 +18,30 @@
     "Refresh device list": "Geräteliste aktualisieren",
     "Pool support is not yet available": "Pool-Unterstützung ist noch nicht verfügbar. In Arbeit.",
     "Profile": "Profil",
+    "RSSI": "RSSI",
     "Running": "Läuft",
     "Settings": "Einstellungen",
     "enabled": "aktiviert",
     "id": "ID",
     "password": "Passwort",
-    "poll interval": "Abrufintervall"
+    "poll interval": "Abrufintervall",
+    "Check miners for updates": "Miner auf Updates prüfen",
+    "Update check finished: %s miner(s) checked, %s with an update available, %s failed": "Update-Prüfung abgeschlossen: %s Miner geprüft, %s mit verfügbarem Update, %s fehlgeschlagen",
+    "Installed version": "Installierte Version",
+    "Latest version": "Neueste Version",
+    "Update": "Update",
+    "Update available": "Update verfügbar",
+    "Up to date": "Aktuell",
+    "Unknown": "Unbekannt",
+    "Auto-upgrade": "Automatisches Upgrade",
+    "web password": "Web-Passwort",
+    "Approve web login": "Web-Anmeldung freigeben",
+    "The device is disabled.": "Das Gerät ist deaktiviert.",
+    "Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.": "Zuerst das Web-Passwort in den Geräteeinstellungen eingeben: das Passwort, das in der Avalon Family App für den Miner festgelegt wurde.",
+    "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Anmeldung freigegeben: Der Browser mit der Anmeldeseite des Miners wird innerhalb von 5 Sekunden angemeldet.",
+    "The miner rejected the web password. Check it in the device settings.": "Der Miner hat das Web-Passwort abgelehnt. Bitte in den Geräteeinstellungen prüfen.",
+    "Could not approve the web login: %s": "Web-Anmeldung konnte nicht freigegeben werden: %s",
+    "Set": "Setzen"
 }
 
 
