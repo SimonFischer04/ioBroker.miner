@@ -5,6 +5,8 @@ declare global {
     namespace ioBroker {
         interface AdapterConfig {
             pollInterval: number;
+            /** Look up the latest firmware/software versions once a day (default: true). */
+            checkForUpdates?: boolean;
         }
     }
 }

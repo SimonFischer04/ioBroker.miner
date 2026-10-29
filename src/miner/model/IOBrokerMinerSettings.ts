@@ -1,4 +1,5 @@
 import type {
+    AvalonMinerSettings,
     BOSMinerSettings,
     BOSSettings,
     ClaymoreMinerSettings,
@@ -135,6 +136,14 @@ export function encryptDeviceSettings(
             break;
         }
 
+        case 'avalonMiner': {
+            const avalonSettings = settings.settings as AvalonMinerSettings;
+            if (avalonSettings.webPassword) {
+                avalonSettings.webPassword = encryptFunction(avalonSettings.webPassword);
+            }
+            break;
+        }
+
         default: {
             break;
         }
@@ -199,6 +208,14 @@ export function decryptDeviceSettings(
             const bosMinerSettings = settings.settings as BOSMinerSettings;
             if (bosMinerSettings.password) {
                 bosMinerSettings.password = decryptFunction(bosMinerSettings.password);
+            }
+            break;
+        }
+
+        case 'avalonMiner': {
+            const avalonSettings = settings.settings as AvalonMinerSettings;
+            if (avalonSettings.webPassword) {
+                avalonSettings.webPassword = decryptFunction(avalonSettings.webPassword);
             }
             break;
         }

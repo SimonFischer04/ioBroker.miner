@@ -1,4 +1,7 @@
 {
     "Devices": "Apparaten",
-    "miner adapter settings": "Adapterinstellingen voor miner"
+    "miner adapter settings": "Adapterinstellingen voor miner",
+    "Settings": "Instellingen",
+    "Check miners for available updates": "Miners controleren op beschikbare updates",
+    "Once a day, looks up the latest firmware/software version for supported miners from public release information. Never downloads or installs anything.": "Zoekt één keer per dag de nieuwste firmware-/softwareversie van ondersteunde miners op in openbare release-informatie. Downloadt of installeert nooit iets."
 }

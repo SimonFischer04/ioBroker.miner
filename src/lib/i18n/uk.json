@@ -23,7 +23,23 @@
     "enabled": "увімкнути",
     "id": "ID",
     "password": "пароль",
-    "poll interval": "інтервал опитування"
+    "poll interval": "інтервал опитування",
+    "Check miners for updates": "Перевірити оновлення майнерів",
+    "Update check finished: %s miner(s) checked, %s with an update available, %s failed": "Перевірку оновлень завершено: перевірено майнерів: %s, доступно оновлень: %s, помилок: %s",
+    "Installed version": "Встановлена версія",
+    "Latest version": "Остання версія",
+    "Update": "Оновлення",
+    "Update available": "Доступне оновлення",
+    "Up to date": "Актуально",
+    "Unknown": "Невідомо",
+    "Auto-upgrade": "Автооновлення",
+    "web password": "веб-пароль",
+    "Approve web login": "Підтвердити веб-вхід",
+    "The device is disabled.": "Пристрій вимкнено.",
+    "Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.": "Спочатку введіть веб-пароль у налаштуваннях пристрою: пароль, заданий для майнера в застосунку Avalon Family.",
+    "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Вхід підтверджено: браузер зі сторінкою входу майнера увійде в систему протягом 5 секунд.",
+    "The miner rejected the web password. Check it in the device settings.": "Майнер відхилив веб-пароль. Перевірте його в налаштуваннях пристрою.",
+    "Could not approve the web login: %s": "Не вдалося підтвердити веб-вхід: %s"
 }
 
 

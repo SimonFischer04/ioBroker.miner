@@ -139,7 +139,9 @@
       }
     ]
   },
-  "native": {},
+  "native": {
+      "checkForUpdates": true
+  },
   "objects": [],
   "instanceObjects": [
     {

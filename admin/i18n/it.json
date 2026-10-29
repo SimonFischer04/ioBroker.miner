@@ -1,4 +1,7 @@
 {
     "Devices": "Dispositivi",
-    "miner adapter settings": "Impostazioni dell'adattatore per miner"
+    "miner adapter settings": "Impostazioni dell'adattatore per miner",
+    "Settings": "Impostazioni",
+    "Check miners for available updates": "Controlla gli aggiornamenti disponibili per i miner",
+    "Once a day, looks up the latest firmware/software version for supported miners from public release information. Never downloads or installs anything.": "Una volta al giorno cerca l'ultima versione del firmware/software dei miner supportati nelle informazioni pubbliche sui rilasci. Non scarica né installa mai nulla."
 }

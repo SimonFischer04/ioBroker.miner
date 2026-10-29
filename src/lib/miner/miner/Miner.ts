@@ -1,8 +1,10 @@
 import type { MinerSettings } from '../model/MinerSettings';
 import * as crypto from 'node:crypto';
-import type { MinerFeatureKey } from '../model/MinerFeature';
+import { MinerFeatureKey } from '../model/MinerFeature';
 import { Logger } from '../model/Logger';
 import type { MinerStats } from '../model/MinerStats';
+import type { UpdateCheckResult } from '../model/UpdateCheckResult';
+import type { UpdateSources } from '../../update/UpdateSources';
 
 /**
  *
@@ -10,6 +12,7 @@ import type { MinerStats } from '../model/MinerStats';
 export abstract class Miner<S extends MinerSettings> {
     protected logger: Logger;
     private statSubscriptions: ((stats: MinerStats) => Promise<void>)[] = [];
+    private onlineStatusSubscriptions: ((online: boolean) => Promise<void>)[] = [];
 
     /**
      *
@@ -69,6 +72,24 @@ export abstract class Miner<S extends MinerSettings> {
     }
 
     /**
+     * Look up whether a newer firmware/software version is available for this miner.
+     * Miners that support it override this and declare {@link MinerFeatureKey.updateAvailable}
+     * and {@link MinerFeatureKey.latestVersion}.
+     *
+     * @param _sources - shared, cached lookups of the upstream sources
+     */
+    public checkForUpdate(_sources: UpdateSources): Promise<UpdateCheckResult> {
+        return Promise.reject(new Error('update check is not supported for this miner type'));
+    }
+
+    /**
+     * The feature whose state holds the version {@link checkForUpdate} compares, shown next to the latest version.
+     */
+    public getInstalledVersionFeature(): MinerFeatureKey.version | MinerFeatureKey.firmwareVersion {
+        return MinerFeatureKey.version;
+    }
+
+    /**
      * Set the active power target in watts.
      *
      * @param _powerTarget - the target power in watts
@@ -83,6 +104,7 @@ export abstract class Miner<S extends MinerSettings> {
      */
     public close(): Promise<void> {
         this.statSubscriptions = [];
+        this.onlineStatusSubscriptions = [];
         return Promise.resolve();
     }
 
@@ -112,6 +134,28 @@ export abstract class Miner<S extends MinerSettings> {
         this.logger.debug(`publishing new stats to subscribers: ${JSON.stringify(stats)}`);
         for (const sub of this.statSubscriptions) {
             await sub(stats);
+        }
+    }
+
+    /**
+     * Subscribe to changes of whether the miner is reachable
+     *
+     * @param callback - callback that gets called with the new status whenever it changes
+     */
+    public subscribeToOnlineStatus(callback: (online: boolean) => Promise<void>): void {
+        this.onlineStatusSubscriptions.push(callback);
+    }
+
+    /**
+     * Called by the miner when it becomes reachable or unreachable.
+     * Subscribers will be notified.
+     *
+     * @param online - whether the miner is reachable now
+     */
+    public async onOnlineStatus(online: boolean): Promise<void> {
+        this.logger.debug(`publishing online status to subscribers: ${online}`);
+        for (const sub of this.onlineStatusSubscriptions) {
+            await sub(online);
         }
     }
 

@@ -23,7 +23,23 @@
     "enabled": "habilitado",
     "id": "ID",
     "password": "senha",
-    "poll interval": "intervalo de consulta"
+    "poll interval": "intervalo de consulta",
+    "Check miners for updates": "Verificar atualizações dos mineradores",
+    "Update check finished: %s miner(s) checked, %s with an update available, %s failed": "Verificação de atualizações concluída: %s minerador(es) verificado(s), %s com atualização disponível, %s com falha",
+    "Installed version": "Versão instalada",
+    "Latest version": "Versão mais recente",
+    "Update": "Atualização",
+    "Update available": "Atualização disponível",
+    "Up to date": "Atualizado",
+    "Unknown": "Desconhecido",
+    "Auto-upgrade": "Atualização automática",
+    "web password": "senha web",
+    "Approve web login": "Aprovar login web",
+    "The device is disabled.": "O dispositivo está desativado.",
+    "Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.": "Primeiro insira a senha web nas configurações do dispositivo: a senha definida para o minerador no app Avalon Family.",
+    "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Login aprovado: o navegador que mostra a página de login do minerador fará login em até 5 segundos.",
+    "The miner rejected the web password. Check it in the device settings.": "O minerador rejeitou a senha web. Verifique-a nas configurações do dispositivo.",
+    "Could not approve the web login: %s": "Não foi possível aprovar o login web: %s"
 }
 
 

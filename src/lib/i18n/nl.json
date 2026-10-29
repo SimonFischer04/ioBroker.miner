@@ -23,7 +23,23 @@
     "enabled": "ingeschakeld",
     "id": "ID",
     "password": "wachtwoord",
-    "poll interval": "poll-interval"
+    "poll interval": "poll-interval",
+    "Check miners for updates": "Miners controleren op updates",
+    "Update check finished: %s miner(s) checked, %s with an update available, %s failed": "Updatecontrole voltooid: %s miner(s) gecontroleerd, %s met beschikbare update, %s mislukt",
+    "Installed version": "Geïnstalleerde versie",
+    "Latest version": "Nieuwste versie",
+    "Update": "Update",
+    "Update available": "Update beschikbaar",
+    "Up to date": "Up-to-date",
+    "Unknown": "Onbekend",
+    "Auto-upgrade": "Automatische upgrade",
+    "web password": "webwachtwoord",
+    "Approve web login": "Webaanmelding goedkeuren",
+    "The device is disabled.": "Het apparaat is uitgeschakeld.",
+    "Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.": "Voer eerst het webwachtwoord in bij de apparaatinstellingen: het wachtwoord dat in de Avalon Family-app voor de miner is ingesteld.",
+    "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Aanmelding goedgekeurd: de browser met de aanmeldpagina van de miner wordt binnen 5 seconden aangemeld.",
+    "The miner rejected the web password. Check it in the device settings.": "De miner heeft het webwachtwoord geweigerd. Controleer het in de apparaatinstellingen.",
+    "Could not approve the web login: %s": "Webaanmelding kon niet worden goedgekeurd: %s"
 }
 
 

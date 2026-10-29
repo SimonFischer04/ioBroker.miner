@@ -23,7 +23,23 @@
     "enabled": "enabled",
     "id": "id",
     "password": "password",
-    "poll interval": "poll interval"
+    "poll interval": "poll interval",
+    "Check miners for updates": "Check miners for updates",
+    "Update check finished: %s miner(s) checked, %s with an update available, %s failed": "Update check finished: %s miner(s) checked, %s with an update available, %s failed",
+    "Installed version": "Installed version",
+    "Latest version": "Latest version",
+    "Update": "Update",
+    "Update available": "Update available",
+    "Up to date": "Up to date",
+    "Unknown": "Unknown",
+    "Auto-upgrade": "Auto-upgrade",
+    "web password": "web password",
+    "Approve web login": "Approve web login",
+    "The device is disabled.": "The device is disabled.",
+    "Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.": "Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.",
+    "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Login approved: the browser showing the miner's login page is logged in within 5 seconds.",
+    "The miner rejected the web password. Check it in the device settings.": "The miner rejected the web password. Check it in the device settings.",
+    "Could not approve the web login: %s": "Could not approve the web login: %s"
 }
 
 

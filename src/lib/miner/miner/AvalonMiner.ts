@@ -4,11 +4,18 @@ import { MinerFeatureKey } from '../model/MinerFeature';
 import type { MinerStats } from '../model/MinerStats';
 import {
     CGMinerCommand,
+    type CGMinerStatus,
     type CombinedResponse,
-    type StatsDeviceData,
     type LiteStatsData,
+    type StatsDeviceData,
+    type VersionData,
+    type VersionResponse,
 } from '../model/CGMinerApiTypes';
+import { toUpdateCheckResult, type UpdateCheckResult } from '../model/UpdateCheckResult';
+import type { UpdateSources } from '../../update/UpdateSources';
+import { parseAvalonBuild } from '../../update/version-compare';
 import { safeParseFloat } from '../../utils/parse-utils';
+import { buildQrAuthParameter, parseAuthChallenge, type AvalonAuthChallenge } from '../api/AvalonWebLogin';
 
 // Avalon devices use the CGMiner-compatible socket API on port 4028
 // Control commands use the 'ascset' command with different parameters
@@ -39,13 +46,19 @@ const AVALON_PROFILE_PARAM_MAP: Record<string, string> = {
 
 const AVALON_PROFILES = Object.keys(AVALON_PROFILE_PARAM_MAP);
 
-/** Type alias for the summary+version+stats combined response. */
+/**
+ * Default port of the miner's web interface.
+ */
+const AVALON_WEB_PORT = 80;
+
+/**
+ * Type alias for the summary+version+stats(+litestats) combined response. `litestats` has no STATS on firmware that
+ * doesn't know the command: cgminer then answers just that part of the combined request with "Invalid command".
+ */
 export type SummaryVersionStatsResponse = CombinedResponse<
     CGMinerCommand.summary | CGMinerCommand.version | CGMinerCommand.stats
->;
-
-/** Type alias for the litestats response. */
-export type LiteStatsCommandResponse = CombinedResponse<CGMinerCommand.liteStats>;
+> &
+    Partial<CombinedResponse<CGMinerCommand.liteStats>>;
 
 /**
  *
@@ -67,25 +80,14 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
     public override async fetchStats(): Promise<MinerStats> {
         // TODO: also fetch profile (workmode). control.profile is for control, info.profile for profile fetched from stats
         try {
+            // litestats carries the WiFi signal strength; it joins the same request instead of costing a second one
             const response = await this.sendCommand<SummaryVersionStatsResponse>(
-                [CGMinerCommand.summary, CGMinerCommand.version, CGMinerCommand.stats],
+                [CGMinerCommand.summary, CGMinerCommand.version, CGMinerCommand.stats, CGMinerCommand.liteStats],
                 '',
                 true,
             );
 
-            // Fetch litestats separately so a firmware that rejects the combo doesn't break core stats
-            let liteStatsResponse: LiteStatsCommandResponse | undefined;
-            try {
-                liteStatsResponse = await this.sendCommand<LiteStatsCommandResponse>(
-                    [CGMinerCommand.liteStats],
-                    '',
-                    true,
-                );
-            } catch {
-                this.logger.debug('litestats request failed, RSSI will not be available');
-            }
-
-            return this.parseSummaryVersionStatsResponse(response, liteStatsResponse);
+            return this.parseSummaryVersionStatsResponse(response);
         } catch (e) {
             return Promise.reject(e instanceof Error ? e : new Error(String(e)));
         }
@@ -113,7 +115,57 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
             MinerFeatureKey.profile,
             MinerFeatureKey.rssi,
             // MinerFeatureKey.running,
+            MinerFeatureKey.latestVersion,
+            MinerFeatureKey.updateAvailable,
         ];
+    }
+
+    /**
+     * Compares the installed firmware with the latest one Canaan publishes, for the models Canaan's
+     * update file covers (Nano 3 / 3S). Other models report only the installed version.
+     *
+     * @param sources - shared upstream lookups
+     */
+    public override async checkForUpdate(sources: UpdateSources): Promise<UpdateCheckResult> {
+        const response = await this.sendCommand<VersionResponse>(CGMinerCommand.version, '', true);
+        return this.checkVersionForUpdate(response.VERSION?.[0], sources);
+    }
+
+    /**
+     * The update check compares the firmware build, not the miner software version.
+     */
+    public override getInstalledVersionFeature(): MinerFeatureKey.firmwareVersion {
+        return MinerFeatureKey.firmwareVersion;
+    }
+
+    // public to allow unit tests
+    /**
+     * Update check for an already fetched `version` response.
+     *
+     * @param version - version data reported by the miner
+     * @param sources - shared upstream lookups
+     * @returns the update check result
+     */
+    public async checkVersionForUpdate(
+        version: VersionData | undefined,
+        sources: UpdateSources,
+    ): Promise<UpdateCheckResult> {
+        const installed = version?.LVERSION;
+
+        // Canaan's update file only has an entry for the Nano 3 / 3S ("heater_nano3_all")
+        if (!/^nano\s*3/i.test(version?.MODEL ?? '')) {
+            this.logger.debug(`no update source for Avalon model ${version?.MODEL ?? '(unknown)'}`);
+            return { installedVersion: installed };
+        }
+
+        const latest = await sources.avalonNano3LatestBuild();
+        const installedBuild = parseAvalonBuild(installed);
+        return toUpdateCheckResult(
+            installed,
+            latest,
+            // the same comparison Canaan's own app uses
+            installedBuild === undefined ? undefined : installedBuild - Number(latest),
+        );
     }
 
     /**
@@ -139,6 +191,47 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
         this.logger.info(`Setting Avalon workmode to "${profile}" (id=${params})`);
         // TODO: check response status and then set with ack: true
         await this.sendCommand(AvalonMinerCommand.ascset, params, true);
+    }
+
+    /**
+     * Approves the login a browser is waiting for on the miner's web interface, like scanning its QR code with the
+     * Avalon Family app would. The browser showing the login page is logged in on its next status check (within 5 s).
+     *
+     * @throws {Error} if no web password is configured, the miner can't be reached, or it rejects the login (a wrong
+     *  password reads "passwd error 02!")
+     */
+    public async approveWebLogin(): Promise<void> {
+        const password = this.settings.webPassword;
+        if (!password) {
+            throw new Error('no web password configured');
+        }
+
+        const challenge = await this.fetchAuthChallenge();
+        const response = await this.sendCommand<{ STATUS?: CGMinerStatus[] }>(
+            AvalonMinerCommand.ascset,
+            buildQrAuthParameter(challenge, password),
+            true,
+        );
+        const status = response?.STATUS?.[0];
+        if (!status || status.STATUS === 'E' || status.STATUS === 'F') {
+            throw new Error(status?.Msg ?? 'no reply to qr_auth');
+        }
+        this.logger.info('web login approved');
+    }
+
+    /**
+     * Fetches the challenge the miner's login page shows as QR code. Also makes the miner (re)generate it, so the
+     * login can be approved even if the page has not loaded it yet.
+     */
+    private async fetchAuthChallenge(): Promise<AvalonAuthChallenge> {
+        const webPort = this.settings.webPort ?? AVALON_WEB_PORT;
+        const response = await fetch(`http://${this.settings.host}:${webPort}/get_auth.cgi`, {
+            signal: AbortSignal.timeout(this.getPollTimeoutMs()),
+        });
+        if (!response.ok) {
+            throw new Error(`get_auth.cgi failed: ${response.status} ${response.statusText}`);
+        }
+        return parseAuthChallenge(await response.text());
     }
 
     /**
@@ -185,27 +278,20 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
      * where `watt` (index 6) is total power consumption in watts.
      *
      * @param response - raw combined API response
-     * @param liteStatsResponse - optional separate litestats response
      * @returns parsed miner statistics including power
      */
-    public parseSummaryVersionStatsResponse(
-        response: SummaryVersionStatsResponse,
-        liteStatsResponse?: LiteStatsCommandResponse,
-    ): MinerStats {
+    public parseSummaryVersionStatsResponse(response: SummaryVersionStatsResponse): MinerStats {
         // Parse summary+version via the parent method
         const baseStats = this.parseSummaryVersionResponse(response);
 
         // Extract power from the stats response
         const power = this.extractPowerFromStats(response.stats?.[0]?.STATS);
 
-        // Extract RSSI from the litestats response
-        const rssi = this.extractRssiFromLiteStats(liteStatsResponse?.litestats?.[0]?.STATS);
-
         return {
             ...baseStats,
             power,
             efficiency: power != null && baseStats.totalHashrate ? baseStats.totalHashrate / power : undefined,
-            rssi,
+            rssi: this.extractRssiFromLiteStats(response.litestats?.[0]?.STATS),
         };
     }
 
@@ -257,40 +343,22 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
     }
 
     /**
-     * Extract RSSI (WiFi signal strength) from the litestats response.
-     *
-     * The first `MM ID<n>` telemetry string may contain `RSSI[-55]`.
+     * Extract the WiFi signal strength from the first device entry of a litestats response: `RSSI[-55]` in the first
+     * `MM ID<n>` telemetry string.
      *
      * @param liteStatsEntries - STATS array from a litestats response
-     * @returns RSSI in dBm, or undefined if not available
+     * @returns RSSI in dBm, or undefined if not reported (e.g. a wired connection or a firmware without litestats)
      */
     private extractRssiFromLiteStats(liteStatsEntries: LiteStatsData[] | undefined): number | undefined {
-        if (!liteStatsEntries) {
-            return undefined;
-        }
-
-        // Find the device entry (has 'MM Count'), same pattern as extractPowerFromStats
-        const entry = liteStatsEntries.find(e => 'MM Count' in e);
-        if (!entry) {
-            return undefined;
-        }
-
-        const mmIdKey = Object.keys(entry).find(key => key.startsWith('MM ID'));
-        if (!mmIdKey) {
-            return undefined;
-        }
-
-        const telemetry = entry[mmIdKey as `MM ID${number}`];
+        const entry = liteStatsEntries?.find(e => 'MM Count' in e);
+        const mmIdKey = entry && Object.keys(entry).find(key => key.startsWith('MM ID'));
+        const telemetry = mmIdKey ? entry[mmIdKey as `MM ID${number}`] : undefined;
         if (!telemetry) {
             return undefined;
         }
 
-        const parsed = this.parseAvalonTelemetry(telemetry);
-        const rssiValue = parsed.get('RSSI');
-        if (rssiValue == null || rssiValue === '') {
-            return undefined;
-        }
-
-        return safeParseFloat(rssiValue);
+        // not safeParseFloat: it turns garbage into 0, which would look like a (perfect) reading
+        const rssi = Number.parseFloat(this.parseAvalonTelemetry(telemetry).get('RSSI') ?? '');
+        return Number.isFinite(rssi) ? rssi : undefined;
     }
 }
