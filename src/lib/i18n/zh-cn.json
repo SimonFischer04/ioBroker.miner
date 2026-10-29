@@ -31,7 +31,14 @@
     "Update available": "有可用更新",
     "Up to date": "已是最新",
     "Unknown": "未知",
-    "Auto-upgrade": "自动升级"
+    "Auto-upgrade": "自动升级",
+    "web password": "网页密码",
+    "Approve web login": "批准网页登录",
+    "The device is disabled.": "设备已禁用。",
+    "Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.": "请先在设备设置中输入网页密码：即在 Avalon Family 应用中为矿机设置的密码。",
+    "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "登录已批准：显示矿机登录页面的浏览器将在 5 秒内登录。",
+    "The miner rejected the web password. Check it in the device settings.": "矿机拒绝了网页密码。请在设备设置中检查。",
+    "Could not approve the web login: %s": "无法批准网页登录：%s"
 }
 
 

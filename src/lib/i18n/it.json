@@ -31,7 +31,14 @@
     "Update available": "Aggiornamento disponibile",
     "Up to date": "Aggiornato",
     "Unknown": "Sconosciuto",
-    "Auto-upgrade": "Aggiornamento automatico"
+    "Auto-upgrade": "Aggiornamento automatico",
+    "web password": "password web",
+    "Approve web login": "Approva accesso web",
+    "The device is disabled.": "Il dispositivo è disattivato.",
+    "Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.": "Inserisci prima la password web nelle impostazioni del dispositivo: la password impostata per il miner nell'app Avalon Family.",
+    "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Accesso approvato: il browser che mostra la pagina di accesso del miner verrà connesso entro 5 secondi.",
+    "The miner rejected the web password. Check it in the device settings.": "Il miner ha rifiutato la password web. Controllala nelle impostazioni del dispositivo.",
+    "Could not approve the web login: %s": "Impossibile approvare l'accesso web: %s"
 }
 
 

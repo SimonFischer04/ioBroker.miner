@@ -31,7 +31,14 @@
     "Update available": "Dostępna aktualizacja",
     "Up to date": "Aktualne",
     "Unknown": "Nieznane",
-    "Auto-upgrade": "Automatyczna aktualizacja"
+    "Auto-upgrade": "Automatyczna aktualizacja",
+    "web password": "hasło WWW",
+    "Approve web login": "Zatwierdź logowanie WWW",
+    "The device is disabled.": "Urządzenie jest wyłączone.",
+    "Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.": "Najpierw wprowadź hasło WWW w ustawieniach urządzenia: hasło ustawione dla koparki w aplikacji Avalon Family.",
+    "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Logowanie zatwierdzone: przeglądarka wyświetlająca stronę logowania koparki zostanie zalogowana w ciągu 5 sekund.",
+    "The miner rejected the web password. Check it in the device settings.": "Koparka odrzuciła hasło WWW. Sprawdź je w ustawieniach urządzenia.",
+    "Could not approve the web login: %s": "Nie udało się zatwierdzić logowania WWW: %s"
 }
 
 

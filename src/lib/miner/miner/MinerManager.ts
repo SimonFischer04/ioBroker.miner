@@ -64,6 +64,15 @@ export class MinerManager {
     }
 
     /**
+     * The initialized miner with the given id, if it is running.
+     *
+     * @param id - the miner id to look up
+     */
+    public getMiner(id: string): Miner<MinerSettings> | undefined {
+        return this.getMinerById(id);
+    }
+
+    /**
      *
      * @param id - the miner id to look up
      */

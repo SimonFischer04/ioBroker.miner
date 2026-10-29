@@ -31,7 +31,14 @@
     "Update available": "Mise à jour disponible",
     "Up to date": "À jour",
     "Unknown": "Inconnu",
-    "Auto-upgrade": "Mise à niveau automatique"
+    "Auto-upgrade": "Mise à niveau automatique",
+    "web password": "mot de passe web",
+    "Approve web login": "Approuver la connexion web",
+    "The device is disabled.": "L'appareil est désactivé.",
+    "Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.": "Saisissez d'abord le mot de passe web dans les paramètres de l'appareil : le mot de passe défini pour le mineur dans l'application Avalon Family.",
+    "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Connexion approuvée : le navigateur affichant la page de connexion du mineur sera connecté dans les 5 secondes.",
+    "The miner rejected the web password. Check it in the device settings.": "Le mineur a refusé le mot de passe web. Vérifiez-le dans les paramètres de l'appareil.",
+    "Could not approve the web login: %s": "Impossible d'approuver la connexion web : %s"
 }
 
 
