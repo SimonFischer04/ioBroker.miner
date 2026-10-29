@@ -14,6 +14,7 @@
     "OFF": "ВИМК",
     "ON": "УВІМК",
     "Please enter an IP address": "Будь ласка, введіть IP адресу",
+    "Power Target": "Цільова потужність",
     "Refresh device list": "Оновити список пристроїв",
     "Pool support is not yet available": "Підтримка пулів ще не доступна. В розробці.",
     "Profile": "Профіль",
@@ -39,7 +40,8 @@
     "Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.": "Спочатку введіть веб-пароль у налаштуваннях пристрою: пароль, заданий для майнера в застосунку Avalon Family.",
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Вхід підтверджено: браузер зі сторінкою входу майнера увійде в систему протягом 5 секунд.",
     "The miner rejected the web password. Check it in the device settings.": "Майнер відхилив веб-пароль. Перевірте його в налаштуваннях пристрою.",
-    "Could not approve the web login: %s": "Не вдалося підтвердити веб-вхід: %s"
+    "Could not approve the web login: %s": "Не вдалося підтвердити веб-вхід: %s",
+    "Set": "Встановити"
 }
 
 

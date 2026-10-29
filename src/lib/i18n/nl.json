@@ -14,6 +14,7 @@
     "OFF": "UIT",
     "ON": "AAN",
     "Please enter an IP address": "Voer een IP-adres in",
+    "Power Target": "Vermogensdoel",
     "Refresh device list": "Vernieuw apparaatlijst",
     "Pool support is not yet available": "Pool-ondersteuning is nog niet beschikbaar. Wordt aan gewerkt.",
     "Profile": "Profiel",
@@ -39,7 +40,8 @@
     "Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.": "Voer eerst het webwachtwoord in bij de apparaatinstellingen: het wachtwoord dat in de Avalon Family-app voor de miner is ingesteld.",
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Aanmelding goedgekeurd: de browser met de aanmeldpagina van de miner wordt binnen 5 seconden aangemeld.",
     "The miner rejected the web password. Check it in the device settings.": "De miner heeft het webwachtwoord geweigerd. Controleer het in de apparaatinstellingen.",
-    "Could not approve the web login: %s": "Webaanmelding kon niet worden goedgekeurd: %s"
+    "Could not approve the web login: %s": "Webaanmelding kon niet worden goedgekeurd: %s",
+    "Set": "Instellen"
 }
 
 

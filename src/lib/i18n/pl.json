@@ -14,6 +14,7 @@
     "OFF": "WYŁ",
     "ON": "WŁ",
     "Please enter an IP address": "Proszę wprowadzić adres IP",
+    "Power Target": "Docelowa moc",
     "Refresh device list": "Odśwież listę urządzeń",
     "Pool support is not yet available": "Obsługa puli nie jest jeszcze dostępna. Prace w toku.",
     "Profile": "Profil",
@@ -39,7 +40,8 @@
     "Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.": "Najpierw wprowadź hasło WWW w ustawieniach urządzenia: hasło ustawione dla koparki w aplikacji Avalon Family.",
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Logowanie zatwierdzone: przeglądarka wyświetlająca stronę logowania koparki zostanie zalogowana w ciągu 5 sekund.",
     "The miner rejected the web password. Check it in the device settings.": "Koparka odrzuciła hasło WWW. Sprawdź je w ustawieniach urządzenia.",
-    "Could not approve the web login: %s": "Nie udało się zatwierdzić logowania WWW: %s"
+    "Could not approve the web login: %s": "Nie udało się zatwierdzić logowania WWW: %s",
+    "Set": "Ustaw"
 }
 
 

@@ -703,6 +703,28 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     };
                 }
 
+                if (supportedFeatures.includes(MinerFeatureKey.powerTarget)) {
+                    const stateId = `${device._id}.${getMinerFeatureFullId(MinerFeatureKey.powerTarget)}`;
+                    // the range the miner reported, see MinerAdapter.applyPowerTargetConstraints
+                    const range = (
+                        (await this.adapter.getForeignObjectAsync(stateId)) as ioBroker.StateObject | null | undefined
+                    )?.common;
+                    customInfoItems.powerTarget = {
+                        type: 'state',
+                        oid: stateId,
+                        foreign: true,
+                        control: 'number',
+                        unit: 'W',
+                        min: range?.min ?? 1,
+                        max: range?.max,
+                        step: 1,
+                        // every write reconfigures the miner's tuner: send the finished value only, not each keystroke
+                        showEnterButton: I18n.getTranslatedObject('Set'),
+                        setOnEnterKey: true,
+                        label: I18n.getTranslatedObject('Power Target'),
+                    };
+                }
+
                 if (supportedFeatures.includes(MinerFeatureKey.rssi)) {
                     const stateId = `${device._id}.${getMinerFeatureFullId(MinerFeatureKey.rssi)}`;
                     // only once reported: a wired miner has no signal strength, and an empty row would read as broken

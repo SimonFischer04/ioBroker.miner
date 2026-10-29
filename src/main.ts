@@ -14,7 +14,7 @@ import {
 } from './lib/miner/model/MinerFeature';
 import { createMiner } from './lib/miner/miner/MinerFactory';
 import { Logger } from './lib/miner/model/Logger';
-import type { Miner } from './lib/miner/miner/Miner';
+import { isWithinPowerTargetConstraints, type Miner } from './lib/miner/miner/Miner';
 import type { MinerSettings } from './lib/miner/model/MinerSettings';
 import type { MinerStats } from './lib/miner/model/MinerStats';
 import { asyncDynamicInterval, setTimerBackend, type AsyncIntervalReturnType } from './lib/utils/delay';
@@ -225,6 +225,15 @@ export class MinerAdapter extends utils.Adapter {
 
                     if (!Number.isFinite(powerTarget) || powerTarget <= 0) {
                         this.log.warn(`invalid power target value for device ${deviceSettings.name}: ${state.val}`);
+                        return;
+                    }
+
+                    // the range the miner reported (see applyPowerTargetConstraints): don't send what it would reject
+                    const range = ((await this.getObjectAsync(id)) as ioBroker.StateObject | null | undefined)?.common;
+                    if (!isWithinPowerTargetConstraints(powerTarget, range)) {
+                        this.log.warn(
+                            `power target ${powerTarget} W for device ${deviceSettings.name} is outside the range the miner accepts (${range?.min ?? '?'}-${range?.max ?? '?'} W)`,
+                        );
                         return;
                     }
 
@@ -458,6 +467,10 @@ export class MinerAdapter extends utils.Adapter {
             miner.subscribeToOnlineStatus(async (online: boolean) => {
                 await this.setState(`${this.getDeviceObjectId(settings)}.info.online`, { val: online, ack: true });
             });
+            if (miner.getSupportedFeatures().includes(MinerFeatureKey.powerTarget)) {
+                // not awaited: an unreachable miner must not hold up the adapter start
+                void this.applyPowerTargetConstraints(miner, settings);
+            }
         } catch (e) {
             this.log.error(`could not initialize device ${settings.name || settings.settings.host}: ${String(e)}`);
             await this.setState(`${this.getDeviceObjectId(settings)}.info.online`, { val: false, ack: true });
@@ -513,6 +526,31 @@ export class MinerAdapter extends utils.Adapter {
         await this.setState(`${deviceObjectId}.info.online`, { val: false, ack: true });
     }
 
+    /**
+     * Stores the power target range the miner accepts as min/max of the control state, so the UI can enforce it
+     * and out-of-range values are rejected before they reach the miner.
+     *
+     * @param miner - the initialized miner
+     * @param settings - the device settings
+     */
+    private async applyPowerTargetConstraints(
+        miner: Miner<MinerSettings>,
+        settings: IOBrokerDeviceSettings,
+    ): Promise<void> {
+        try {
+            const range = await miner.getPowerTargetConstraints();
+            if (range) {
+                await this.extendObject(this.getStateFullObjectId(settings, MinerFeatureKey.powerTarget), {
+                    common: { min: range.min, max: range.max },
+                });
+            }
+        } catch (e) {
+            this.log.debug(
+                `power target constraints of ${this.getDeviceObjectId(settings)} not available: ${String(e)}`,
+            );
+        }
+    }
+
     private async processNewStats(
         miner: Miner<MinerSettings>,
         settings: IOBrokerDeviceSettings,
@@ -540,6 +578,14 @@ export class MinerAdapter extends utils.Adapter {
         if (supported.includes(MinerFeatureKey.rawStats) && stats.raw !== undefined) {
             await this.setState(this.getStateFullObjectId(settings, MinerFeatureKey.rawStats), {
                 val: JSON.stringify(stats.raw),
+                ack: true,
+            });
+        }
+        if (supported.includes(MinerFeatureKey.powerTarget) && stats.powerTarget !== undefined) {
+            // reflect the configured target, also when it was changed elsewhere (e.g. in the miner's web interface);
+            // only on change, so a poll doesn't rewrite the control state every few seconds
+            await this.setStateChangedAsync(this.getStateFullObjectId(settings, MinerFeatureKey.powerTarget), {
+                val: stats.powerTarget,
                 ack: true,
             });
         }

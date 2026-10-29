@@ -7,6 +7,32 @@ import type { UpdateCheckResult } from '../model/UpdateCheckResult';
 import type { UpdateSources } from '../../update/UpdateSources';
 
 /**
+ * Power target range a miner accepts, in watts.
+ */
+export interface PowerTargetConstraints {
+    /**
+     * Lowest accepted power target.
+     */
+    min?: number;
+    /**
+     * Highest accepted power target.
+     */
+    max?: number;
+}
+
+/**
+ * Whether a power target lies within the range a miner accepts; an unknown bound doesn't restrict.
+ *
+ * @param powerTarget - the power target in watts
+ * @param range - the accepted range, if known
+ */
+export function isWithinPowerTargetConstraints(powerTarget: number, range?: PowerTargetConstraints): boolean {
+    return (
+        (range?.min === undefined || powerTarget >= range.min) && (range?.max === undefined || powerTarget <= range.max)
+    );
+}
+
+/**
  *
  */
 export abstract class Miner<S extends MinerSettings> {
@@ -97,6 +123,13 @@ export abstract class Miner<S extends MinerSettings> {
     public setPowerTarget(_powerTarget: number): Promise<void> {
         this.logger.error('setPowerTarget() not implemented for this miner');
         return Promise.resolve();
+    }
+
+    /**
+     * The power target range the miner accepts, if it reports one. Miners that support it override this.
+     */
+    public getPowerTargetConstraints(): Promise<PowerTargetConstraints | undefined> {
+        return Promise.resolve(undefined);
     }
 
     /**

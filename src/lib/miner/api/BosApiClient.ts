@@ -7,12 +7,16 @@ import type { ProtoGrpcType as MinerProtoGrpcType } from '../../generated/bos-ap
 import type { ProtoGrpcType as PerformanceProtoGrpcType } from '../../generated/bos-api/types/performance';
 import type { ProtoGrpcType as VersionProtoGrpcType } from '../../generated/bos-api/types/version';
 import type { ProtoGrpcType as UpgradeProtoGrpcType } from '../../generated/bos-api/types/upgrade';
+import type { ProtoGrpcType as ConfigurationProtoGrpcType } from '../../generated/bos-api/types/configuration';
 import type { ActionsServiceClient } from '../../generated/bos-api/types/braiins/bos/v1/ActionsService';
 import type { AuthenticationServiceClient } from '../../generated/bos-api/types/braiins/bos/v1/AuthenticationService';
 import type { MinerServiceClient } from '../../generated/bos-api/types/braiins/bos/v1/MinerService';
 import type { PerformanceServiceClient } from '../../generated/bos-api/types/braiins/bos/v1/PerformanceService';
 import type { ApiVersionServiceClient } from '../../generated/bos-api/types/braiins/bos/ApiVersionService';
 import type { UpgradeServiceClient } from '../../generated/bos-api/types/braiins/bos/v1/UpgradeService';
+import type { ConfigurationServiceClient } from '../../generated/bos-api/types/braiins/bos/v1/ConfigurationService';
+import type { PerformanceMode__Output } from '../../generated/bos-api/types/braiins/bos/v1/PerformanceMode';
+import type { GetConstraintsResponse__Output } from '../../generated/bos-api/types/braiins/bos/v1/GetConstraintsResponse';
 import type { GetMinerDetailsResponse__Output } from '../../generated/bos-api/types/braiins/bos/v1/GetMinerDetailsResponse';
 import type { GetMinerStatsResponse__Output } from '../../generated/bos-api/types/braiins/bos/v1/GetMinerStatsResponse';
 import type { GetTunerStateResponse__Output } from '../../generated/bos-api/types/braiins/bos/v1/GetTunerStateResponse';
@@ -28,6 +32,8 @@ export type BosSetPowerTargetResponse = SetPowerTargetResponse__Output;
 export type BosLoginResponse = LoginResponse__Output;
 export type BosApiVersion = ApiVersion__Output;
 export type BosAutoUpgradeStatus = GetAutoUpgradeStatusResponse__Output;
+export type BosPerformanceMode = PerformanceMode__Output;
+export type BosConstraints = GetConstraintsResponse__Output;
 
 /**
  *
@@ -74,6 +80,7 @@ const PROTO_FILES = [
     path.join(PROTO_ROOT, 'bos/v1/miner.proto'),
     path.join(PROTO_ROOT, 'bos/v1/performance.proto'),
     path.join(PROTO_ROOT, 'bos/v1/upgrade.proto'),
+    path.join(PROTO_ROOT, 'bos/v1/configuration.proto'),
 ];
 
 function loadBosPackage(): ActionsProtoGrpcType &
@@ -81,7 +88,8 @@ function loadBosPackage(): ActionsProtoGrpcType &
     MinerProtoGrpcType &
     PerformanceProtoGrpcType &
     VersionProtoGrpcType &
-    UpgradeProtoGrpcType {
+    UpgradeProtoGrpcType &
+    ConfigurationProtoGrpcType {
     const packageDefinition = protoLoader.loadSync(PROTO_FILES, {
         includeDirs: [PROTO_ROOT],
         longs: Number,
@@ -95,7 +103,8 @@ function loadBosPackage(): ActionsProtoGrpcType &
         MinerProtoGrpcType &
         PerformanceProtoGrpcType &
         VersionProtoGrpcType &
-        UpgradeProtoGrpcType;
+        UpgradeProtoGrpcType &
+        ConfigurationProtoGrpcType;
 }
 
 function unary<Request extends object, Response>(
@@ -146,6 +155,7 @@ export class BosApiClient {
     private readonly performanceService: PerformanceServiceClient;
     private readonly apiVersionService: ApiVersionServiceClient;
     private readonly upgradeService: UpgradeServiceClient;
+    private readonly configurationService: ConfigurationServiceClient;
     private readonly timeoutMs: number | undefined;
     private readonly username: string | undefined;
     private readonly password: string | undefined;
@@ -171,6 +181,7 @@ export class BosApiClient {
         this.performanceService = new bosPackage.braiins.bos.v1.PerformanceService(target, credentials);
         this.apiVersionService = new bosPackage.braiins.bos.ApiVersionService(target, credentials);
         this.upgradeService = new bosPackage.braiins.bos.v1.UpgradeService(target, credentials);
+        this.configurationService = new bosPackage.braiins.bos.v1.ConfigurationService(target, credentials);
     }
 
     /**
@@ -257,6 +268,29 @@ export class BosApiClient {
     }
 
     /**
+     * The configured performance mode, including the power target set with {@link setPowerTarget}. Unlike the tuner
+     * state's current target, it is not changed by Dynamic Performance Scaling.
+     */
+    public getActivePerformanceMode(): Promise<BosPerformanceMode> {
+        return this.authenticatedUnary(
+            'PerformanceService.GetActivePerformanceMode',
+            this.performanceService.getActivePerformanceMode.bind(this.performanceService),
+            {},
+        );
+    }
+
+    /**
+     * The value ranges the miner accepts, e.g. for the power target.
+     */
+    public getConstraints(): Promise<BosConstraints> {
+        return this.authenticatedUnary(
+            'ConfigurationService.GetConstraints',
+            this.configurationService.getConstraints.bind(this.configurationService),
+            {},
+        );
+    }
+
+    /**
      *
      * @param watt Target power value in watts to send to the Braiins OS API.
      */
@@ -328,6 +362,7 @@ export class BosApiClient {
         this.performanceService.close();
         this.apiVersionService.close();
         this.upgradeService.close();
+        this.configurationService.close();
     }
 
     private async authenticatedUnary<Request extends object, Response>(

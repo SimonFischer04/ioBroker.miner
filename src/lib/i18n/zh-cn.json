@@ -14,6 +14,7 @@
     "OFF": "关闭",
     "ON": "开启",
     "Please enter an IP address": "请输入IP地址",
+    "Power Target": "目标功率",
     "Refresh device list": "刷新设备列表",
     "Pool support is not yet available": "矿池支持尚不可用。正在开发中。",
     "Profile": "配置文件",
@@ -39,7 +40,8 @@
     "Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.": "请先在设备设置中输入网页密码：即在 Avalon Family 应用中为矿机设置的密码。",
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "登录已批准：显示矿机登录页面的浏览器将在 5 秒内登录。",
     "The miner rejected the web password. Check it in the device settings.": "矿机拒绝了网页密码。请在设备设置中检查。",
-    "Could not approve the web login: %s": "无法批准网页登录：%s"
+    "Could not approve the web login: %s": "无法批准网页登录：%s",
+    "Set": "设置"
 }
 
 

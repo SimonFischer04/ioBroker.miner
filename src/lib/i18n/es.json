@@ -14,6 +14,7 @@
     "OFF": "APAGADO",
     "ON": "ENCENDIDO",
     "Please enter an IP address": "Por favor ingrese una dirección IP",
+    "Power Target": "Objetivo de potencia",
     "Refresh device list": "Actualizar lista de dispositivos",
     "Pool support is not yet available": "El soporte de pools aún no está disponible. Trabajo en progreso.",
     "Profile": "Perfil",
@@ -39,7 +40,8 @@
     "Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.": "Primero introduzca la contraseña web en la configuración del dispositivo: la contraseña establecida para el minero en la app Avalon Family.",
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Inicio de sesión aprobado: el navegador que muestra la página de inicio de sesión del minero iniciará sesión en 5 segundos.",
     "The miner rejected the web password. Check it in the device settings.": "El minero rechazó la contraseña web. Compruébela en la configuración del dispositivo.",
-    "Could not approve the web login: %s": "No se pudo aprobar el inicio de sesión web: %s"
+    "Could not approve the web login: %s": "No se pudo aprobar el inicio de sesión web: %s",
+    "Set": "Establecer"
 }
 
 

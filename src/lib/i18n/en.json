@@ -14,6 +14,7 @@
     "OFF": "OFF",
     "ON": "ON",
     "Please enter an IP address": "Please enter an IP address",
+    "Power Target": "Power Target",
     "Refresh device list": "Refresh device list",
     "Pool support is not yet available": "Pool support is not yet available. Work in Progress.",
     "Profile": "Profile",
@@ -39,7 +40,8 @@
     "Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.": "Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.",
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Login approved: the browser showing the miner's login page is logged in within 5 seconds.",
     "The miner rejected the web password. Check it in the device settings.": "The miner rejected the web password. Check it in the device settings.",
-    "Could not approve the web login: %s": "Could not approve the web login: %s"
+    "Could not approve the web login: %s": "Could not approve the web login: %s",
+    "Set": "Set"
 }
 
 

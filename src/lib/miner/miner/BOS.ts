@@ -5,11 +5,13 @@ import {
     type BosMinerDetails,
     type BosMinerStats,
     type BosTunerState,
+    type BosPerformanceMode,
 } from '../api/BosApiClient';
 import { MinerFeatureKey } from '../model/MinerFeature';
 import type { BOSSettings } from '../model/MinerSettings';
 import type { MinerStats } from '../model/MinerStats';
 import { PollingMiner } from './PollingMiner';
+import type { PowerTargetConstraints } from './Miner';
 import { toUpdateCheckResult, type UpdateCheckResult } from '../model/UpdateCheckResult';
 import { braiinsPlatformDirectory, type UpdateSources } from '../../update/UpdateSources';
 import { compareBraiinsBuild } from '../../update/version-compare';
@@ -66,8 +68,15 @@ export class BOS extends PollingMiner<BOSSettings> {
         const stats = await this.getClient().getMinerStats();
         const apiVersion = await this.getClient().getApiVersion();
         const tunerState = await this.getClient().getTunerState();
+        const performanceMode = await this.getClient()
+            .getActivePerformanceMode()
+            .catch((e: unknown) => {
+                // only the configured power target comes from here: don't fail the whole poll for it
+                this.logger.debug(`active performance mode not available: ${String(e)}`);
+                return undefined;
+            });
 
-        return this.parseBosApiResponse(details, stats, apiVersion, tunerState);
+        return this.parseBosApiResponse(details, stats, apiVersion, tunerState, performanceMode);
     }
 
     /**
@@ -164,12 +173,14 @@ export class BOS extends PollingMiner<BOSSettings> {
      * @param stats Live miner statistics returned by the Braiins OS API.
      * @param apiVersion Optional Braiins OS API version payload.
      * @param tunerState Optional tuner state payload containing power target data.
+     * @param performanceMode Optional configured performance mode, containing the configured power target.
      */
     public parseBosApiResponse(
         details: BosMinerDetails,
         stats: BosMinerStats,
         apiVersion?: BosApiVersion,
         tunerState?: BosTunerState,
+        performanceMode?: BosPerformanceMode,
     ): MinerStats {
         const hashrate = stats.minerStats?.realHashrate;
         const totalHashrate =
@@ -181,12 +192,14 @@ export class BOS extends PollingMiner<BOSSettings> {
         const joulePerTerahash = stats.powerStats?.efficiency?.joulePerTerahash;
 
         return {
-            raw: { details, stats, apiVersion, tunerState },
+            raw: { details, stats, apiVersion, tunerState, performanceMode },
             version: formatApiVersion(apiVersion),
             firmwareVersion: details.bosVersion?.current,
             totalHashrate,
             power,
             dynamicPowerTarget,
+            // only in power target mode: in hashrate target mode there is no power target to show
+            powerTarget: performanceMode?.tunerMode?.powerTarget?.powerTarget?.watt,
             efficiency:
                 joulePerTerahash !== undefined && joulePerTerahash > 0
                     ? TERAHASH_TO_HASH / joulePerTerahash
@@ -194,6 +207,17 @@ export class BOS extends PollingMiner<BOSSettings> {
             acceptedShares: stats.poolStats?.acceptedShares,
             rejectedShares: stats.poolStats?.rejectedShares,
         };
+    }
+
+    /**
+     * The power target range from the miner's tuner constraints.
+     */
+    public override async getPowerTargetConstraints(): Promise<PowerTargetConstraints | undefined> {
+        const range = (await this.getClient().getConstraints()).tunerConstraints?.powerTarget;
+        if (range?.min?.watt === undefined && range?.max?.watt === undefined) {
+            return undefined;
+        }
+        return { min: range.min?.watt, max: range.max?.watt };
     }
 
     private getClient(): BosApiClient {
