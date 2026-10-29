@@ -193,4 +193,12 @@ export interface AvalonMinerSettings extends CGMinerSettings {
      *
      */
     minerType: (typeof minerTypeKeys)[7];
+    /**
+     * Password of the miner's web interface, as set in the Avalon Family app. Only needed to approve web logins.
+     */
+    webPassword?: string;
+    /**
+     * Port of the miner's web interface. Default: 80.
+     */
+    webPort?: number;
 }

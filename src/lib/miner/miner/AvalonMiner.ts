@@ -4,6 +4,7 @@ import { MinerFeatureKey } from '../model/MinerFeature';
 import type { MinerStats } from '../model/MinerStats';
 import {
     CGMinerCommand,
+    type CGMinerStatus,
     type CombinedResponse,
     type StatsDeviceData,
     type VersionData,
@@ -13,6 +14,7 @@ import { toUpdateCheckResult, type UpdateCheckResult } from '../model/UpdateChec
 import type { UpdateSources } from '../../update/UpdateSources';
 import { parseAvalonBuild } from '../../update/version-compare';
 import { safeParseFloat } from '../../utils/parse-utils';
+import { buildQrAuthParameter, parseAuthChallenge, type AvalonAuthChallenge } from '../api/AvalonWebLogin';
 
 // Avalon devices use the CGMiner-compatible socket API on port 4028
 // Control commands use the 'ascset' command with different parameters
@@ -42,6 +44,11 @@ const AVALON_PROFILE_PARAM_MAP: Record<string, string> = {
 } as const;
 
 const AVALON_PROFILES = Object.keys(AVALON_PROFILE_PARAM_MAP);
+
+/**
+ * Default port of the miner's web interface.
+ */
+const AVALON_WEB_PORT = 80;
 
 /** Type alias for the summary+version+stats combined response. */
 export type SummaryVersionStatsResponse = CombinedResponse<
@@ -177,6 +184,47 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
         this.logger.info(`Setting Avalon workmode to "${profile}" (id=${params})`);
         // TODO: check response status and then set with ack: true
         await this.sendCommand(AvalonMinerCommand.ascset, params, true);
+    }
+
+    /**
+     * Approves the login a browser is waiting for on the miner's web interface, like scanning its QR code with the
+     * Avalon Family app would. The browser showing the login page is logged in on its next status check (within 5 s).
+     *
+     * @throws {Error} if no web password is configured, the miner can't be reached, or it rejects the login (a wrong
+     *  password reads "passwd error 02!")
+     */
+    public async approveWebLogin(): Promise<void> {
+        const password = this.settings.webPassword;
+        if (!password) {
+            throw new Error('no web password configured');
+        }
+
+        const challenge = await this.fetchAuthChallenge();
+        const response = await this.sendCommand<{ STATUS?: CGMinerStatus[] }>(
+            AvalonMinerCommand.ascset,
+            buildQrAuthParameter(challenge, password),
+            true,
+        );
+        const status = response?.STATUS?.[0];
+        if (!status || status.STATUS === 'E' || status.STATUS === 'F') {
+            throw new Error(status?.Msg ?? 'no reply to qr_auth');
+        }
+        this.logger.info('web login approved');
+    }
+
+    /**
+     * Fetches the challenge the miner's login page shows as QR code. Also makes the miner (re)generate it, so the
+     * login can be approved even if the page has not loaded it yet.
+     */
+    private async fetchAuthChallenge(): Promise<AvalonAuthChallenge> {
+        const webPort = this.settings.webPort ?? AVALON_WEB_PORT;
+        const response = await fetch(`http://${this.settings.host}:${webPort}/get_auth.cgi`, {
+            signal: AbortSignal.timeout(this.getPollTimeoutMs()),
+        });
+        if (!response.ok) {
+            throw new Error(`get_auth.cgi failed: ${response.status} ${response.statusText}`);
+        }
+        return parseAuthChallenge(await response.text());
     }
 
     /**

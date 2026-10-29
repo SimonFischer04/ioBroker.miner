@@ -31,6 +31,8 @@ import type { PartialDeep } from 'type-fest';
 import { createMiner } from './miner/miner/MinerFactory';
 import { getMinerFeatureFullId, MinerFeatureKey } from './miner/model/MinerFeature';
 import { describeUpdateStatus } from './update/updateStatus';
+import { AvalonMiner } from './miner/miner/AvalonMiner';
+import { isWrongPasswordError } from './miner/api/AvalonWebLogin';
 
 /**
  * Like `I18n.getTranslatedObject(key, ...args)`, but fills every `%s`: adapter-core only fills the first one
@@ -306,6 +308,14 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                             'password used to connect to the device api. Adapter generates a random, secure and unique one for each device by default. But can of course be changed if needed.',
                         hidden: "data.category !== 'miner' || !(data.minerType == 'claymoreMiner' || data.minerType == 'xmRig' || data.minerType == 'iceRiverOcMiner' || data.minerType == 'teamRedMiner' || data.minerType == 'bos' || data.minerType == 'bosMiner')", // TODO: improve this
                     },
+                    webPassword: {
+                        type: 'password',
+                        newLine: true,
+                        label: I18n.getTranslatedObject('web password'),
+                        tooltip:
+                            'password of the miner web interface, as set in the Avalon Family app. Only needed for the "Approve web login" action, which logs a browser in without scanning the QR code.',
+                        hidden: "data.category !== 'miner' || data.minerType != 'avalonMiner'",
+                    },
                     enabled: {
                         type: 'checkbox',
                         newLine: true,
@@ -327,6 +337,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     pollInterval: (existingSettings.settings as PollingMinerSettings).pollInterval ?? 10000, // TODO: implement this properly
                     username: (existingSettings.settings as BOSSettings).username ?? BOS_DEFAULT_USERNAME, // TODO: implement this properly
                     password: getPasswordFormValue(existingSettings), // TODO: implement this properly
+                    webPassword: (existingSettings.settings as PartialDeep<AvalonMinerSettings>).webPassword ?? '',
                     enabled: existingSettings.enabled,
                 },
                 title,
@@ -553,6 +564,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 const avalonSettings: Omit<AvalonMinerSettings, keyof MinerSettings> = {
                     pollInterval,
                     port: 4028, // TODO: make configurable
+                    webPassword: result.webPassword || undefined,
                 };
                 minerSettings = {
                     ...minerSettings,
@@ -756,6 +768,16 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         description: I18n.getTranslatedObject('enabled'),
                         handler: this.handleEnableDisableDevice.bind(this),
                     },
+                    ...(isMiner(settings) && settings.settings.minerType === 'avalonMiner'
+                        ? [
+                              {
+                                  id: 'approveWebLogin',
+                                  icon: 'qrcode',
+                                  description: I18n.getTranslatedObject('Approve web login'),
+                                  handler: this.handleApproveWebLogin.bind(this),
+                              },
+                          ]
+                        : []),
                 ],
             });
         }
@@ -768,6 +790,57 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         await this.adapter.setForeignStateAsync(stateId, { val: !enabled, ack: false });
 
         return { refresh: 'devices' };
+    }
+
+    /**
+     * Approves the login a browser is waiting for on an Avalon miner's web interface, instead of scanning the QR code
+     * with the Avalon Family app.
+     *
+     * @param id - the device object id
+     * @param context - the action context for showing messages
+     */
+    protected async handleApproveWebLogin(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
+        const obj = await this.adapter.getObjectAsync(id);
+        if (obj == null) {
+            this.adapter.log.error(`MinerAdapterDeviceManagement/handleApproveWebLogin object ${id} not found`);
+            return { refresh: 'none' };
+        }
+        const settings = decryptDeviceSettings(obj.native as IOBrokerDeviceSettings, value =>
+            this.adapter.decrypt(value),
+        );
+        const minerId = isMiner(settings) ? settings.settings.id : undefined;
+        const miner = minerId ? this.adapter.minerManager.getMiner(minerId) : undefined;
+
+        if (!(miner instanceof AvalonMiner)) {
+            await context.showMessage(I18n.getTranslatedObject('The device is disabled.'));
+            return { refresh: 'none' };
+        }
+        if (!miner.settings.webPassword) {
+            await context.showMessage(
+                I18n.getTranslatedObject(
+                    'Enter the web password in the device settings first: the password set for the miner in the Avalon Family app.',
+                ),
+            );
+            return { refresh: 'none' };
+        }
+
+        try {
+            await miner.approveWebLogin();
+            await context.showMessage(
+                I18n.getTranslatedObject(
+                    "Login approved: the browser showing the miner's login page is logged in within 5 seconds.",
+                ),
+            );
+        } catch (e) {
+            const message = e instanceof Error ? e.message : JSON.stringify(e);
+            this.adapter.log.warn(`approving the web login of ${id} failed: ${message}`);
+            await context.showMessage(
+                isWrongPasswordError(message)
+                    ? I18n.getTranslatedObject('The miner rejected the web password. Check it in the device settings.')
+                    : translateWithArgs('Could not approve the web login: %s', message),
+            );
+        }
+        return { refresh: 'none' };
     }
 
     protected async handleDeleteDevice(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {

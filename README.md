@@ -49,6 +49,15 @@ References:
 - Braiins OS Public API: https://academy.braiins.com/braiins-os/papi-about
 - Braiins OS firmware downloads: https://braiins.com/os-firmware/download
 
+### Avalon web login without the app
+The web interface of Avalon Nano 3 / 3S miners has no password form: it shows a QR code that has to be scanned with the Avalon Family app. The adapter can approve that login instead:
+
+1. Enter the miner's web password in the device settings (`web password`). It is the password set for the miner in the Avalon Family app.
+2. Open the miner's IP address in the browser, so the login page with the QR code shows.
+3. Click "Approve web login" on the device in the device manager. The browser is logged in within 5 seconds.
+
+This does the same as scanning the QR code: the adapter sends the miner the `qr_auth` command the app sends, signed with the web password.
+
 ## Object model
 
 All objects are created under:
@@ -148,6 +157,7 @@ miner.0
 ### **WORK IN PROGRESS**
 * (claude) **NEW**: Check miners for available firmware/software updates once a day and show them in the device manager: new states `info.latestVersion` and `info.updateAvailable` (Braiins OS, XMRig, TeamRedMiner, IceRiver OC firmware, Avalon Nano 3/3S), plus the auto-upgrade status for Braiins OS. Can be turned off in the instance settings; a "check for updates" action checks right away (#195)
 * (claude) **FIXED**: `info.online` now switches to `false` after 3 failed polls in a row and back to `true` on the next successful one; a poll that hangs counts as failed after its poll interval, but at least 30 seconds, and requests to Braiins OS (gRPC) and XMRig / IceRiver (HTTP) are now cancelled after that time instead of staying open (#222)
+* (claude) **NEW**: Avalon Nano 3 / 3S: log a browser in to the miner's web interface without the Avalon Family app. Enter the miner's web password in the device settings, open the miner's login page, and use the new "Approve web login" device action (#182)
 
 ### 1.1.0 (2026-07-12)
 - (copilot) Adapter requires node.js >= 22 now
