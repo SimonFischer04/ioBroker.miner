@@ -81,20 +81,21 @@ tests.integration(path.join(__dirname, '..'), {
                 await miner.stop();
             });
 
-            it('turns info.connection on once a miner answers', async () => {
+            it('lists a miner in info.connection once it answers', async () => {
                 await harness.startAdapterAndWait();
 
                 await waitForState(harness, 'miner.0.miner.it-cgminer.info.online', true, 10_000);
-                await waitForState(harness, 'miner.0.info.connection', true, 5_000);
+                // a non-empty list is what turns the instance green in the admin
+                await waitForState(harness, 'miner.0.info.connection', 'integration test miner', 5_000);
             }).timeout(30_000);
 
-            it('turns it off again when no miner is reachable anymore', async () => {
+            it('empties the list again when no miner is reachable anymore', async () => {
                 await miner.stop();
 
                 // offline after 3 failed polls: with the backoff that is a few seconds at a 500 ms poll interval
                 await waitForState(harness, 'miner.0.miner.it-cgminer.info.online', false, 20_000);
                 const connection = await harness.states.getStateAsync('miner.0.info.connection');
-                expect(connection && connection.val).to.equal(false);
+                expect(connection && connection.val).to.equal('');
             }).timeout(30_000);
         });
     },
