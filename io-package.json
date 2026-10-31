@@ -156,12 +156,12 @@
       "_id": "info.connection",
       "type": "state",
       "common": {
-        "role": "indicator.connected",
-        "name": "Device or service connected",
-        "type": "boolean",
+        "role": "info.status",
+        "name": "List of reachable miners",
+        "type": "string",
         "read": true,
         "write": false,
-        "def": false
+        "def": ""
       },
       "native": {}
     }

@@ -34,6 +34,10 @@ export class MinerAdapter extends utils.Adapter {
     public readonly minerManager: MinerManager = new MinerManager();
     private readonly updateSources = new UpdateSources();
     private updateCheckHandle: AsyncIntervalReturnType | undefined;
+    /**
+     * The devices whose miner is reachable, by object id, with the name `info.connection` lists them by.
+     */
+    private readonly onlineDevices = new Map<string, string>();
 
     /**
      *
@@ -69,8 +73,12 @@ export class MinerAdapter extends utils.Adapter {
         // Initialize i18n for device management translations
         await I18n.init(__dirname, this);
 
-        // Reset the connection indicator during startup
-        await this.setState('info.connection', false, true);
+        // Reset the connection indicator during startup. Before 1.2.0 it was a boolean: existing instances keep their
+        // object from the old version, so bring its type in line with the list it holds now
+        await this.extendObject('info.connection', {
+            common: { type: 'string', role: 'info.status', name: 'List of reachable miners' },
+        });
+        await this.setState('info.connection', '', true);
 
         // Initialize your adapter here
         await this.createBasicObjectStructure();
@@ -98,6 +106,8 @@ export class MinerAdapter extends utils.Adapter {
             if (this.deviceManagement) {
                 await this.deviceManagement.close();
             }
+
+            await this.setState('info.connection', '', true);
 
             callback();
         } catch {
@@ -408,6 +418,9 @@ export class MinerAdapter extends utils.Adapter {
         }
 
         await this.delObjectAsync(deviceId, { recursive: true });
+        // deviceId is the full object id here, the set holds the relative one
+        this.onlineDevices.delete(this.getDeviceObjectId(settings));
+        await this.updateConnectionState();
 
         this.log.info(`${deviceId} deleted`);
         return true;
@@ -465,7 +478,7 @@ export class MinerAdapter extends utils.Adapter {
                 await this.processNewStats(miner, settings, stats);
             });
             miner.subscribeToOnlineStatus(async (online: boolean) => {
-                await this.setState(`${this.getDeviceObjectId(settings)}.info.online`, { val: online, ack: true });
+                await this.setDeviceOnline(settings, online);
             });
             if (miner.getSupportedFeatures().includes(MinerFeatureKey.powerTarget)) {
                 // not awaited: an unreachable miner must not hold up the adapter start
@@ -473,7 +486,7 @@ export class MinerAdapter extends utils.Adapter {
             }
         } catch (e) {
             this.log.error(`could not initialize device ${settings.name || settings.settings.host}: ${String(e)}`);
-            await this.setState(`${this.getDeviceObjectId(settings)}.info.online`, { val: false, ack: true });
+            await this.setDeviceOnline(settings, false);
         }
     }
 
@@ -488,7 +501,7 @@ export class MinerAdapter extends utils.Adapter {
         await this.setState(`${deviceId}.info.host`, { val: settings.settings.host, ack: true });
         await this.setState(`${deviceId}.enabled`, { val: settings.enabled, ack: true });
         // Reset online state on startup — will be set to true once the miner responds
-        await this.setState(`${deviceId}.info.online`, { val: false, ack: true });
+        await this.setDeviceOnline(settings, false);
     }
 
     private async setDeviceEnabled(
@@ -523,7 +536,7 @@ export class MinerAdapter extends utils.Adapter {
         if (this.minerManager.hasMiner(settings.settings.id)) {
             await this.minerManager.close(settings.settings.id);
         }
-        await this.setState(`${deviceObjectId}.info.online`, { val: false, ack: true });
+        await this.setDeviceOnline(settings, false);
     }
 
     /**
@@ -549,6 +562,33 @@ export class MinerAdapter extends utils.Adapter {
                 `power target constraints of ${this.getDeviceObjectId(settings)} not available: ${String(e)}`,
             );
         }
+    }
+
+    /**
+     * Writes a device's `info.online` and keeps the instance's `info.connection` in sync with it.
+     *
+     * @param settings - the device settings
+     * @param online - whether the device's miner is reachable
+     */
+    private async setDeviceOnline(settings: IOBrokerDeviceSettings, online: boolean): Promise<void> {
+        const deviceId = this.getDeviceObjectId(settings);
+        await this.setState(`${deviceId}.info.online`, { val: online, ack: true });
+        if (online) {
+            this.onlineDevices.set(deviceId, isMiner(settings) ? settings.name || settings.settings.host : deviceId);
+        } else {
+            this.onlineDevices.delete(deviceId);
+        }
+        await this.updateConnectionState();
+    }
+
+    /**
+     * Lists the reachable miners in `info.connection`, comma-separated like other multi-device adapters (e.g. sonoff)
+     * do: the admin shows the instance green while the list is not empty, and shows the list itself. Green needs just
+     * one reachable miner - requiring all would turn it yellow whenever a single miner is switched off, e.g. at night.
+     */
+    private async updateConnectionState(): Promise<void> {
+        const names = [...this.onlineDevices.values()].sort((a, b) => a.localeCompare(b));
+        await this.setStateChangedAsync('info.connection', { val: names.join(','), ack: true });
     }
 
     private async processNewStats(
@@ -613,7 +653,7 @@ export class MinerAdapter extends utils.Adapter {
         }
 
         // Always update online / lastSeen
-        await this.setState(`${deviceId}.info.online`, { val: true, ack: true });
+        await this.setDeviceOnline(settings, true);
         await this.setState(`${deviceId}.info.lastSeen`, { val: Date.now(), ack: true });
     }
 
