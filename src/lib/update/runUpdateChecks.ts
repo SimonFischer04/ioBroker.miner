@@ -1,7 +1,7 @@
 import type { Miner } from '../miner/miner/Miner';
 import { MinerFeatureKey } from '../miner/model/MinerFeature';
 import type { MinerSettings } from '../miner/model/MinerSettings';
-import type { UpdateCheckResult } from '../miner/model/UpdateCheckResult';
+import type { UpdateCheckContext, UpdateCheckResult } from '../miner/model/UpdateCheckResult';
 import type { UpdateSources } from './UpdateSources';
 
 /**
@@ -31,12 +31,14 @@ export interface UpdateCheckSummary {
  * @param miners - the running miners
  * @param sources - shared upstream lookups
  * @param onResult - called once per checked miner
+ * @param getContext - loads previously reported device data for offline checks
  * @returns how many miners were checked, have an update, or failed
  */
 export async function runUpdateChecks(
     miners: readonly Miner<MinerSettings>[],
     sources: UpdateSources,
     onResult: (miner: Miner<MinerSettings>, result: UpdateCheckResult, error?: unknown) => Promise<void>,
+    getContext?: (miner: Miner<MinerSettings>) => Promise<UpdateCheckContext>,
 ): Promise<UpdateCheckSummary> {
     const summary: UpdateCheckSummary = { checked: 0, updatesAvailable: 0, failed: 0 };
 
@@ -48,7 +50,7 @@ export async function runUpdateChecks(
 
         let result: UpdateCheckResult;
         try {
-            result = await miner.checkForUpdate(sources);
+            result = await miner.checkForUpdate(sources, await getContext?.(miner));
         } catch (e) {
             summary.failed++;
             await onResult(miner, {}, e);

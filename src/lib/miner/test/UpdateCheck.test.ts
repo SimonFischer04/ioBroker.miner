@@ -147,6 +147,39 @@ describe('update checks', () => {
             expect(result.updateAvailable).to.be.undefined;
         });
 
+        it('checks the feed while offline using persisted miner details without making any miner calls', async () => {
+            const unavailable = (): never => {
+                throw new Error('must not contact the offline miner');
+            };
+            const bos = bosWithClient({ getMinerDetails: unavailable, getAutoUpgradeStatus: unavailable });
+            const sources = fakeSources({ braiins: { 'zynq-bm3-am2': NEWEST_BOS_BUILD } });
+            const result = await bos.checkForUpdate(sources, {
+                online: false,
+                lastStats: {
+                    raw: { details: { platform: 7, bosVersion: { current: '2023-05-29-0-1daef48b-23.03.2-plus' } } },
+                },
+            });
+
+            expect(sources.calls).to.deep.equal(['braiins:zynq-bm3-am2']);
+            expect(result.latestVersion).to.equal(NEWEST_BOS_BUILD);
+            expect(result.updateAvailable).to.equal(true);
+            expect(result.autoUpgrade).to.be.undefined;
+        });
+
+        it('does not guess a board or contact an offline miner that has never been identified', async () => {
+            const bos = bosWithClient({
+                getMinerDetails: () => {
+                    throw new Error('offline');
+                },
+            });
+            const sources = fakeSources({});
+            const result = await bos.checkForUpdate(sources, { online: false });
+
+            expect(sources.calls).to.deep.equal([]);
+            expect(result.latestVersion).to.be.undefined;
+            expect(result.updateAvailable).to.be.undefined;
+        });
+
         it('fails when the feed lookup fails, rather than claiming anything', async () => {
             const bos = bosWithClient({
                 ...details(NEWEST_BOS_BUILD),
@@ -280,10 +313,11 @@ describe('update checks', () => {
         const miner = new AvalonMiner({ minerType: 'avalonMiner', host: '10.0.0.6', port: 4028, pollInterval: 10000 });
         // real response of an Avalon Nano 3S: LVERSION 25021401_56abae7
         const nano3s = (versionFixture as unknown as VersionResponse).VERSION[0];
+        const nano3 = { ...nano3s, MODEL: 'Nano3', PROD: 'Avalon Nano3' };
 
-        it('compares a Nano 3S with the latest build in Canaan’s update file', async () => {
+        it('compares a Nano 3 with the nano3 build in Canaan’s update file', async () => {
             const sources = fakeSources({ avalon: '25103101' });
-            const result = await miner.checkVersionForUpdate(nano3s, sources);
+            const result = await miner.checkVersionForUpdate(nano3, sources);
 
             expect(sources.calls).to.deep.equal(['avalon:nano3']);
             expect(result).to.deep.equal({
@@ -295,7 +329,7 @@ describe('update checks', () => {
 
         it('is up to date on the latest build', async () => {
             const result = await miner.checkVersionForUpdate(
-                { ...nano3s, LVERSION: '25103101_1a2b3c4' },
+                { ...nano3, LVERSION: '25103101_1a2b3c4' },
                 fakeSources({ avalon: '25103101' }),
             );
             expect(result.updateAvailable).to.equal(false);
@@ -309,9 +343,28 @@ describe('update checks', () => {
             expect(result).to.deep.equal({ installedVersion: '25021401_56abae7' });
         });
 
+        it('does not report the Nano 3 update as Nano 3S firmware', async () => {
+            const sources = fakeSources({ avalon: '25103101' });
+            const result = await miner.checkVersionForUpdate(nano3s, sources);
+
+            expect(sources.calls).to.deep.equal([]);
+            expect(result).to.deep.equal({ installedVersion: '25021401_56abae7' });
+        });
+
+        it('requires an exact model match rather than a Nano 3 prefix', async () => {
+            for (const MODEL of ['Nano 3S', 'Nano3 Pro', 'Nano30', '', 'Mini3']) {
+                const sources = fakeSources({ avalon: '25103101' });
+                const result = await miner.checkVersionForUpdate({ ...nano3s, MODEL }, sources);
+
+                expect(sources.calls, MODEL).to.deep.equal([]);
+                expect(result.latestVersion, MODEL).to.be.undefined;
+                expect(result.updateAvailable, MODEL).to.be.undefined;
+            }
+        });
+
         it('leaves the status unknown when the installed version is unreadable', async () => {
             const result = await miner.checkVersionForUpdate(
-                { ...nano3s, LVERSION: 'unknown' },
+                { ...nano3, LVERSION: 'unknown' },
                 fakeSources({ avalon: '25103101' }),
             );
             expect(result.updateAvailable).to.be.undefined;

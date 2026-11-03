@@ -1,6 +1,7 @@
 {
   "common": {
     "name": "miner",
+    "nogit": true,
     "version": "1.1.0",
     "news": {
       "1.1.0": {
