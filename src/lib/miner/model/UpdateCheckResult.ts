@@ -1,3 +1,5 @@
+import type { MinerStats } from './MinerStats';
+
 /**
  * Result of {@link Miner.checkForUpdate}.
  */
@@ -47,4 +49,11 @@ export function toUpdateCheckResult(
         latestVersion,
         updateAvailable: comparison === undefined ? undefined : comparison < 0,
     };
+}
+/** Previously reported device data, retained across adapter restarts for offline update checks. */
+export interface UpdateCheckContext {
+    /** Last persisted identity, firmware version and raw API response. */
+    lastStats?: MinerStats;
+    /** Whether live requests to the miner are currently possible. */
+    online?: boolean;
 }

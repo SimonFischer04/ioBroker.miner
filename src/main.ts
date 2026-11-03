@@ -20,7 +20,7 @@ import type { MinerStats } from './lib/miner/model/MinerStats';
 import { asyncDynamicInterval, setTimerBackend, type AsyncIntervalReturnType } from './lib/utils/delay';
 import { UpdateSources } from './lib/update/UpdateSources';
 import { runUpdateChecks, type UpdateCheckSummary } from './lib/update/runUpdateChecks';
-import type { UpdateCheckResult } from './lib/miner/model/UpdateCheckResult';
+import type { UpdateCheckContext, UpdateCheckResult } from './lib/miner/model/UpdateCheckResult';
 
 /** First update check shortly after start, once the miners are initialized and reachable. */
 const UPDATE_CHECK_INITIAL_DELAY_MS = 60_000;
@@ -484,6 +484,13 @@ export class MinerAdapter extends utils.Adapter {
                 // not awaited: an unreachable miner must not hold up the adapter start
                 void this.applyPowerTargetConstraints(miner, settings);
             }
+            if (this.config.checkForUpdates !== false) {
+                // Devices added or enabled after the daily check need their first result right away.
+                // Do not hold up initialization while contacting the miner or its firmware feed.
+                void this.checkMinerUpdates([miner]).catch((e: unknown) => {
+                    this.log.error(`initial update check failed: ${String(e)}`);
+                });
+            }
         } catch (e) {
             this.log.error(`could not initialize device ${settings.name || settings.settings.host}: ${String(e)}`);
             await this.setDeviceOnline(settings, false);
@@ -820,7 +827,7 @@ export class MinerAdapter extends utils.Adapter {
     }
 
     /**
-     * Checks all running miners that support it for a newer firmware/software version and updates their
+     * Checks running miners and configured BOS/Avalon devices for a newer firmware/software version and updates their
      * `info.latestVersion` / `info.updateAvailable` states. A failed check sets both to null (unknown).
      *
      * @param options - `force` skips the cached upstream lookups, e.g. for a manual check
@@ -832,8 +839,32 @@ export class MinerAdapter extends utils.Adapter {
             this.updateSources.clearCache();
         }
 
+        const running = this.minerManager.getMiners();
+        const inactive: Miner<MinerSettings>[] = [];
+        // Firmware feeds can be checked from saved identity data even when a device is disabled.
+        for (const device of await this.getDevicesAsync()) {
+            const settings = device.native as IOBrokerDeviceSettings;
+            if (
+                isMiner(settings) &&
+                ['bos', 'avalonMiner'].includes(settings.settings.minerType) &&
+                !running.some(miner => miner.settings.id === settings.settings.id)
+            ) {
+                const decrypted = decryptDeviceSettings(settings, value =>
+                    this.decrypt(value),
+                ) as IOBrokerMinerSettings;
+                inactive.push(createMiner(decrypted.settings));
+            }
+        }
+        try {
+            return await this.checkMinerUpdates([...running, ...inactive]);
+        } finally {
+            await Promise.all(inactive.map(miner => miner.close()));
+        }
+    }
+
+    private async checkMinerUpdates(miners: readonly Miner<MinerSettings>[]): Promise<UpdateCheckSummary> {
         const summary = await runUpdateChecks(
-            this.minerManager.getMiners(),
+            miners,
             this.updateSources,
             async (miner, result, error) => {
                 const deviceId = this.getMinerDeviceObjectId(miner);
@@ -853,10 +884,38 @@ export class MinerAdapter extends utils.Adapter {
                     this.log.error(`could not write update states for ${deviceId}: ${String(e)}`);
                 }
             },
+            miner => this.getUpdateCheckContext(miner),
         );
 
         this.log.debug(`update check finished: ${JSON.stringify(summary)}`);
         return summary;
+    }
+
+    private async getUpdateCheckContext(miner: Miner<MinerSettings>): Promise<UpdateCheckContext> {
+        const deviceId = this.getMinerDeviceObjectId(miner);
+        const [raw, installed, online] = await Promise.all([
+            this.getStateAsync(`${deviceId}.${getMinerFeatureFullId(MinerFeatureKey.rawStats)}`),
+            this.getStateAsync(`${deviceId}.${getMinerFeatureFullId(miner.getInstalledVersionFeature())}`),
+            this.getStateAsync(`${deviceId}.info.online`),
+        ]);
+        let rawStats: object | undefined;
+        if (typeof raw?.val === 'string') {
+            try {
+                const parsed: unknown = JSON.parse(raw.val);
+                if (parsed && typeof parsed === 'object') {
+                    rawStats = parsed;
+                }
+            } catch {
+                this.log.debug(`ignoring invalid stored raw stats for ${deviceId}`);
+            }
+        }
+        return {
+            online: this.minerManager.getMiners().includes(miner) && online?.val === true,
+            lastStats: {
+                raw: rawStats,
+                firmwareVersion: typeof installed?.val === 'string' ? installed.val : undefined,
+            },
+        };
     }
 
     private async writeUpdateStates(

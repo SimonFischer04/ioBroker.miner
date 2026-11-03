@@ -10,7 +10,7 @@ export type FetchFunction = (url: string, init?: RequestInit) => Promise<Respons
 export const BRAIINS_FEED_URL = 'https://feeds.braiins-os.com';
 
 /**
- * Static file Canaan's Avalon Family app reads to find new Nano 3 / 3S firmware.
+ * Static file Canaan's Avalon Family app reads to find new Nano 3 firmware.
  * Taken from the released app (v0.38.0) - it's undocumented and can move without notice.
  */
 export const AVALON_UPDATE_URL = 'https://sinh1-aws-app01.s3.ap-southeast-1.amazonaws.com/app/update.json';
@@ -85,7 +85,7 @@ export function parseBraiinsFeedListing(html: string): string[] {
 }
 
 /**
- * Latest firmware version for the Nano 3 / 3S from Canaan's update file.
+ * Latest firmware version for the Nano 3 from Canaan's update file.
  *
  * @param data - parsed update file
  * @returns the build number as a string, e.g. `"25103101"`, or undefined if the file doesn't have one
@@ -161,7 +161,7 @@ export class UpdateSources {
     }
 
     /**
-     * Latest firmware build for the Avalon Nano 3 / 3S, from Canaan's update file.
+     * Latest firmware build for the Avalon Nano 3, from Canaan's update file.
      *
      * @returns the build number as a string, e.g. `"25103101"`
      */

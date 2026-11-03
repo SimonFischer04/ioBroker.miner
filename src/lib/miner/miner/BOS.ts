@@ -12,7 +12,7 @@ import type { BOSSettings } from '../model/MinerSettings';
 import type { MinerStats } from '../model/MinerStats';
 import { PollingMiner } from './PollingMiner';
 import type { PowerTargetConstraints } from './Miner';
-import { toUpdateCheckResult, type UpdateCheckResult } from '../model/UpdateCheckResult';
+import { toUpdateCheckResult, type UpdateCheckContext, type UpdateCheckResult } from '../model/UpdateCheckResult';
 import { braiinsPlatformDirectory, type UpdateSources } from '../../update/UpdateSources';
 import { compareBraiinsBuild } from '../../update/version-compare';
 
@@ -84,10 +84,19 @@ export class BOS extends PollingMiner<BOSSettings> {
      * and reads the miner's own auto-upgrade setting.
      *
      * @param sources - shared upstream lookups
+     * @param context - persisted metadata, so firmware feeds can be checked while the miner is offline
      */
-    public override async checkForUpdate(sources: UpdateSources): Promise<UpdateCheckResult> {
-        const details = await this.getClient().getMinerDetails();
-        const installed = details.bosVersion?.current;
+    public override async checkForUpdate(
+        sources: UpdateSources,
+        context?: UpdateCheckContext,
+    ): Promise<UpdateCheckResult> {
+        const savedDetails = (context?.lastStats?.raw as { details?: BosMinerDetails } | undefined)?.details;
+        const details = braiinsPlatformDirectory(savedDetails?.platform)
+            ? savedDetails!
+            : context?.online === false
+              ? (savedDetails ?? {})
+              : await this.getClient().getMinerDetails();
+        const installed = details.bosVersion?.current ?? context?.lastStats?.firmwareVersion;
         const platformDirectory = braiinsPlatformDirectory(details.platform);
 
         let result: UpdateCheckResult;
@@ -99,7 +108,10 @@ export class BOS extends PollingMiner<BOSSettings> {
             result = { installedVersion: installed };
         }
 
-        result.autoUpgrade = await this.fetchAutoUpgradeStatus();
+        // Auto-upgrade is a live setting, unlike the public firmware feed. Don't let an offline miner delay it.
+        if (context?.online !== false) {
+            result.autoUpgrade = await this.fetchAutoUpgradeStatus();
+        }
         return result;
     }
 
