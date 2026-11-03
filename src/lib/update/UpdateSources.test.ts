@@ -86,7 +86,7 @@ describe('UpdateSources', () => {
     });
 
     describe('parseAvalonUpdateFile', () => {
-        it('reads the Nano 3 / 3S version from the real update file', () => {
+        it('reads the Nano 3 version from the real update file', () => {
             expect(parseAvalonUpdateFile(avalonUpdateFixture)).to.equal('25103101');
         });
 

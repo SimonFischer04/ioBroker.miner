@@ -11,7 +11,7 @@ import {
     type VersionData,
     type VersionResponse,
 } from '../model/CGMinerApiTypes';
-import { toUpdateCheckResult, type UpdateCheckResult } from '../model/UpdateCheckResult';
+import { toUpdateCheckResult, type UpdateCheckContext, type UpdateCheckResult } from '../model/UpdateCheckResult';
 import type { UpdateSources } from '../../update/UpdateSources';
 import { parseAvalonBuild } from '../../update/version-compare';
 import { safeParseFloat } from '../../utils/parse-utils';
@@ -122,11 +122,20 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
 
     /**
      * Compares the installed firmware with the latest one Canaan publishes, for the models Canaan's
-     * update file covers (Nano 3 / 3S). Other models report only the installed version.
+     * update file covers (Nano 3). Other models report only the installed version.
      *
      * @param sources - shared upstream lookups
+     * @param context - persisted identity for offline firmware checks
      */
-    public override async checkForUpdate(sources: UpdateSources): Promise<UpdateCheckResult> {
+    public override async checkForUpdate(
+        sources: UpdateSources,
+        context?: UpdateCheckContext,
+    ): Promise<UpdateCheckResult> {
+        if (context?.online === false) {
+            const savedVersion = (context.lastStats?.raw as { version?: VersionResponse[] } | undefined)?.version?.[0]
+                ?.VERSION?.[0];
+            return this.checkVersionForUpdate(savedVersion, sources);
+        }
         const response = await this.sendCommand<VersionResponse>(CGMinerCommand.version, '', true);
         return this.checkVersionForUpdate(response.VERSION?.[0], sources);
     }
@@ -152,8 +161,9 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
     ): Promise<UpdateCheckResult> {
         const installed = version?.LVERSION;
 
-        // Canaan's update file only has an entry for the Nano 3 / 3S ("heater_nano3_all")
-        if (!/^nano\s*3/i.test(version?.MODEL ?? '')) {
+        // The feed's nano3 entry names heater_nano3_all. It does not identify Nano 3S compatibility.
+        // Match the model exactly: Nano3s, Nano3 Pro, etc. must not inherit Nano 3 firmware.
+        if (!/^nano\s*3$/i.test(version?.MODEL?.trim() ?? '')) {
             this.logger.debug(`no update source for Avalon model ${version?.MODEL ?? '(unknown)'}`);
             return { installedVersion: installed };
         }

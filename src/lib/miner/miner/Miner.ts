@@ -3,7 +3,7 @@ import * as crypto from 'node:crypto';
 import { MinerFeatureKey } from '../model/MinerFeature';
 import { Logger } from '../model/Logger';
 import type { MinerStats } from '../model/MinerStats';
-import type { UpdateCheckResult } from '../model/UpdateCheckResult';
+import type { UpdateCheckContext, UpdateCheckResult } from '../model/UpdateCheckResult';
 import type { UpdateSources } from '../../update/UpdateSources';
 
 /**
@@ -103,8 +103,9 @@ export abstract class Miner<S extends MinerSettings> {
      * and {@link MinerFeatureKey.latestVersion}.
      *
      * @param _sources - shared, cached lookups of the upstream sources
+     * @param _context - last reported device data, available even while offline
      */
-    public checkForUpdate(_sources: UpdateSources): Promise<UpdateCheckResult> {
+    public checkForUpdate(_sources: UpdateSources, _context?: UpdateCheckContext): Promise<UpdateCheckResult> {
         return Promise.reject(new Error('update check is not supported for this miner type'));
     }
 

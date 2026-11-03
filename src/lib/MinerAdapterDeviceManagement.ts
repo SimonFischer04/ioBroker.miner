@@ -66,12 +66,6 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             apiVersion: 'v3' as const,
             actions: [
                 {
-                    id: 'refresh',
-                    title: '',
-                    description: I18n.getTranslatedObject('Refresh device list'),
-                    handler: this.handleRefresh.bind(this),
-                },
-                {
                     id: 'newDevice',
                     title: '',
                     description: I18n.getTranslatedObject('Add new device to Miner'),
@@ -107,16 +101,6 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             ],
         };
         return data;
-    }
-
-    /**
-     * Refreshes the device list.
-     *
-     * @param _context - the action context
-     */
-    handleRefresh(_context: ActionContext): { refresh: boolean } {
-        this.adapter.log.info('handleRefresh');
-        return { refresh: true };
     }
 
     /**
@@ -312,6 +296,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         type: 'password',
                         newLine: true,
                         label: I18n.getTranslatedObject('web password'),
+                        help: I18n.getTranslatedObject('Default web password: admin.'),
                         tooltip:
                             'password of the miner web interface, as set in the Avalon Family app. Only needed for the "Approve web login" action, which logs a browser in without scanning the QR code.',
                         hidden: "data.category !== 'miner' || data.minerType != 'avalonMiner'",
@@ -621,12 +606,20 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 label: I18n.getTranslatedObject('Installed version'),
             };
         }
-        items.latestVersion = {
-            type: 'state',
-            oid: oid(MinerFeatureKey.latestVersion),
-            foreign: true,
-            label: I18n.getTranslatedObject('Latest version'),
-        };
+        const latestVersion = (await this.adapter.getForeignStateAsync(oid(MinerFeatureKey.latestVersion)))?.val;
+        items.latestVersion =
+            typeof latestVersion === 'string' && latestVersion.trim() !== ''
+                ? {
+                      type: 'state',
+                      oid: oid(MinerFeatureKey.latestVersion),
+                      foreign: true,
+                      label: I18n.getTranslatedObject('Latest version'),
+                  }
+                : {
+                      type: 'staticInfo',
+                      label: I18n.getTranslatedObject('Latest version'),
+                      data: I18n.getTranslatedObject('Unknown'),
+                  };
 
         const status = describeUpdateStatus(
             (await this.adapter.getForeignStateAsync(oid(MinerFeatureKey.updateAvailable)))?.val,
@@ -662,6 +655,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             // TODO: add more info
 
             const customInfoItems: Record<string, ConfigItemAny> = {};
+            let rssiStateId: string | undefined;
 
             const settings: IOBrokerDeviceSettings = decryptDeviceSettings(
                 device.native as IOBrokerDeviceSettings,
@@ -729,13 +723,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     const stateId = `${device._id}.${getMinerFeatureFullId(MinerFeatureKey.rssi)}`;
                     // only once reported: a wired miner has no signal strength, and an empty row would read as broken
                     if (typeof (await this.adapter.getForeignStateAsync(stateId))?.val === 'number') {
-                        customInfoItems.rssi = {
-                            type: 'state',
-                            oid: stateId,
-                            foreign: true,
-                            label: I18n.getTranslatedObject('RSSI'),
-                            unit: 'dBm',
-                        };
+                        rssiStateId = stateId;
                     }
                 }
 
@@ -771,6 +759,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 // The `online` state is a boolean, but the DM UI expects 'connected'/'disconnected'.
                 // The `mapping` object translates boolean values to the expected strings.
                 status: {
+                    ...(rssiStateId ? { rssi: { stateId: rssiStateId } } : {}),
                     connection: {
                         stateId: `${device._id}.info.online`,
                         mapping: {
@@ -806,6 +795,12 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     },
                     ...(isMiner(settings) && settings.settings.minerType === 'avalonMiner'
                         ? [
+                              {
+                                  id: 'web',
+                                  icon: 'web',
+                                  description: I18n.getTranslatedObject('Open web interface'),
+                                  url: `http://${settings.settings.host}:${(settings.settings as AvalonMinerSettings).webPort ?? 80}/`,
+                              },
                               {
                                   id: 'approveWebLogin',
                                   icon: 'qrcode',
