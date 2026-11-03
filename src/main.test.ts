@@ -42,7 +42,7 @@ interface TestAdapter {
 }
 
 /** Load the real adapter with a controller-free base class. */
-function createTestAdapter(): TestAdapter {
+function loadTestAdapterFactory(): () => TestAdapter {
     const corePath = require.resolve('@iobroker/adapter-core');
     const mainPath = require.resolve('./main');
     const savedCore = require.cache[corePath];
@@ -56,8 +56,7 @@ function createTestAdapter(): TestAdapter {
     delete require.cache[mainPath];
     try {
         const load = createRequire(__filename);
-        const create = load('./main') as () => TestAdapter;
-        return create();
+        return load('./main') as () => TestAdapter;
     } finally {
         if (savedCore) {
             require.cache[corePath] = savedCore;
@@ -69,6 +68,22 @@ function createTestAdapter(): TestAdapter {
         } else {
             delete require.cache[mainPath];
         }
+    }
+}
+
+let testAdapterFactory: () => TestAdapter;
+
+before(function () {
+    // Cold TypeScript compilation (plus coverage instrumentation) can exceed Mocha's 2s test timeout on CI.
+    this.timeout(30_000);
+    testAdapterFactory = loadTestAdapterFactory();
+});
+
+/** Create an isolated adapter without replacing the timers used by other unit tests. */
+function createTestAdapter(): TestAdapter {
+    try {
+        return testAdapterFactory();
+    } finally {
         resetTimerBackend();
     }
 }

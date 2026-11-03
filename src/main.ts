@@ -1,4 +1,5 @@
 import * as utils from '@iobroker/adapter-core';
+import type {} from './lib/adapter-config';
 import { I18n } from '@iobroker/adapter-core';
 import MinerAdapterDeviceManagement from './lib/MinerAdapterDeviceManagement';
 import { categoryKeys } from './lib/miner/model/Category';
