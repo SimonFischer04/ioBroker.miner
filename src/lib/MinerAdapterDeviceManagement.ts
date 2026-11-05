@@ -25,8 +25,18 @@ import type {
     XMRigSettings,
 } from './miner/model/MinerSettings';
 import { BOS_DEFAULT_PASSWORD, BOS_DEFAULT_USERNAME, minerTypeKeys } from './miner/model/MinerSettings';
-import type { IOBrokerDeviceSettings, IOBrokerMinerSettings } from '../miner/model/IOBrokerMinerSettings';
-import { decryptDeviceSettings, isMiner } from '../miner/model/IOBrokerMinerSettings';
+import type {
+    IOBrokerDeviceSettings,
+    IOBrokerKnownDeviceSettings,
+    IOBrokerMinerSettings,
+    IOBrokerPoolSettings,
+} from '../miner/model/IOBrokerMinerSettings';
+import { decryptDeviceSettings, isMiner, isPool } from '../miner/model/IOBrokerMinerSettings';
+import { poolTypeKeys, type BraiinsPoolSettings, type PoolType } from './miner/model/PoolSettings';
+import { createPool } from './miner/pool/PoolFactory';
+import { BRAIINS_POOL_DEFAULT_POLL_INTERVAL_MS, BRAIINS_POOL_MIN_POLL_INTERVAL_MS } from './miner/pool/BraiinsPool';
+import { PoolFeatureKey } from './miner/model/PoolFeature';
+import { formatHashrate } from './utils/hashrate-utils';
 import type { PartialDeep } from 'type-fest';
 import { createMiner } from './miner/miner/MinerFactory';
 import { getMinerFeatureFullId, MinerFeatureKey } from './miner/model/MinerFeature';
@@ -157,9 +167,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             } as PartialDeep<IOBrokerMinerSettings>,
             // TODO: improve this (by making IOBrokerMinerSettings generic?, ...)
             I18n.getTranslatedObject('Add new device'),
+            true,
         );
-
-        this.adapter.log.debug(`handleNewDevice settings: ${JSON.stringify(settings)}`);
 
         if (settings === undefined) {
             return { refresh: false };
@@ -172,21 +181,22 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
 
     private async showDeviceConfigurationForm(
         context: ActionContext,
-        existingSettings: PartialDeep<IOBrokerDeviceSettings>,
+        existingSettings: PartialDeep<IOBrokerKnownDeviceSettings>,
         title: ioBroker.StringOrTranslated,
-    ): Promise<IOBrokerMinerSettings | undefined> {
+        isNew = false,
+    ): Promise<IOBrokerKnownDeviceSettings | undefined> {
         // TODO: re-open form with filled in values if something is missing after showing validation result
         // basically recursive call with existingSettings = return value of this function
 
-        this.adapter.log.debug(`showDeviceConfigurationForm existingSettings: ${JSON.stringify(existingSettings)}`);
-
-        // TODO: implement pool support
-        if (!isMiner(existingSettings)) {
+        if (!isMiner(existingSettings) && !isPool(existingSettings)) {
             this.adapter.log.error(
-                `MinerAdapterDeviceManagement/showDeviceConfigurationForm existingSettings ${JSON.stringify(existingSettings)} is not a miner.`,
+                `MinerAdapterDeviceManagement/showDeviceConfigurationForm category ${existingSettings.category} is not supported.`,
             );
             return undefined;
         }
+
+        const existingMiner = isMiner(existingSettings) ? existingSettings : undefined;
+        const existingPool = isPool(existingSettings) ? existingSettings : undefined;
 
         const result: JsonFormData | undefined = await context.showForm(
             {
@@ -197,21 +207,25 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         format: 'dropdown',
                         newLine: true,
                         label: I18n.getTranslatedObject('Category'),
-                        tooltip: 'category of the iobroker thing (miner or pool)',
+                        tooltip:
+                            'category of the device: a miner (hardware / mining software) or a pool account. Can not be changed later.',
+                        // a device keeps its category: miners and pools have different states
+                        disabled: !isNew,
                         options: categoryKeys.map(key => {
                             return {
                                 value: key,
-                                // TODO: translate(key)
-                                label: key,
+                                label: I18n.getTranslatedObject(key === 'pool' ? 'Pool' : 'Miner'),
                             };
                         }),
                     },
-                    poolWip: {
-                        type: 'staticText',
+                    poolType: {
+                        type: 'select',
+                        format: 'dropdown',
                         newLine: true,
-                        text: I18n.getTranslatedObject('Pool support is not yet available'),
-                        hidden: "data.category === 'miner'",
-                        style: { color: '#ff9800', fontWeight: 'bold' },
+                        label: I18n.getTranslatedObject('Pool'),
+                        tooltip: 'the mining pool the account belongs to',
+                        hidden: "data.category !== 'pool'",
+                        options: poolTypeKeys.map(key => ({ value: key, label: getPoolTypeLabel(key) })),
                     },
                     minerType: {
                         type: 'select',
@@ -236,7 +250,6 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         readOnly: true,
                         noClearButton: true,
                         disabled: true,
-                        hidden: "data.category !== 'miner'",
                     },
                     name: {
                         type: 'text',
@@ -244,7 +257,25 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         // trim: false,
                         label: I18n.getTranslatedObject('Name'),
                         tooltip: 'name for the user to identify the device',
-                        hidden: "data.category !== 'miner'",
+                    },
+                    apiToken: {
+                        type: 'password',
+                        newLine: true,
+                        label: I18n.getTranslatedObject('API token'),
+                        help: I18n.getTranslatedObject(
+                            'Braiins Pool: Settings → Access Profiles: create a profile with web API access and generate a token.',
+                        ),
+                        tooltip:
+                            'access token of the pool API. Read-only access is enough: the adapter only reads statistics.',
+                        hidden: "data.category !== 'pool'",
+                    },
+                    poolPollInterval: {
+                        type: 'number',
+                        newLine: true,
+                        min: BRAIINS_POOL_MIN_POLL_INTERVAL_MS,
+                        label: I18n.getTranslatedObject('poll interval'),
+                        tooltip: `interval to poll the pool API for new data (in ms). The pool updates its statistics about once a minute and limits API requests, so at least ${BRAIINS_POOL_MIN_POLL_INTERVAL_MS} ms.`,
+                        hidden: "data.category !== 'pool'",
                     },
                     host: {
                         type: 'text',
@@ -307,32 +338,38 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         label: I18n.getTranslatedObject('enabled'),
                         tooltip:
                             'whether the device is enabled or not. Disabled devices will do nothing (not get polled, control does not work, ...). Useful if you f.e. shut one off temporarily.',
-                        hidden: "data.category !== 'miner'",
                     },
                 },
             },
             {
                 data: {
                     category: existingSettings.category,
-                    id: existingSettings.settings.id,
-                    minerType: existingSettings.settings.minerType,
+                    id: existingSettings.settings?.id,
                     name: existingSettings.name,
-                    host: existingSettings.settings.host,
-                    mac: existingSettings.mac,
-                    pollInterval: (existingSettings.settings as PollingMinerSettings).pollInterval ?? 10000, // TODO: implement this properly
-                    username: (existingSettings.settings as BOSSettings).username ?? BOS_DEFAULT_USERNAME, // TODO: implement this properly
-                    password: getPasswordFormValue(existingSettings), // TODO: implement this properly
-                    webPassword: (existingSettings.settings as PartialDeep<AvalonMinerSettings>).webPassword ?? '',
                     enabled: existingSettings.enabled,
+                    // miner
+                    minerType: existingMiner?.settings?.minerType,
+                    host: existingMiner?.settings?.host ?? '',
+                    mac: existingMiner?.mac ?? '',
+                    pollInterval: (existingMiner?.settings as PartialDeep<PollingMinerSettings>)?.pollInterval ?? 10000, // TODO: implement this properly
+                    username: (existingMiner?.settings as PartialDeep<BOSSettings>)?.username ?? BOS_DEFAULT_USERNAME, // TODO: implement this properly
+                    password: existingMiner ? getPasswordFormValue(existingMiner) : '', // TODO: implement this properly
+                    webPassword: (existingMiner?.settings as PartialDeep<AvalonMinerSettings>)?.webPassword ?? '',
+                    // pool
+                    poolType: existingPool?.settings?.poolType ?? poolTypeKeys[0],
+                    apiToken: (existingPool?.settings as PartialDeep<BraiinsPoolSettings>)?.apiToken ?? '',
+                    poolPollInterval: existingPool?.settings?.pollInterval ?? BRAIINS_POOL_DEFAULT_POLL_INTERVAL_MS,
                 },
                 title,
             },
         );
 
-        console.log('add device result: ', result);
-
         if (result === null || result === undefined) {
             return undefined;
+        }
+
+        if (isPool({ category: result.category })) {
+            return this.toPoolSettings(context, result);
         }
 
         // TODO: check category && minerType
@@ -580,6 +617,102 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
     }
 
     /**
+     * Build the settings of a pool account from the submitted form.
+     *
+     * @param context - the action context for showing messages
+     * @param result - the submitted form data
+     * @returns the settings, or undefined if the form is incomplete
+     */
+    private async toPoolSettings(
+        context: ActionContext,
+        result: JsonFormData,
+    ): Promise<IOBrokerPoolSettings | undefined> {
+        const poolType = result.poolType as PoolType | undefined;
+        const apiToken = typeof result.apiToken === 'string' ? result.apiToken.trim() : '';
+        const pollInterval = Number(result.poolPollInterval) || BRAIINS_POOL_DEFAULT_POLL_INTERVAL_MS;
+
+        switch (poolType) {
+            case 'braiinsPool': {
+                if (apiToken === '') {
+                    await context.showMessage(I18n.translate('Please enter the API token'));
+                    return undefined;
+                }
+                const settings: BraiinsPoolSettings = {
+                    poolType,
+                    id: result.id,
+                    pollInterval: Math.max(pollInterval, BRAIINS_POOL_MIN_POLL_INTERVAL_MS),
+                    apiToken,
+                };
+                return {
+                    category: 'pool',
+                    name: result.name,
+                    enabled: result.enabled !== false,
+                    settings,
+                };
+            }
+
+            default: {
+                this.adapter.log.error(`MinerAdapterDeviceManagement poolType ${poolType} not supported`);
+                return undefined;
+            }
+        }
+    }
+
+    /**
+     * Device card rows of a pool account: hashrate, workers and balance.
+     *
+     * @param deviceId - full object id of the device
+     * @param features - features of the pool
+     * @returns the card rows, keyed by name
+     */
+    private async getPoolInfoItems(
+        deviceId: string,
+        features: PoolFeatureKey[],
+    ): Promise<Record<string, ConfigItemAny>> {
+        const items: Record<string, ConfigItemAny> = {};
+        const value = async (id: string): Promise<ioBroker.StateValue | undefined> =>
+            (await this.adapter.getForeignStateAsync(`${deviceId}.${id}`))?.val;
+
+        if (features.includes(PoolFeatureKey.hashrate)) {
+            // computed here rather than bound to the state: the state is in H/s, unreadable for pool-sized hashrates
+            const hashrate = await value('stats.hashrate60m');
+            items.hashrate = {
+                type: 'staticInfo',
+                label: I18n.getTranslatedObject('Hashrate (60 min)'),
+                data: typeof hashrate === 'number' ? formatHashrate(hashrate) : I18n.getTranslatedObject('Unknown'),
+            };
+        }
+
+        if (features.includes(PoolFeatureKey.workerCounts)) {
+            const [ok, low, off] = await Promise.all([
+                value('stats.workersOk'),
+                value('stats.workersLow'),
+                value('stats.workersOff'),
+            ]);
+            if (typeof ok === 'number' && typeof low === 'number' && typeof off === 'number') {
+                items.workers = {
+                    type: 'staticInfo',
+                    label: I18n.getTranslatedObject('Active workers'),
+                    data: `${ok + low} / ${ok + low + off}`,
+                    styleValue: { color: off > 0 ? 'orange' : 'green' },
+                };
+            }
+        }
+
+        if (features.includes(PoolFeatureKey.rewards)) {
+            items.currentBalance = {
+                type: 'state',
+                oid: `${deviceId}.rewards.currentBalance`,
+                foreign: true,
+                label: I18n.getTranslatedObject('Current balance'),
+                unit: 'BTC',
+            };
+        }
+
+        return items;
+    }
+
+    /**
      * Device card rows for the update check: installed and latest version, and the update status.
      *
      * The status is computed when the card is built rather than bound to `info.updateAvailable` directly:
@@ -661,6 +794,16 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 device.native as IOBrokerDeviceSettings,
                 value => this.adapter.decrypt(value),
             );
+
+            let webUrl: string | undefined;
+            if (isPool(settings) && settings.settings.poolType) {
+                const dummyPool = createPool(settings.settings);
+                webUrl = dummyPool.getWebUrl();
+                Object.assign(
+                    customInfoItems,
+                    await this.getPoolInfoItems(device._id, dummyPool.getSupportedFeatures()),
+                );
+            }
 
             if (isMiner(settings) && settings.settings.minerType) {
                 const dummyMiner = createMiner(settings.settings);
@@ -809,6 +952,16 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                               },
                           ]
                         : []),
+                    ...(webUrl
+                        ? [
+                              {
+                                  id: 'web',
+                                  icon: 'web',
+                                  description: I18n.getTranslatedObject('Open web interface'),
+                                  url: webUrl,
+                              },
+                          ]
+                        : []),
                 ],
             });
         }
@@ -904,9 +1057,10 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             value => this.adapter.decrypt(value),
         );
 
-        if (!isMiner(currentSettings)) {
-            // TODO: pool support (#deal with miner -> pool change: just disable category dropdown on settings)
-            this.adapter.log.error(`MinerAdapterDeviceManagement/handleSettingsDevice settings are not miners`);
+        if (!isMiner(currentSettings) && !isPool(currentSettings)) {
+            this.adapter.log.error(
+                `MinerAdapterDeviceManagement/handleSettingsDevice category ${currentSettings.category} not supported`,
+            );
             return { refresh: 'none' };
         }
 
@@ -918,19 +1072,11 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             I18n.getTranslatedObject('Settings'),
         );
 
-        this.adapter.log.debug(`handleSettingsDevice newSettings: ${JSON.stringify(newSettings)}`);
-
         if (newSettings === undefined) {
             return { refresh: 'none' };
         }
 
         await this.adapter.updateDevice(newSettings);
-
-        if (!isMiner(newSettings)) {
-            // TODO: pool support (#deal with miner -> pool change: just disable category dropdown on settings)
-            this.adapter.log.error(`MinerAdapterDeviceManagement/handleSettingsDevice settings are not miners`);
-            return { refresh: 'none' };
-        }
 
         // name change requires full instance refresh, not just device - to display correct name in the devices header in the device list
         if (currentSettings.name != newSettings.name) {
@@ -962,8 +1108,39 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             this.adapter.decrypt(value),
         );
 
+        if (isPool(settings)) {
+            return {
+                id,
+                schema: {
+                    type: 'panel',
+                    items: {
+                        name: {
+                            type: 'text',
+                            label: I18n.getTranslatedObject('Name'),
+                            newLine: true,
+                            sm: 12,
+                            disabled: 'true',
+                        },
+                        poolType: {
+                            type: 'text',
+                            label: I18n.getTranslatedObject('Pool'),
+                            newLine: true,
+                            sm: 12,
+                            disabled: 'true',
+                        },
+                    },
+                    style: {
+                        minWidth: 420,
+                    },
+                },
+                data: {
+                    name: obj.common.name,
+                    poolType: getPoolTypeLabel(settings.settings.poolType),
+                },
+            };
+        }
+
         if (!isMiner(settings)) {
-            // TODO: pool support
             const error = `getDeviceDetails category ${obj.native.category} not yet supported`;
             this.log.error(error);
             return { error };
@@ -1039,6 +1216,18 @@ function getPasswordFormValue(settings: PartialDeep<IOBrokerMinerSettings>): str
 
         default: {
             return '';
+        }
+    }
+}
+
+function getPoolTypeLabel(poolType: PoolType): string {
+    switch (poolType) {
+        case 'braiinsPool': {
+            return 'Braiins Pool';
+        }
+
+        default: {
+            return poolType;
         }
     }
 }

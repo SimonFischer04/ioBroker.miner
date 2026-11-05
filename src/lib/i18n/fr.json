@@ -16,7 +16,6 @@
     "Please enter an IP address": "Veuillez saisir une adresse IP",
     "Power Target": "Puissance cible",
     "Refresh device list": "Actualiser la liste des appareils",
-    "Pool support is not yet available": "La prise en charge des pools n'est pas encore disponible. En cours de développement.",
     "Profile": "Profil",
     "RSSI": "RSSI",
     "Running": "En cours d'exécution",
@@ -43,7 +42,13 @@
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Connexion approuvée : le navigateur affichant la page de connexion du mineur sera connecté dans les 5 secondes.",
     "The miner rejected the web password. Check it in the device settings.": "Le mineur a refusé le mot de passe web. Vérifiez-le dans les paramètres de l'appareil.",
     "Could not approve the web login: %s": "Impossible d'approuver la connexion web : %s",
-    "Set": "Appliquer"
+    "Set": "Appliquer",
+    "Miner": "Mineur",
+    "Pool": "Pool",
+    "API token": "Jeton API",
+    "Braiins Pool: Settings → Access Profiles: create a profile with web API access and generate a token.": "Braiins Pool : Settings → Access Profiles : créez un profil avec accès à l'API web et générez un jeton.",
+    "Please enter the API token": "Veuillez saisir le jeton API",
+    "Hashrate (60 min)": "Hashrate (60 min)",
+    "Active workers": "Workers actifs",
+    "Current balance": "Solde actuel"
 }
-
-

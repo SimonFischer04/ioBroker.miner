@@ -16,7 +16,6 @@
     "Please enter an IP address": "Пожалуйста, введите IP адрес",
     "Power Target": "Целевая мощность",
     "Refresh device list": "Обновить список устройств",
-    "Pool support is not yet available": "Поддержка пулов ещё не доступна. В разработке.",
     "Profile": "Профиль",
     "RSSI": "RSSI",
     "Running": "Работает",
@@ -43,7 +42,13 @@
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Вход подтверждён: браузер со страницей входа майнера войдёт в систему в течение 5 секунд.",
     "The miner rejected the web password. Check it in the device settings.": "Майнер отклонил веб-пароль. Проверьте его в настройках устройства.",
     "Could not approve the web login: %s": "Не удалось подтвердить веб-вход: %s",
-    "Set": "Установить"
+    "Set": "Установить",
+    "Miner": "Майнер",
+    "Pool": "Пул",
+    "API token": "API-токен",
+    "Braiins Pool: Settings → Access Profiles: create a profile with web API access and generate a token.": "Braiins Pool: Settings → Access Profiles: создайте профиль с доступом к веб-API и сгенерируйте токен.",
+    "Please enter the API token": "Пожалуйста, введите API-токен",
+    "Hashrate (60 min)": "Хешрейт (60 мин)",
+    "Active workers": "Активные воркеры",
+    "Current balance": "Текущий баланс"
 }
-
-

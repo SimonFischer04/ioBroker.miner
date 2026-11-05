@@ -16,7 +16,6 @@
     "Please enter an IP address": "Bitte geben Sie eine IP-Adresse ein",
     "Power Target": "Leistungsziel",
     "Refresh device list": "Geräteliste aktualisieren",
-    "Pool support is not yet available": "Pool-Unterstützung ist noch nicht verfügbar. In Arbeit.",
     "Profile": "Profil",
     "RSSI": "RSSI",
     "Running": "Läuft",
@@ -43,7 +42,13 @@
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Anmeldung freigegeben: Der Browser mit der Anmeldeseite des Miners wird innerhalb von 5 Sekunden angemeldet.",
     "The miner rejected the web password. Check it in the device settings.": "Der Miner hat das Web-Passwort abgelehnt. Bitte in den Geräteeinstellungen prüfen.",
     "Could not approve the web login: %s": "Web-Anmeldung konnte nicht freigegeben werden: %s",
-    "Set": "Setzen"
+    "Set": "Setzen",
+    "Miner": "Miner",
+    "Pool": "Pool",
+    "API token": "API-Token",
+    "Braiins Pool: Settings → Access Profiles: create a profile with web API access and generate a token.": "Braiins Pool: Einstellungen → Access Profiles: ein Profil mit Web-API-Zugriff anlegen und ein Token erzeugen.",
+    "Please enter the API token": "Bitte das API-Token eingeben",
+    "Hashrate (60 min)": "Hashrate (60 Min.)",
+    "Active workers": "Aktive Worker",
+    "Current balance": "Aktuelles Guthaben"
 }
-
-

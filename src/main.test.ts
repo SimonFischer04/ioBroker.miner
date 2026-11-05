@@ -7,6 +7,8 @@ import type { MinerAdapter } from './main';
 import type { ConfigItemAny } from '@iobroker/dm-utils';
 import { BOS } from './lib/miner/miner/BOS';
 import { UpdateSources } from './lib/update/UpdateSources';
+import { PoolFeatureKey } from './lib/miner/model/PoolFeature';
+import type { PoolStats } from './lib/miner/model/PoolStats';
 
 /** Only the adapter dependencies used by initialization and update checks. */
 class AdapterMock extends EventEmitter {
@@ -216,5 +218,141 @@ describe('device manager latest version', () => {
         );
         expect(items.latestVersion.type).to.equal('state');
         expect(Reflect.get(items.latestVersion, 'oid')).to.equal('miner.0.miner.test.info.latestVersion');
+    });
+});
+
+describe('pool devices', () => {
+    interface PoolTestAdapter {
+        poolManager: {
+            init: (settings: object) => Promise<object>;
+            hasPool: (id: string) => boolean;
+            close: (id: string) => Promise<void>;
+        };
+        extendObject: (id: string, obj: { type?: string; common?: object }) => Promise<void>;
+        setState: (id: string, state: { val: unknown }) => Promise<void>;
+        setStateChangedAsync: (id: string, state: { val: unknown }) => Promise<void>;
+        getStateAsync: (id: string) => Promise<{ val: unknown } | null>;
+        getObjectAsync: (id: string) => Promise<object | null>;
+        initDevice: (device: ioBroker.DeviceObject) => Promise<void>;
+        onStateChange: (id: string, state: { val: unknown; ack: boolean }) => Promise<void>;
+    }
+
+    const device = {
+        _id: 'miner.0.pool.my-pool',
+        common: { name: 'my pool' },
+        native: {
+            category: 'pool',
+            name: 'my pool',
+            settings: { poolType: 'braiinsPool', id: 'my-pool', pollInterval: 60_000, apiToken: 'token' },
+        },
+    } as unknown as ioBroker.DeviceObject;
+
+    function createPoolTestAdapter(): {
+        adapter: PoolTestAdapter;
+        objects: Map<string, { type?: string; common?: object }>;
+        writes: Map<string, unknown>;
+        extendCalls: string[];
+        publish: () => { stats?: (stats: PoolStats) => Promise<void>; online?: (online: boolean) => Promise<void> };
+        active: Set<string>;
+    } {
+        const adapter = createTestAdapter() as unknown as PoolTestAdapter;
+        const objects = new Map<string, { type?: string; common?: object }>();
+        const writes = new Map<string, unknown>();
+        const extendCalls: string[] = [];
+        const active = new Set<string>();
+        const callbacks: {
+            stats?: (stats: PoolStats) => Promise<void>;
+            online?: (online: boolean) => Promise<void>;
+        } = {};
+        const pool = {
+            getSupportedFeatures: () => Object.values(PoolFeatureKey),
+            subscribeToStats: (cb: (stats: PoolStats) => Promise<void>) => (callbacks.stats = cb),
+            subscribeToOnlineStatus: (cb: (online: boolean) => Promise<void>) => (callbacks.online = cb),
+        };
+        adapter.poolManager = {
+            init: settings => {
+                active.add((settings as { id: string }).id);
+                return Promise.resolve(pool);
+            },
+            hasPool: id => active.has(id),
+            close: id => {
+                active.delete(id);
+                return Promise.resolve();
+            },
+        };
+        adapter.extendObject = (id, obj) => {
+            extendCalls.push(id);
+            objects.set(id, obj);
+            return Promise.resolve();
+        };
+        adapter.setState = (id, state) => {
+            writes.set(id, state.val);
+            return Promise.resolve();
+        };
+        adapter.setStateChangedAsync = adapter.setState;
+        adapter.getStateAsync = id => Promise.resolve(writes.has(id) ? { val: writes.get(id) } : null);
+        adapter.getObjectAsync = id => Promise.resolve(id === device._id ? device : null);
+        return { adapter, objects, writes, extendCalls, publish: () => callbacks, active };
+    }
+
+    it('creates the pool states, polls the pool and writes stats and workers', async () => {
+        const { adapter, objects, writes, extendCalls, publish, active } = createPoolTestAdapter();
+
+        await adapter.initDevice(device);
+
+        expect(active.has('my-pool')).to.equal(true);
+        expect(objects.get('pool.my-pool.stats.hashrate5m')?.common).to.include({ unit: 'H/s' });
+        expect(objects.get('pool.my-pool.rewards.currentBalance')?.common).to.include({ unit: 'BTC' });
+        expect(writes.get('pool.my-pool.info.poolType')).to.equal('braiinsPool');
+        expect(writes.get('pool.my-pool.enabled')).to.equal(true);
+        expect(writes.get('pool.my-pool.info.online')).to.equal(false);
+
+        const stats: PoolStats = {
+            username: 'me',
+            hashrate5m: 1e12,
+            currentBalance: 0.01,
+            workers: [{ name: 'me.rig1', state: 'ok', hashrate5m: 5e11 }],
+        };
+        await publish().stats?.(stats);
+        await publish().stats?.(stats);
+
+        expect(writes.get('pool.my-pool.stats.hashrate5m')).to.equal(1e12);
+        expect(writes.get('pool.my-pool.rewards.currentBalance')).to.equal(0.01);
+        expect(writes.get('pool.my-pool.info.username')).to.equal('me');
+        expect(writes.get('pool.my-pool.info.online')).to.equal(true);
+        expect(writes.get('pool.my-pool.workers.rig1.state')).to.equal('ok');
+        expect(writes.get('pool.my-pool.workers.rig1.hashrate5m')).to.equal(5e11);
+        expect(objects.get('pool.my-pool.workers.rig1')).to.deep.equal({
+            type: 'channel',
+            common: { name: 'me.rig1' },
+        });
+        // the worker channel is created on the first poll only
+        expect(extendCalls.filter(id => id === 'pool.my-pool.workers.rig1')).to.have.length(1);
+    });
+
+    it('stops and restarts polling via the enabled state', async () => {
+        const { adapter, writes, active } = createPoolTestAdapter();
+        await adapter.initDevice(device);
+        expect(active.has('my-pool')).to.equal(true);
+
+        // the controller stores the written value before it emits the change
+        writes.set('miner.0.pool.my-pool.enabled', false);
+        await adapter.onStateChange('miner.0.pool.my-pool.enabled', { val: false, ack: false });
+        expect(active.has('my-pool')).to.equal(false);
+        expect(writes.get('pool.my-pool.info.online')).to.equal(false);
+
+        writes.set('miner.0.pool.my-pool.enabled', true);
+        await adapter.onStateChange('miner.0.pool.my-pool.enabled', { val: true, ack: false });
+        expect(active.has('my-pool')).to.equal(true);
+    });
+
+    it('does not poll a disabled pool', async () => {
+        const { adapter, writes, active } = createPoolTestAdapter();
+        writes.set('miner.0.pool.my-pool.enabled', false);
+
+        await adapter.initDevice(device);
+
+        expect(active.has('my-pool')).to.equal(false);
+        expect(writes.get('pool.my-pool.enabled')).to.equal(false);
     });
 });

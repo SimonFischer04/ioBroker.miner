@@ -16,7 +16,6 @@
     "Please enter an IP address": "请输入IP地址",
     "Power Target": "目标功率",
     "Refresh device list": "刷新设备列表",
-    "Pool support is not yet available": "矿池支持尚不可用。正在开发中。",
     "Profile": "配置文件",
     "RSSI": "RSSI",
     "Running": "运行中",
@@ -43,8 +42,13 @@
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "登录已批准：显示矿机登录页面的浏览器将在 5 秒内登录。",
     "The miner rejected the web password. Check it in the device settings.": "矿机拒绝了网页密码。请在设备设置中检查。",
     "Could not approve the web login: %s": "无法批准网页登录：%s",
-    "Set": "设置"
+    "Set": "设置",
+    "Miner": "矿机",
+    "Pool": "矿池",
+    "API token": "API 令牌",
+    "Braiins Pool: Settings → Access Profiles: create a profile with web API access and generate a token.": "Braiins Pool：Settings → Access Profiles：创建具有 Web API 访问权限的配置文件并生成令牌。",
+    "Please enter the API token": "请输入 API 令牌",
+    "Hashrate (60 min)": "算力（60 分钟）",
+    "Active workers": "活跃矿工",
+    "Current balance": "当前余额"
 }
-
-
-

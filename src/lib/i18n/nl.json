@@ -16,7 +16,6 @@
     "Please enter an IP address": "Voer een IP-adres in",
     "Power Target": "Vermogensdoel",
     "Refresh device list": "Vernieuw apparaatlijst",
-    "Pool support is not yet available": "Pool-ondersteuning is nog niet beschikbaar. Wordt aan gewerkt.",
     "Profile": "Profiel",
     "RSSI": "RSSI",
     "Running": "Actief",
@@ -43,7 +42,13 @@
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Aanmelding goedgekeurd: de browser met de aanmeldpagina van de miner wordt binnen 5 seconden aangemeld.",
     "The miner rejected the web password. Check it in the device settings.": "De miner heeft het webwachtwoord geweigerd. Controleer het in de apparaatinstellingen.",
     "Could not approve the web login: %s": "Webaanmelding kon niet worden goedgekeurd: %s",
-    "Set": "Instellen"
+    "Set": "Instellen",
+    "Miner": "Miner",
+    "Pool": "Pool",
+    "API token": "API-token",
+    "Braiins Pool: Settings → Access Profiles: create a profile with web API access and generate a token.": "Braiins Pool: Settings → Access Profiles: maak een profiel met web-API-toegang aan en genereer een token.",
+    "Please enter the API token": "Voer het API-token in",
+    "Hashrate (60 min)": "Hashrate (60 min)",
+    "Active workers": "Actieve workers",
+    "Current balance": "Huidig saldo"
 }
-
-

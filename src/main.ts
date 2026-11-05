@@ -4,8 +4,13 @@ import { I18n } from '@iobroker/adapter-core';
 import MinerAdapterDeviceManagement from './lib/MinerAdapterDeviceManagement';
 import { categoryKeys } from './lib/miner/model/Category';
 import { MinerManager } from './lib/miner/miner/MinerManager';
-import type { IOBrokerDeviceSettings, IOBrokerMinerSettings } from './miner/model/IOBrokerMinerSettings';
-import { decryptDeviceSettings, encryptDeviceSettings, isMiner } from './miner/model/IOBrokerMinerSettings';
+import type {
+    IOBrokerDeviceSettings,
+    IOBrokerKnownDeviceSettings,
+    IOBrokerMinerSettings,
+    IOBrokerPoolSettings,
+} from './miner/model/IOBrokerMinerSettings';
+import { decryptDeviceSettings, encryptDeviceSettings, isMiner, isPool } from './miner/model/IOBrokerMinerSettings';
 import { Level } from './lib/miner/model/Level';
 import {
     getMinerFeatureFullId,
@@ -14,6 +19,7 @@ import {
     minerFeatures,
 } from './lib/miner/model/MinerFeature';
 import { createMiner } from './lib/miner/miner/MinerFactory';
+import { createPool } from './lib/miner/pool/PoolFactory';
 import { Logger } from './lib/miner/model/Logger';
 import { isWithinPowerTargetConstraints, type Miner } from './lib/miner/miner/Miner';
 import type { MinerSettings } from './lib/miner/model/MinerSettings';
@@ -22,6 +28,19 @@ import { asyncDynamicInterval, setTimerBackend, type AsyncIntervalReturnType } f
 import { UpdateSources } from './lib/update/UpdateSources';
 import { runUpdateChecks, type UpdateCheckSummary } from './lib/update/runUpdateChecks';
 import type { UpdateCheckContext, UpdateCheckResult } from './lib/miner/model/UpdateCheckResult';
+import { PoolManager } from './lib/miner/pool/PoolManager';
+import type { Pool } from './lib/miner/pool/Pool';
+import type { PoolSettings } from './lib/miner/model/PoolSettings';
+import type { PoolStats } from './lib/miner/model/PoolStats';
+import { PoolFeatureKey } from './lib/miner/model/PoolFeature';
+import {
+    getPoolStateObjects,
+    getPoolStateValues,
+    getWorkerObjectId,
+    getWorkerStateObjects,
+    getWorkerStateValues,
+    poolChannels,
+} from './pool/poolStates';
 
 /** First update check shortly after start, once the miners are initialized and reachable. */
 const UPDATE_CHECK_INITIAL_DELAY_MS = 60_000;
@@ -33,12 +52,17 @@ const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 export class MinerAdapter extends utils.Adapter {
     private readonly deviceManagement: MinerAdapterDeviceManagement;
     public readonly minerManager: MinerManager = new MinerManager();
+    public readonly poolManager: PoolManager = new PoolManager();
     private readonly updateSources = new UpdateSources();
     private updateCheckHandle: AsyncIntervalReturnType | undefined;
     /**
      * The devices whose miner is reachable, by object id, with the name `info.connection` lists them by.
      */
     private readonly onlineDevices = new Map<string, string>();
+    /**
+     * Worker channels already created in this run, by full relative object id, so a poll doesn't recreate them.
+     */
+    private readonly knownPoolWorkers = new Set<string>();
 
     /**
      *
@@ -90,6 +114,7 @@ export class MinerAdapter extends utils.Adapter {
         // this is correct RELATIVE path! actually means "miner.X.miner.<minerid>.control"
         this.subscribeStates('miner.*.control.*');
         this.subscribeStates('miner.*.enabled');
+        this.subscribeStates('pool.*.enabled');
 
         this.scheduleUpdateChecks();
     }
@@ -103,6 +128,7 @@ export class MinerAdapter extends utils.Adapter {
         try {
             this.updateCheckHandle?.clear();
             await this.minerManager.closeAll();
+            await this.poolManager.closeAll();
 
             if (this.deviceManagement) {
                 await this.deviceManagement.close();
@@ -163,7 +189,7 @@ export class MinerAdapter extends utils.Adapter {
             const deviceSettings = decryptDeviceSettings(obj.native as IOBrokerDeviceSettings, value =>
                 this.decrypt(value),
             );
-            if (!isMiner(deviceSettings)) {
+            if (!isMiner(deviceSettings) && !isPool(deviceSettings)) {
                 this.log.warn(`category ${deviceSettings.category} not yet supported`);
                 return;
             }
@@ -172,16 +198,21 @@ export class MinerAdapter extends utils.Adapter {
             // example: control.running or enabled
             const minerObjectId: string = parts.slice(4).join('.');
 
+            if (minerObjectId === 'enabled') {
+                const enabled = state.val === true;
+                this.log.info(`${enabled ? 'enable' : 'disable'} requested for device ${deviceSettings.name}`);
+
+                await this.setDeviceEnabled(deviceObjectId, deviceSettings, enabled);
+                await this.setState(id, { val: enabled, ack: true });
+                return;
+            }
+
+            if (!isMiner(deviceSettings)) {
+                this.log.warn(`unknown handling of state ${id}`);
+                return;
+            }
+
             switch (minerObjectId) {
-                case 'enabled': {
-                    const enabled = state.val === true;
-                    this.log.info(`${enabled ? 'enable' : 'disable'} requested for device ${deviceSettings.name}`);
-
-                    await this.setDeviceEnabled(deviceObjectId, deviceSettings, enabled);
-                    await this.setState(id, { val: enabled, ack: true });
-                    break;
-                }
-
                 case getMinerFeatureFullId(MinerFeatureKey.running): {
                     this.log.debug(`running state changed to ${state.val}`);
 
@@ -309,8 +340,7 @@ export class MinerAdapter extends utils.Adapter {
     }
 
     private async configureDeviceObject(settings: IOBrokerDeviceSettings): Promise<ioBroker.DeviceObject | undefined> {
-        if (!isMiner(settings)) {
-            // TODO: pool support
+        if (!isMiner(settings) && !isPool(settings)) {
             this.log.error(`category ${settings.category} is not yet supported.`);
             return;
         }
@@ -318,14 +348,15 @@ export class MinerAdapter extends utils.Adapter {
         // TODO: fill settings.mac using arp request
         const id = this.getDeviceObjectId(settings);
 
-        this.log.debug(`extended object ${id} with: ${JSON.stringify(settings)}`);
+        // don't log the settings themselves: they hold passwords and API tokens in clear text here
+        this.log.debug(`extending device object ${id}`);
         // strip old (<=v1.0.4) enabled prop from native
         const { enabled: _enabled, ...nativeSettings } = settings;
 
         await this.extendObject(id, {
             type: 'device',
             common: {
-                name: settings.name || settings.settings.host,
+                name: this.getDeviceDisplayName(settings),
             },
             native: encryptDeviceSettings(nativeSettings, value => this.encrypt(value)),
         });
@@ -360,7 +391,7 @@ export class MinerAdapter extends utils.Adapter {
             return;
         }
 
-        await this.initDevice(obj, isMiner(settings) ? settings.enabled : undefined);
+        await this.initDevice(obj, isMiner(settings) || isPool(settings) ? settings.enabled : undefined);
     }
 
     /**
@@ -370,8 +401,7 @@ export class MinerAdapter extends utils.Adapter {
     public async updateDevice(settings: IOBrokerDeviceSettings): Promise<void> {
         // PS: don't just delDevice and addDevice, as this would lose all state history, ...
 
-        if (!isMiner(settings)) {
-            // TODO: pool support
+        if (!isMiner(settings) && !isPool(settings)) {
             this.log.error(`category ${settings.category} is not yet supported.`);
             return;
         }
@@ -381,8 +411,8 @@ export class MinerAdapter extends utils.Adapter {
             ack: true,
         });
 
-        if (!(await this.tryCloseMiner(settings))) {
-            this.log.error(`updateDevice could not close miner ${settings.settings.id}`);
+        if (!(await this.tryCloseDevice(settings))) {
+            this.log.error(`updateDevice could not close device ${settings.settings.id}`);
             return;
         }
 
@@ -407,54 +437,106 @@ export class MinerAdapter extends utils.Adapter {
             this.decrypt(value),
         );
 
-        if (!isMiner(settings)) {
-            // TODO: pool support
+        if (!isMiner(settings) && !isPool(settings)) {
             this.log.error(`deleteDevice category ${obj.native.category} not yet supported`);
             return false;
         }
 
-        if (!(await this.tryCloseMiner(settings))) {
-            this.log.error(`delDevice could not close miner ${settings.settings.id}`);
+        if (!(await this.tryCloseDevice(settings))) {
+            this.log.error(`delDevice could not close device ${settings.settings.id}`);
             return false;
         }
 
         await this.delObjectAsync(deviceId, { recursive: true });
         // deviceId is the full object id here, the set holds the relative one
-        this.onlineDevices.delete(this.getDeviceObjectId(settings));
+        const relativeDeviceId = this.getDeviceObjectId(settings);
+        this.onlineDevices.delete(relativeDeviceId);
+        for (const workerId of this.knownPoolWorkers) {
+            if (workerId.startsWith(`${relativeDeviceId}.`)) {
+                this.knownPoolWorkers.delete(workerId);
+            }
+        }
         await this.updateConnectionState();
 
         this.log.info(`${deviceId} deleted`);
         return true;
     }
 
-    private async tryCloseMiner(settings: IOBrokerMinerSettings): Promise<boolean> {
+    private async tryCloseDevice(settings: IOBrokerKnownDeviceSettings): Promise<boolean> {
         if (settings.settings.id === undefined) {
-            this.log.error('tryCloseMiner: minerId is undefined');
+            this.log.error('tryCloseDevice: device id is undefined');
             return false;
         }
 
         if (!settings.enabled) {
-            this.log.debug(`tryCloseMiner: skipped miner close, because ${settings.settings.id} is disabled`);
+            this.log.debug(`tryCloseDevice: skipped close, because ${settings.settings.id} is disabled`);
 
-            if (this.minerManager.hasMiner(settings.settings.id)) {
+            if (this.isDeviceActive(settings)) {
                 this.log.error(
-                    `tryCloseMiner: this should not happen, miner ${settings.settings.id} is disabled but still in minerManager`,
+                    `tryCloseDevice: this should not happen, device ${settings.settings.id} is disabled but still active`,
                 );
-                await this.minerManager.close(settings.settings.id);
+                await this.closeDevice(settings);
             }
 
             return true;
         }
 
-        await this.minerManager.close(settings.settings.id);
+        await this.closeDevice(settings);
         return true;
+    }
+
+    /**
+     * Whether the miner / pool of the device is initialized (connected, polled).
+     *
+     * @param settings - the device settings
+     */
+    private isDeviceActive(settings: IOBrokerKnownDeviceSettings): boolean {
+        const id = settings.settings.id;
+        if (id === undefined) {
+            return false;
+        }
+        return isPool(settings) ? this.poolManager.hasPool(id) : this.minerManager.hasMiner(id);
+    }
+
+    /**
+     * Unload the miner / pool of the device.
+     *
+     * @param settings - the device settings
+     */
+    private async closeDevice(settings: IOBrokerKnownDeviceSettings): Promise<void> {
+        const id = settings.settings.id;
+        if (id === undefined) {
+            return;
+        }
+        if (isPool(settings)) {
+            await this.poolManager.close(id);
+        } else {
+            await this.minerManager.close(id);
+        }
+    }
+
+    /**
+     * Name used for the device object and in `info.connection`.
+     *
+     * @param settings - the device settings
+     */
+    private getDeviceDisplayName(settings: IOBrokerKnownDeviceSettings): string {
+        if (settings.name) {
+            return settings.name;
+        }
+        return isPool(settings) ? settings.settings.poolType : settings.settings.host;
     }
 
     private async initDevice(device: ioBroker.DeviceObject, initialEnabled?: boolean): Promise<void> {
         const settings: IOBrokerDeviceSettings = decryptDeviceSettings(device.native as IOBrokerDeviceSettings, value =>
             this.decrypt(value),
         );
-        this.log.info(`initialising device ${JSON.stringify(settings)}`);
+        this.log.debug(`initialising device ${device._id}`);
+
+        if (isPool(settings)) {
+            await this.initPoolDevice(device, settings, initialEnabled);
+            return;
+        }
 
         if (!isMiner(settings)) {
             this.log.error(`tryKnownDevices category ${settings.category} not yet supported`);
@@ -514,7 +596,7 @@ export class MinerAdapter extends utils.Adapter {
 
     private async setDeviceEnabled(
         deviceObjectId: string,
-        settings: IOBrokerMinerSettings,
+        settings: IOBrokerKnownDeviceSettings,
         enabled: boolean,
     ): Promise<void> {
         if (settings.settings.id === undefined) {
@@ -522,12 +604,12 @@ export class MinerAdapter extends utils.Adapter {
             return;
         }
 
-        if (settings.enabled === enabled && this.minerManager.hasMiner(settings.settings.id) === enabled) {
+        if (settings.enabled === enabled && this.isDeviceActive(settings) === enabled) {
             return;
         }
 
         if (enabled) {
-            if (this.minerManager.hasMiner(settings.settings.id)) {
+            if (this.isDeviceActive(settings)) {
                 return;
             }
 
@@ -541,8 +623,8 @@ export class MinerAdapter extends utils.Adapter {
             return;
         }
 
-        if (this.minerManager.hasMiner(settings.settings.id)) {
-            await this.minerManager.close(settings.settings.id);
+        if (this.isDeviceActive(settings)) {
+            await this.closeDevice(settings);
         }
         await this.setDeviceOnline(settings, false);
     }
@@ -582,7 +664,10 @@ export class MinerAdapter extends utils.Adapter {
         const deviceId = this.getDeviceObjectId(settings);
         await this.setState(`${deviceId}.info.online`, { val: online, ack: true });
         if (online) {
-            this.onlineDevices.set(deviceId, isMiner(settings) ? settings.name || settings.settings.host : deviceId);
+            this.onlineDevices.set(
+                deviceId,
+                isMiner(settings) || isPool(settings) ? this.getDeviceDisplayName(settings) : deviceId,
+            );
         } else {
             this.onlineDevices.delete(deviceId);
         }
@@ -809,6 +894,107 @@ export class MinerAdapter extends utils.Adapter {
         }
     }
 
+    /**
+     * Create the states of a pool account and start polling it, unless it is disabled.
+     *
+     * @param device - the device object
+     * @param settings - the decrypted pool settings
+     * @param initialEnabled - whether the device is enabled, if its `enabled` state doesn't exist yet
+     */
+    private async initPoolDevice(
+        device: ioBroker.DeviceObject,
+        settings: IOBrokerPoolSettings,
+        initialEnabled?: boolean,
+    ): Promise<void> {
+        let pool: Pool<PoolSettings>;
+        try {
+            await this.createPoolStateObjects(settings);
+            const enabledState = await this.getStateAsync(`${device._id}.enabled`);
+            settings.enabled = (enabledState?.val ?? initialEnabled ?? true) as boolean;
+
+            const deviceId = this.getDeviceObjectId(settings);
+            await this.setState(`${deviceId}.info.poolType`, { val: settings.settings.poolType, ack: true });
+            await this.setState(`${deviceId}.enabled`, { val: settings.enabled, ack: true });
+            await this.setDeviceOnline(settings, false);
+
+            if (!settings.enabled) {
+                this.log.info(`pool ${settings.name} is disabled`);
+                return;
+            }
+
+            pool = await this.poolManager.init(settings.settings);
+        } catch (e) {
+            this.log.error(`could not initialize pool ${settings.name || settings.settings.poolType}: ${String(e)}`);
+            return;
+        }
+
+        pool.subscribeToStats(async (stats: PoolStats) => {
+            await this.processNewPoolStats(pool, settings, stats);
+        });
+        pool.subscribeToOnlineStatus(async (online: boolean) => {
+            await this.setDeviceOnline(settings, online);
+        });
+    }
+
+    private async createPoolStateObjects(settings: IOBrokerPoolSettings): Promise<void> {
+        const deviceId = this.getDeviceObjectId(settings);
+        const features = createPool(settings.settings).getSupportedFeatures();
+
+        for (const [channel, name] of Object.entries(poolChannels)) {
+            if (channel === 'workers' && !features.includes(PoolFeatureKey.workers)) {
+                continue;
+            }
+            if (channel === 'raw' && !features.includes(PoolFeatureKey.rawStats)) {
+                continue;
+            }
+            if (channel === 'rewards' && !features.includes(PoolFeatureKey.rewards)) {
+                continue;
+            }
+            await this.extendObject(`${deviceId}.${channel}`, { type: 'channel', common: { name } });
+        }
+
+        await this.extendObject(`${deviceId}.enabled`, {
+            type: 'state',
+            common: { name: 'Enabled', type: 'boolean', role: 'switch.enable', read: true, write: true },
+        });
+
+        for (const [id, common] of Object.entries(getPoolStateObjects(features))) {
+            await this.extendObject(`${deviceId}.${id}`, { type: 'state', common });
+        }
+    }
+
+    private async processNewPoolStats(
+        pool: Pool<PoolSettings>,
+        settings: IOBrokerPoolSettings,
+        stats: PoolStats,
+    ): Promise<void> {
+        const deviceId = this.getDeviceObjectId(settings);
+        const features = pool.getSupportedFeatures();
+
+        for (const [id, val] of Object.entries(getPoolStateValues(stats, features))) {
+            await this.setState(`${deviceId}.${id}`, { val, ack: true });
+        }
+
+        if (features.includes(PoolFeatureKey.workers)) {
+            for (const worker of stats.workers ?? []) {
+                const workerId = `${deviceId}.workers.${getWorkerObjectId(worker.name, stats.username)}`;
+                if (!this.knownPoolWorkers.has(workerId)) {
+                    await this.extendObject(workerId, { type: 'channel', common: { name: worker.name } });
+                    for (const [id, common] of Object.entries(getWorkerStateObjects())) {
+                        await this.extendObject(`${workerId}.${id}`, { type: 'state', common });
+                    }
+                    this.knownPoolWorkers.add(workerId);
+                }
+                for (const [id, val] of Object.entries(getWorkerStateValues(worker))) {
+                    await this.setState(`${workerId}.${id}`, { val, ack: true });
+                }
+            }
+        }
+
+        await this.setDeviceOnline(settings, true);
+        await this.setState(`${deviceId}.info.lastSeen`, { val: Date.now(), ack: true });
+    }
+
     private scheduleUpdateChecks(): void {
         // instances created before the setting existed have no value for it: treat that as the default (on)
         if (this.config.checkForUpdates === false) {
@@ -945,8 +1131,7 @@ export class MinerAdapter extends utils.Adapter {
     }
 
     private getDeviceObjectId(settings: IOBrokerDeviceSettings): string {
-        if (!isMiner(settings)) {
-            // TODO: pool support
+        if (!isMiner(settings) && !isPool(settings)) {
             this.log.error(`category ${settings.category} is not yet supported.`);
             return '<unsupported>';
         }
