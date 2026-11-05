@@ -44,6 +44,10 @@ export interface MinerStats {
      */
     rssi?: number;
     /**
+     * Runtime of the dust filter in minutes since it was last cleaned (reset).
+     */
+    filterRuntime?: number;
+    /**
      * Raw API response payload.
      */
     raw?: object;

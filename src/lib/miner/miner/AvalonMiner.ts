@@ -33,6 +33,8 @@ enum AvalonMinerParameter {
     workModeLow = '0,workmode,set,0',
     workModeMedium = '0,workmode,set,1',
     workModeHigh = '0,workmode,set,2',
+    // confirms a cleaned dust filter: resets its runtime (litestats Filter[]). The firmware accepts only the value 1.
+    filterClean = '0,filter-clean,1',
     // Future: reboot = '0,reboot,0',
     // Future: lcdOn = '0,lcd,0:1',
     // Future: lcdOff = '0,lcd,0:0',
@@ -114,6 +116,9 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
             ...super.getSupportedFeatures().filter(feature => !unsupportedFeatures.includes(feature)),
             MinerFeatureKey.profile,
             MinerFeatureKey.rssi,
+            MinerFeatureKey.filterRuntime,
+            MinerFeatureKey.filterCleanDue,
+            MinerFeatureKey.filterReset,
             // MinerFeatureKey.running,
             MinerFeatureKey.latestVersion,
             MinerFeatureKey.updateAvailable,
@@ -201,6 +206,25 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
         this.logger.info(`Setting Avalon workmode to "${profile}" (id=${params})`);
         // TODO: check response status and then set with ack: true
         await this.sendCommand(AvalonMinerCommand.ascset, params, true);
+    }
+
+    /**
+     * Confirms a cleaned dust filter, like "Filter Clear" in the Avalon Family app: resets the filter runtime the
+     * miner reports (litestats `Filter[]`) to 0.
+     *
+     * @throws {Error} if the miner can't be reached or rejects the command
+     */
+    public override async resetFilter(): Promise<void> {
+        const response = await this.sendCommand<{ STATUS?: CGMinerStatus[] }>(
+            AvalonMinerCommand.ascset,
+            AvalonMinerParameter.filterClean,
+            true,
+        );
+        const status = response?.STATUS?.[0];
+        if (!status || status.STATUS === 'E' || status.STATUS === 'F') {
+            throw new Error(status?.Msg ?? 'no reply to filter-clean');
+        }
+        this.logger.info('filter reminder reset');
     }
 
     /**
@@ -302,6 +326,7 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
             power,
             efficiency: power != null && baseStats.totalHashrate ? baseStats.totalHashrate / power : undefined,
             rssi: this.extractRssiFromLiteStats(response.litestats?.[0]?.STATS),
+            filterRuntime: this.extractFilterRuntimeFromLiteStats(response.litestats?.[0]?.STATS),
         };
     }
 
@@ -353,6 +378,32 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
     }
 
     /**
+     * Telemetry of the first device entry of a litestats response (the first `MM ID<n>` string), parsed.
+     *
+     * @param liteStatsEntries - STATS array from a litestats response
+     * @returns map of key → value strings, or undefined if there is no telemetry
+     */
+    private getLiteStatsTelemetry(liteStatsEntries: LiteStatsData[] | undefined): Map<string, string> | undefined {
+        const entry = liteStatsEntries?.find(e => 'MM Count' in e);
+        const mmIdKey = entry && Object.keys(entry).find(key => key.startsWith('MM ID'));
+        const telemetry = mmIdKey ? entry[mmIdKey as `MM ID${number}`] : undefined;
+        return telemetry ? this.parseAvalonTelemetry(telemetry) : undefined;
+    }
+
+    /**
+     * Extract the dust filter runtime from a litestats response: `Filter[33862]` in minutes since the filter was last
+     * cleaned (reset with `filter-clean`). Canaan's cgminer passes the miner's `filtermesh_time` through unchanged.
+     *
+     * @param liteStatsEntries - STATS array from a litestats response
+     * @returns runtime in minutes, or undefined if not reported (e.g. a firmware without litestats)
+     */
+    private extractFilterRuntimeFromLiteStats(liteStatsEntries: LiteStatsData[] | undefined): number | undefined {
+        // not safeParseFloat: it turns garbage into 0, which would look like a freshly cleaned filter
+        const runtime = Number.parseInt(this.getLiteStatsTelemetry(liteStatsEntries)?.get('Filter') ?? '', 10);
+        return Number.isFinite(runtime) && runtime >= 0 ? runtime : undefined;
+    }
+
+    /**
      * Extract the WiFi signal strength from the first device entry of a litestats response: `RSSI[-55]` in the first
      * `MM ID<n>` telemetry string.
      *
@@ -360,15 +411,8 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
      * @returns RSSI in dBm, or undefined if not reported (e.g. a wired connection or a firmware without litestats)
      */
     private extractRssiFromLiteStats(liteStatsEntries: LiteStatsData[] | undefined): number | undefined {
-        const entry = liteStatsEntries?.find(e => 'MM Count' in e);
-        const mmIdKey = entry && Object.keys(entry).find(key => key.startsWith('MM ID'));
-        const telemetry = mmIdKey ? entry[mmIdKey as `MM ID${number}`] : undefined;
-        if (!telemetry) {
-            return undefined;
-        }
-
         // not safeParseFloat: it turns garbage into 0, which would look like a (perfect) reading
-        const rssi = Number.parseFloat(this.parseAvalonTelemetry(telemetry).get('RSSI') ?? '');
+        const rssi = Number.parseFloat(this.getLiteStatsTelemetry(liteStatsEntries)?.get('RSSI') ?? '');
         return Number.isFinite(rssi) ? rssi : undefined;
     }
 }

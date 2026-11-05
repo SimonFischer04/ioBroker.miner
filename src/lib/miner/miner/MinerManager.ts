@@ -158,6 +158,22 @@ export class MinerManager {
     }
 
     /**
+     * Reset the dust filter reminder on a miner, after its filter was cleaned.
+     *
+     * @param id - the miner id
+     * @throws {Error} if the miner is not running (e.g. disabled) or the reset failed
+     */
+    public async resetFilter(id: string): Promise<void> {
+        logger.info(`[resetFilter] resetting the filter reminder on miner with id ${id}`);
+
+        const miner = this.getMinerById(id);
+        if (!miner) {
+            throw new Error(`miner with id ${id} not found`);
+        }
+        await miner.resetFilter();
+    }
+
+    /**
      * Set the power target on a miner.
      *
      * @param id - the miner id

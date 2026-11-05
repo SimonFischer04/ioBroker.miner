@@ -16,7 +16,8 @@ import {
 import { createMiner } from './lib/miner/miner/MinerFactory';
 import { Logger } from './lib/miner/model/Logger';
 import { isWithinPowerTargetConstraints, type Miner } from './lib/miner/miner/Miner';
-import type { MinerSettings } from './lib/miner/model/MinerSettings';
+import type { AvalonMinerSettings, MinerSettings } from './lib/miner/model/MinerSettings';
+import { formatFilterRuntime, isFilterCleanDue } from './lib/miner/model/FilterStatus';
 import type { MinerStats } from './lib/miner/model/MinerStats';
 import { asyncDynamicInterval, setTimerBackend, type AsyncIntervalReturnType } from './lib/utils/delay';
 import { UpdateSources } from './lib/update/UpdateSources';
@@ -256,6 +257,22 @@ export class MinerAdapter extends utils.Adapter {
 
                     await this.minerManager.setPowerTarget(deviceSettings.settings.id, powerTarget);
                     await this.setState(id, { val: powerTarget, ack: true });
+                    break;
+                }
+
+                case getMinerFeatureFullId(MinerFeatureKey.filterReset): {
+                    if (!state.val) {
+                        return;
+                    }
+                    this.log.info(`filter reminder reset requested for device ${deviceSettings.name}`);
+                    try {
+                        await this.resetFilter(deviceSettings);
+                    } catch (e) {
+                        this.log.error(
+                            `resetting the filter reminder of device ${deviceSettings.name} failed: ${e instanceof Error ? e.message : String(e)}`,
+                        );
+                    }
+                    await this.setState(id, { val: false, ack: true });
                     break;
                 }
 
@@ -643,6 +660,13 @@ export class MinerAdapter extends utils.Adapter {
                 ack: true,
             });
         }
+        if (
+            isMiner(settings) &&
+            supported.includes(MinerFeatureKey.filterRuntime) &&
+            stats.filterRuntime !== undefined
+        ) {
+            await this.updateFilterStates(settings, stats.filterRuntime);
+        }
         // Stats sub-states: write whatever the miner provides
         if (supported.includes(MinerFeatureKey.stats)) {
             const statsValues: Record<string, ioBroker.StateValue | undefined> = {
@@ -663,6 +687,56 @@ export class MinerAdapter extends utils.Adapter {
         // Always update online / lastSeen
         await this.setDeviceOnline(settings, true);
         await this.setState(`${deviceId}.info.lastSeen`, { val: Date.now(), ack: true });
+    }
+
+    /**
+     * Writes the filter runtime and whether cleaning is due, and raises a notification when cleaning becomes due.
+     *
+     * @param settings - the device the runtime was reported for
+     * @param filterRuntime - filter runtime in minutes since the last reset
+     */
+    private async updateFilterStates(settings: IOBrokerMinerSettings, filterRuntime: number): Promise<void> {
+        await this.setStateChangedAsync(this.getStateFullObjectId(settings, MinerFeatureKey.filterRuntime), {
+            val: filterRuntime,
+            ack: true,
+        });
+
+        const intervalDays = (settings.settings as Partial<AvalonMinerSettings>).filterCleanIntervalDays;
+        const due = isFilterCleanDue(filterRuntime, intervalDays) ?? null;
+        const dueStateId = this.getStateFullObjectId(settings, MinerFeatureKey.filterCleanDue);
+        // compare with the stored value, so the notification fires once when cleaning becomes due, not on every poll
+        // or adapter restart
+        const wasDue = (await this.getStateAsync(dueStateId))?.val === true;
+        await this.setStateChangedAsync(dueStateId, { val: due, ack: true });
+
+        if (due === true && !wasDue) {
+            const message = `The dust filter of miner "${settings.name}" should be cleaned: it has been running for ${formatFilterRuntime(filterRuntime)} since the last cleaning. After cleaning it, reset the filter reminder (device action "Reset filter reminder" or state ${this.namespace}.${this.getStateFullObjectId(settings, MinerFeatureKey.filterReset)}).`;
+            this.log.warn(message);
+            try {
+                await this.registerNotification('miner', 'filterClean', message);
+            } catch (e) {
+                // js-controller without notification support: the log message above has to do
+                this.log.debug(`could not register filter notification: ${String(e)}`);
+            }
+        }
+    }
+
+    /**
+     * Confirms a cleaned dust filter: resets the filter runtime on the miner and clears the reminder right away instead
+     * of waiting for the next poll.
+     *
+     * @param settings - the device whose filter was cleaned
+     * @throws {Error} if the device is disabled or the miner rejects the reset
+     */
+    public async resetFilter(settings: IOBrokerMinerSettings): Promise<void> {
+        if (settings.settings.id === undefined) {
+            throw new Error(`device ${settings.name} has no id`);
+        }
+        if (!this.minerManager.getMiner(settings.settings.id)) {
+            throw new Error('the device is disabled');
+        }
+        await this.minerManager.resetFilter(settings.settings.id);
+        await this.updateFilterStates(settings, 0);
     }
 
     private async createDeviceStateObjects(settings: IOBrokerDeviceSettings): Promise<void> {

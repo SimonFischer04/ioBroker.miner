@@ -58,6 +58,12 @@ The web interface of Avalon Nano 3 / 3S miners has no password form: it shows a 
 
 This does the same as scanning the QR code: the adapter sends the miner the `qr_auth` command the app sends, signed with the web password.
 
+### Avalon dust filter reminder
+Avalon Nano 3 / 3S miners count how long their dust filter has been running since it was last cleaned. The adapter shows it as `info.filterRuntime` (minutes) and on the device card in the device manager.
+
+- When the runtime reaches the reminder interval of the device settings (`filter cleaning reminder (days)`, default 30 days, 0 = off), `info.filterCleanDue` turns `true`, the device card shows "Clean now", and the adapter raises an ioBroker notification (category "Dust filter needs cleaning"), which notification adapters such as notification-manager can forward e.g. to Telegram or e-mail.
+- After cleaning the filter, reset the reminder: use the device action "Reset filter reminder" in the device manager, or set `control.filterReset` to `true`. This does the same as "Filter Clear" in the Avalon Family app: it sends the miner the `ascset|0,filter-clean,1` command, which sets its filter runtime back to 0.
+
 Firmware checks for BOS use the last reported control-board type and installed version, including while the device is offline or disabled. A BOS device must have reported its identity at least once. Avalon update checks currently cover the exact Nano 3 model only: the app's `nano3` feed has no verified Nano 3S compatibility, so Nano 3S update status remains unknown.
 
 ## Object model
@@ -156,6 +162,9 @@ miner.0
     Placeholder for the next version (at the beginning of the line):
     ### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (claude) **NEW**: Avalon: dust filter reminder. The filter runtime since the last cleaning is shown as `info.filterRuntime` and on the device card; once it exceeds the reminder interval of the device settings (default 30 days, 0 = off), `info.filterCleanDue` turns `true` and an ioBroker notification is raised. After cleaning, reset it with the new "Reset filter reminder" device action or `control.filterReset`, like "Filter Clear" in the Avalon Family app
+
 ### 1.2.0 (2026-11-03)
 * (claude) **NEW**: Check miners for available firmware/software updates once a day and show them in the device manager: new states `info.latestVersion` and `info.updateAvailable` (Braiins OS, XMRig, TeamRedMiner, IceRiver OC firmware, Avalon Nano 3), plus the auto-upgrade status for Braiins OS. Can be turned off in the instance settings; a "check for updates" action checks right away (#195)
 * (claude) **FIXED**: `info.online` now switches to `false` after 3 failed polls in a row and back to `true` on the next successful one; a poll that hangs counts as failed after its poll interval, but at least 30 seconds, and requests to Braiins OS (gRPC) and XMRig / IceRiver (HTTP) are now cancelled after that time instead of staying open (#222)
