@@ -16,7 +16,6 @@
     "Please enter an IP address": "Veuillez saisir une adresse IP",
     "Power Target": "Puissance cible",
     "Refresh device list": "Actualiser la liste des appareils",
-    "Pool support is not yet available": "La prise en charge des pools n'est pas encore disponible. En cours de développement.",
     "Profile": "Profil",
     "RSSI": "RSSI",
     "Running": "En cours d'exécution",
@@ -45,5 +44,13 @@
     "Could not approve the web login: %s": "Impossible d'approuver la connexion web : %s",
     "Set": "Appliquer",
     "filter cleaning reminder (days)": "rappel de nettoyage du filtre (jours)",
-    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Jours de fonctionnement du filtre avant le rappel de nettoyer le filtre à poussière. 0 = désactivé."
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Jours de fonctionnement du filtre avant le rappel de nettoyer le filtre à poussière. 0 = désactivé.",
+    "Miner": "Mineur",
+    "Pool": "Pool",
+    "API token": "Jeton API",
+    "Braiins Pool: Settings → Access Profiles: create a profile with web API access and generate a token.": "Braiins Pool : Settings → Access Profiles : créez un profil avec accès à l'API web et générez un jeton.",
+    "Please enter the API token": "Veuillez saisir le jeton API",
+    "Hashrate (60 min)": "Hashrate (60 min)",
+    "Active workers": "Workers actifs",
+    "Current balance": "Solde actuel"
 }

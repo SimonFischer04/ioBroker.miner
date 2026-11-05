@@ -16,7 +16,6 @@
     "Please enter an IP address": "Voer een IP-adres in",
     "Power Target": "Vermogensdoel",
     "Refresh device list": "Vernieuw apparaatlijst",
-    "Pool support is not yet available": "Pool-ondersteuning is nog niet beschikbaar. Wordt aan gewerkt.",
     "Profile": "Profiel",
     "RSSI": "RSSI",
     "Running": "Actief",
@@ -45,5 +44,13 @@
     "Could not approve the web login: %s": "Webaanmelding kon niet worden goedgekeurd: %s",
     "Set": "Instellen",
     "filter cleaning reminder (days)": "herinnering filter reinigen (dagen)",
-    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Dagen filterlooptijd tot de herinnering om het stoffilter te reinigen. 0 = uit."
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Dagen filterlooptijd tot de herinnering om het stoffilter te reinigen. 0 = uit.",
+    "Miner": "Miner",
+    "Pool": "Pool",
+    "API token": "API-token",
+    "Braiins Pool: Settings → Access Profiles: create a profile with web API access and generate a token.": "Braiins Pool: Settings → Access Profiles: maak een profiel met web-API-toegang aan en genereer een token.",
+    "Please enter the API token": "Voer het API-token in",
+    "Hashrate (60 min)": "Hashrate (60 min)",
+    "Active workers": "Actieve workers",
+    "Current balance": "Huidig saldo"
 }
