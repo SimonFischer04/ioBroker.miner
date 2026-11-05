@@ -35,6 +35,8 @@ enum AvalonMinerParameter {
     workModeLow = '0,workmode,set,0',
     workModeMedium = '0,workmode,set,1',
     workModeHigh = '0,workmode,set,2',
+    // confirms a cleaned dust filter: resets its runtime (litestats Filter[]). The firmware accepts only the value 1.
+    filterClean = '0,filter-clean,1',
     // Future: reboot = '0,reboot,0',
     // LED ring: `0,ledset,<effect>-<brightness>-<colorTemperature>-<red>-<green>-<blue>`, see buildLedSetParameter
     ledSet = '0,ledset',
@@ -325,6 +327,9 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
             ...super.getSupportedFeatures().filter(feature => !unsupportedFeatures.includes(feature)),
             MinerFeatureKey.profile,
             MinerFeatureKey.rssi,
+            MinerFeatureKey.filterRuntime,
+            MinerFeatureKey.filterCleanDue,
+            MinerFeatureKey.filterReset,
             // MinerFeatureKey.running,
             MinerFeatureKey.latestVersion,
             MinerFeatureKey.updateAvailable,
@@ -411,6 +416,17 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
 
         this.logger.info(`Setting Avalon workmode to "${profile}" (id=${params})`);
         await this.sendAscset(params, 'workmode');
+    }
+
+    /**
+     * Confirms a cleaned dust filter, like "Filter Clear" in the Avalon Family app: resets the filter runtime the
+     * miner reports (litestats `Filter[]`) to 0.
+     *
+     * @throws {Error} if the miner can't be reached or rejects the command
+     */
+    public override async resetFilter(): Promise<void> {
+        await this.sendAscset(AvalonMinerParameter.filterClean, 'filter-clean');
+        this.logger.info('filter reminder reset');
     }
 
     /**
@@ -600,6 +616,7 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
             power,
             efficiency: power != null && baseStats.totalHashrate ? baseStats.totalHashrate / power : undefined,
             rssi: this.extractRssiFromLiteStats(liteStatsEntries),
+            filterRuntime: this.extractFilterRuntimeFromLiteStats(liteStatsEntries),
             profile: AVALON_WORKMODE_PROFILES.get(this.extractTelemetryField('WORKMODE', statsEntries)),
             ...(Object.keys(custom).length > 0 ? { custom } : {}),
         };
@@ -696,6 +713,19 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
 
         const watts = safeParseFloat(parts[6]);
         return watts > 0 ? watts : undefined;
+    }
+
+    /**
+     * Extract the dust filter runtime from a litestats response: `Filter[33862]` in minutes since the filter was last
+     * cleaned (reset with `filter-clean`). Canaan's cgminer passes the miner's `filtermesh_time` through unchanged.
+     *
+     * @param liteStatsEntries - STATS array from a litestats response
+     * @returns runtime in minutes, or undefined if not reported (e.g. a firmware without litestats)
+     */
+    private extractFilterRuntimeFromLiteStats(liteStatsEntries: LiteStatsData[] | undefined): number | undefined {
+        // not safeParseFloat: it turns garbage into 0, which would look like a freshly cleaned filter
+        const runtime = Number.parseInt(this.firstDeviceTelemetry(liteStatsEntries)?.get('Filter') ?? '', 10);
+        return Number.isFinite(runtime) && runtime >= 0 ? runtime : undefined;
     }
 
     /**

@@ -201,4 +201,9 @@ export interface AvalonMinerSettings extends CGMinerSettings {
      * Port of the miner's web interface. Default: 80.
      */
     webPort?: number;
+    /**
+     * Remind to clean the dust filter after this many days of filter runtime. 0 turns the reminder off.
+     * Default: 30 days (`DEFAULT_FILTER_CLEAN_INTERVAL_DAYS`).
+     */
+    filterCleanIntervalDays?: number;
 }

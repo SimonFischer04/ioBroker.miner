@@ -43,7 +43,15 @@
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Login aprovado: o navegador que mostra a página de login do minerador fará login em até 5 segundos.",
     "The miner rejected the web password. Check it in the device settings.": "O minerador rejeitou a senha web. Verifique-a nas configurações do dispositivo.",
     "Could not approve the web login: %s": "Não foi possível aprovar o login web: %s",
-    "Set": "Definir"
+    "Set": "Definir",
+    "filter cleaning reminder (days)": "lembrete de limpeza do filtro (dias)",
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Dias de funcionamento do filtro até ao lembrete para limpar o filtro de pó. 0 = desligado.",
+    "Filter runtime": "Tempo de funcionamento do filtro",
+    "Dust filter": "Filtro de pó",
+    "Clean now": "Limpar agora",
+    "OK": "OK",
+    "Reset filter reminder": "Repor lembrete do filtro",
+    "Did you clean the dust filter? This resets the filter runtime on the miner to 0.": "Limpou o filtro de pó? Isto repõe a 0 o tempo de funcionamento do filtro no minerador.",
+    "Filter reminder reset.": "Lembrete do filtro reposto.",
+    "Could not reset the filter reminder: %s": "Não foi possível repor o lembrete do filtro: %s"
 }
-
-

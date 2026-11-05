@@ -33,6 +33,7 @@ import type { PartialDeep } from 'type-fest';
 import { createMiner } from './miner/miner/MinerFactory';
 import { getMinerFeatureFullId, MinerFeatureKey } from './miner/model/MinerFeature';
 import { describeUpdateStatus } from './update/updateStatus';
+import { DEFAULT_FILTER_CLEAN_INTERVAL_DAYS, formatFilterRuntime } from './miner/model/FilterStatus';
 import { AvalonMiner } from './miner/miner/AvalonMiner';
 import { isWrongPasswordError } from './miner/api/AvalonWebLogin';
 import type { Miner } from './miner/miner/Miner';
@@ -311,6 +312,19 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                             'password of the miner web interface, as set in the Avalon Family app. Only needed for the "Approve web login" action, which logs a browser in without scanning the QR code.',
                         hidden: "data.category !== 'miner' || data.minerType != 'avalonMiner'",
                     },
+                    filterCleanIntervalDays: {
+                        type: 'number',
+                        newLine: true,
+                        min: 0,
+                        step: 1,
+                        label: I18n.getTranslatedObject('filter cleaning reminder (days)'),
+                        help: I18n.getTranslatedObject(
+                            'Days of filter runtime until the reminder to clean the dust filter. 0 = off.',
+                        ),
+                        tooltip:
+                            'after this many days of filter runtime the adapter sets info.filterCleanDue and raises a notification. Reset the reminder after cleaning the filter.',
+                        hidden: "data.category !== 'miner' || data.minerType != 'avalonMiner'",
+                    },
                     enabled: {
                         type: 'checkbox',
                         newLine: true,
@@ -333,6 +347,9 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     username: (existingSettings.settings as BOSSettings).username ?? BOS_DEFAULT_USERNAME, // TODO: implement this properly
                     password: getPasswordFormValue(existingSettings), // TODO: implement this properly
                     webPassword: (existingSettings.settings as PartialDeep<AvalonMinerSettings>).webPassword ?? '',
+                    filterCleanIntervalDays:
+                        (existingSettings.settings as PartialDeep<AvalonMinerSettings>).filterCleanIntervalDays ??
+                        DEFAULT_FILTER_CLEAN_INTERVAL_DAYS,
                     enabled: existingSettings.enabled,
                 },
                 title,
@@ -560,6 +577,12 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     pollInterval,
                     port: 4028, // TODO: make configurable
                     webPassword: result.webPassword || undefined,
+                    // an emptied field means the default, not 0 (which turns the reminder off)
+                    filterCleanIntervalDays:
+                        typeof result.filterCleanIntervalDays === 'number' &&
+                        Number.isFinite(result.filterCleanIntervalDays)
+                            ? Math.max(0, result.filterCleanIntervalDays)
+                            : undefined,
                 };
                 minerSettings = {
                     ...minerSettings,
@@ -656,6 +679,40 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         return items;
     }
 
+    /**
+     * Device card rows for the dust filter: runtime since the last cleaning, and whether cleaning is due.
+     * Nothing until the miner reported a runtime: an empty row would read as broken.
+     *
+     * @param deviceId - full object id of the device
+     * @returns the card rows, keyed by name
+     */
+    private async getFilterInfoItems(deviceId: string): Promise<Record<string, ConfigItemAny>> {
+        const oid = (key: MinerFeatureKey): string => `${deviceId}.${getMinerFeatureFullId(key)}`;
+        const runtime = (await this.adapter.getForeignStateAsync(oid(MinerFeatureKey.filterRuntime)))?.val;
+        if (typeof runtime !== 'number') {
+            return {};
+        }
+        const due = (await this.adapter.getForeignStateAsync(oid(MinerFeatureKey.filterCleanDue)))?.val;
+
+        const items: Record<string, ConfigItemAny> = {
+            filterRuntime: {
+                type: 'staticInfo',
+                label: I18n.getTranslatedObject('Filter runtime'),
+                data: formatFilterRuntime(runtime),
+            },
+        };
+        // null: the reminder is off
+        if (typeof due === 'boolean') {
+            items.filterStatus = {
+                type: 'staticInfo',
+                label: I18n.getTranslatedObject('Dust filter'),
+                data: I18n.getTranslatedObject(due ? 'Clean now' : 'OK'),
+                styleValue: { color: due ? 'orange' : 'green' },
+            };
+        }
+        return items;
+    }
+
     protected async loadDevices(context: DeviceLoadContext<string>): Promise<void> {
         const devices = await this.adapter.getDevicesAsync();
 
@@ -739,6 +796,10 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     }
                 }
 
+                if (supportedFeatures.includes(MinerFeatureKey.filterRuntime)) {
+                    Object.assign(customInfoItems, await this.getFilterInfoItems(device._id));
+                }
+
                 if (supportedFeatures.includes(MinerFeatureKey.updateAvailable)) {
                     Object.assign(
                         customInfoItems,
@@ -819,6 +880,12 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                                   icon: 'qrcode',
                                   description: I18n.getTranslatedObject('Approve web login'),
                                   handler: this.handleApproveWebLogin.bind(this),
+                              },
+                              {
+                                  id: 'resetFilter',
+                                  icon: 'refresh',
+                                  description: I18n.getTranslatedObject('Reset filter reminder'),
+                                  handler: this.handleResetFilter.bind(this),
                               },
                           ]
                         : []),
@@ -1035,6 +1102,47 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             );
         }
         return { refresh: 'none' };
+    }
+
+    /**
+     * Confirms a cleaned dust filter: resets the filter runtime on the miner, like "Filter Clear" in the Avalon Family
+     * app.
+     *
+     * @param id - the device object id
+     * @param context - the action context for showing messages
+     */
+    protected async handleResetFilter(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
+        const obj = await this.adapter.getObjectAsync(id);
+        if (obj == null) {
+            this.adapter.log.error(`MinerAdapterDeviceManagement/handleResetFilter object ${id} not found`);
+            return { refresh: 'none' };
+        }
+        const settings = decryptDeviceSettings(obj.native as IOBrokerDeviceSettings, value =>
+            this.adapter.decrypt(value),
+        );
+        if (!isMiner(settings)) {
+            return { refresh: 'none' };
+        }
+
+        const confirmed = await context.showConfirmation(
+            I18n.getTranslatedObject(
+                'Did you clean the dust filter? This resets the filter runtime on the miner to 0.',
+            ),
+        );
+        if (!confirmed) {
+            return { refresh: 'none' };
+        }
+
+        try {
+            await this.adapter.resetFilter(settings);
+            await context.showMessage(I18n.getTranslatedObject('Filter reminder reset.'));
+            return { refresh: 'devices' };
+        } catch (e) {
+            const message = e instanceof Error ? e.message : JSON.stringify(e);
+            this.adapter.log.warn(`resetting the filter reminder of ${id} failed: ${message}`);
+            await context.showMessage(translateWithArgs('Could not reset the filter reminder: %s', message));
+            return { refresh: 'none' };
+        }
     }
 
     protected async handleDeleteDevice(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {

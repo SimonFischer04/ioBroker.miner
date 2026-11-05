@@ -87,6 +87,9 @@ describe('AvalonMiner', () => {
             expect(stats.rssi).to.be.a('number');
             expect(stats.rssi).to.equal(-55);
 
+            // filter runtime from litestats telemetry: Filter[33862] → 33862 minutes
+            expect(stats.filterRuntime).to.equal(33862);
+
             // Efficiency: totalHashrate / power
             expect(stats.efficiency).to.be.a('number');
             if (stats.totalHashrate === undefined || stats.power === undefined) {
@@ -110,8 +113,16 @@ describe('AvalonMiner', () => {
             const stats = miner.parseSummaryVersionStatsResponse(fixture);
 
             expect(stats.rssi).to.be.undefined;
+            expect(stats.filterRuntime).to.be.undefined;
             expect(stats.power).to.equal(131);
             expect(stats.version).to.equal('4.11.1');
+        });
+
+        it('reports no filter runtime rather than 0 when the value is not a number', () => {
+            const garbled = structuredClone(liteStatsFixture) as LiteStatsResponse;
+            garbled.STATS[0]['MM ID0'] = garbled.STATS[0]['MM ID0'].replace('Filter[33862]', 'Filter[]');
+
+            expect(miner.parseSummaryVersionStatsResponse(withLiteStats([garbled])).filterRuntime).to.be.undefined;
         });
 
         it('reports no RSSI rather than 0 when the value is not a number', () => {
@@ -243,6 +254,13 @@ describe('AvalonMiner', () => {
         it('should include the rssi feature', () => {
             const features = miner.getSupportedFeatures();
             expect(features).to.include(MinerFeatureKey.rssi);
+        });
+
+        it('should include the filter features', () => {
+            const features = miner.getSupportedFeatures();
+            expect(features).to.include(MinerFeatureKey.filterRuntime);
+            expect(features).to.include(MinerFeatureKey.filterCleanDue);
+            expect(features).to.include(MinerFeatureKey.filterReset);
         });
 
         it('should not include cliArgs', () => {
@@ -540,5 +558,66 @@ describe('Avalon light and display', () => {
             }
             expect(ascsets()).to.deep.equal([]);
         });
+    });
+});
+
+describe('AvalonMiner.resetFilter', () => {
+    /**
+     * Runs `resetFilter` against a fake cgminer API that answers every request with `reply`.
+     *
+     * @param reply - raw reply of the fake miner
+     * @returns the requests the miner received, and the error resetFilter threw (if any)
+     */
+    async function resetFilterAgainst(
+        reply: string,
+    ): Promise<{ requests: { command: string; parameter: string }[]; error?: Error }> {
+        const requests: { command: string; parameter: string }[] = [];
+        const server = createServer(socket => {
+            socket.on('data', data => {
+                requests.push(JSON.parse(data.toString()) as { command: string; parameter: string });
+                socket.end(reply);
+            });
+        });
+        await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+
+        try {
+            const miner = new AvalonMiner({
+                minerType: 'avalonMiner',
+                host: '127.0.0.1',
+                port: (server.address() as AddressInfo).port,
+                pollInterval: 10000,
+            });
+            try {
+                await miner.resetFilter();
+                return { requests };
+            } catch (e) {
+                return { requests, error: e as Error };
+            }
+        } finally {
+            await new Promise(resolve => server.close(resolve));
+        }
+    }
+
+    it('sends filter-clean with the only value the firmware accepts', async () => {
+        const { requests, error } = await resetFilterAgainst(
+            JSON.stringify({
+                STATUS: [{ STATUS: 'I', When: 0, Code: 118, Msg: 'ASC 0 set OK', Description: 'cgminer 4.11.1' }],
+                id: 1,
+            }),
+        );
+
+        expect(error).to.be.undefined;
+        expect(requests).to.deep.equal([{ command: 'ascset', parameter: '0,filter-clean,1' }]);
+    });
+
+    it('rejects when the miner reports an error', async () => {
+        const { error } = await resetFilterAgainst(
+            JSON.stringify({
+                STATUS: [{ STATUS: 'E', When: 0, Code: 120, Msg: 'Input param error.', Description: 'cgminer 4.11.1' }],
+                id: 1,
+            }),
+        );
+
+        expect(error?.message).to.equal('Input param error.');
     });
 });
