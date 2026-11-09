@@ -10,28 +10,11 @@ const MINUTES_PER_DAY = 24 * 60;
  * Whether the dust filter is due for cleaning.
  *
  * @param runtimeMinutes - filter runtime since the last reset, as reported by the miner
- * @param intervalDays - reminder interval from the device settings; 0 turns the reminder off, undefined uses
- *  {@link DEFAULT_FILTER_CLEAN_INTERVAL_DAYS}
- * @returns true / false, or undefined if unknown (no runtime reported) or the reminder is off
+ * @param intervalDays - reminder interval from the device settings; 0 turns the reminder off (never due), undefined
+ *  uses {@link DEFAULT_FILTER_CLEAN_INTERVAL_DAYS}
+ * @returns whether cleaning is due
  */
-export function isFilterCleanDue(
-    runtimeMinutes: number | undefined,
-    intervalDays: number | undefined,
-): boolean | undefined {
+export function isFilterCleanDue(runtimeMinutes: number, intervalDays: number | undefined): boolean {
     const interval = intervalDays ?? DEFAULT_FILTER_CLEAN_INTERVAL_DAYS;
-    if (runtimeMinutes === undefined || !Number.isFinite(runtimeMinutes) || !(interval > 0)) {
-        return undefined;
-    }
-    return runtimeMinutes >= interval * MINUTES_PER_DAY;
-}
-
-/**
- * Formats a filter runtime for display, e.g. `23 d 12 h`.
- *
- * @param runtimeMinutes - filter runtime in minutes
- * @returns the runtime in days and hours
- */
-export function formatFilterRuntime(runtimeMinutes: number): string {
-    const totalHours = Math.floor(Math.max(0, runtimeMinutes) / 60);
-    return `${Math.floor(totalHours / 24)} d ${totalHours % 24} h`;
+    return interval > 0 && runtimeMinutes >= interval * MINUTES_PER_DAY;
 }

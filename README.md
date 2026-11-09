@@ -59,10 +59,10 @@ The web interface of Avalon Nano 3 / 3S miners has no password form: it shows a 
 This does the same as scanning the QR code: the adapter sends the miner the `qr_auth` command the app sends, signed with the web password.
 
 ### Avalon dust filter reminder
-Avalon Nano 3 / 3S miners count how long their dust filter has been running since it was last cleaned. The adapter shows it as `info.filterRuntime` (minutes) and on the device card in the device manager.
+Avalon Nano 3 / 3S miners count how long their dust filter has been running since it was last cleaned. The adapter shows it as `custom.filter.runtime` (hours) and on the device card in the device manager.
 
-- When the runtime reaches the reminder interval of the device settings (`filter cleaning reminder (days)`, default 30 days, 0 = off), `info.filterCleanDue` turns `true`, the device card shows "Clean now", and the adapter raises an ioBroker notification (category "Dust filter needs cleaning"), which notification adapters such as notification-manager can forward e.g. to Telegram or e-mail.
-- After cleaning the filter, reset the reminder: use the device action "Reset filter reminder" in the device manager, or set `control.filterReset` to `true`. This does the same as "Filter Clear" in the Avalon Family app: it sends the miner the `ascset|0,filter-clean,1` command, which sets its filter runtime back to 0.
+- When the runtime reaches the reminder interval of the device settings (`filter cleaning reminder (days)`, default 30 days, 0 = off), `custom.filter.cleanDue` turns `true` (also on the device card), and the adapter raises an ioBroker notification (category "Dust filter needs cleaning"), which notification adapters such as notification-manager can forward e.g. to Telegram or e-mail.
+- After cleaning the filter, reset the reminder: press "Reset Filter Reminder" in the device controls (behind the device's control button in the device manager), or set `custom.filter.reset` to `true`. This does the same as "Filter Clear" in the Avalon Family app: it sends the miner the `ascset|0,filter-clean,1` command, which sets its filter runtime back to 0.
 
 Firmware checks for BOS use the last reported control-board type and installed version, including while the device is offline or disabled. A BOS device must have reported its identity at least once. Avalon update checks currently cover the exact Nano 3 model only: the app's `nano3` feed has no verified Nano 3S compatibility, so Nano 3S update status remains unknown.
 
@@ -164,10 +164,14 @@ miner.0
           color                      (string)   #RRGGBB
         lcd                          (channel)  e.g. Avalon: display
           on                         (boolean)
+        filter                       (channel)  e.g. Avalon: dust filter
+          runtime                    (number)   h since the last cleaning
+          cleanDue                   (boolean)  reminder interval reached
+          reset                      (boolean)  button: filter cleaned
 ```
 
 ### Custom features (`custom`)
-Some miners can do things no other supported miner can, like the LED light of an Avalon Nano. Instead of adding such features to the common states, a miner declares them itself; they appear as sub-channels of `custom` (only for miners that have any) and as controls behind the device's control button in the device manager. Writing a state sends it to the miner; it is acknowledged once the miner accepted it, and the next poll reflects what the miner actually applied.
+Some miners can do things no other supported miner can, like the LED light of an Avalon Nano. Instead of adding such features to the common states, a miner declares them itself; they appear as sub-channels of `custom` (only for miners that have any) in the device manager: writable ones as controls behind the device's control button, read-only ones (e.g. a maintenance indicator) on the device card. A read-only boolean can raise an ioBroker notification when it turns `true`. Writing a state sends it to the miner; it is acknowledged once the miner accepted it, and the next poll reflects what the miner actually applied.
 
 Once more than one miner type supports the same thing, it is moved to the common states (e.g. `control`), and the old `custom` state is removed.
 
@@ -175,6 +179,7 @@ Once more than one miner type supports the same thing, it is moved to the common
 | --- | --- | --- |
 | Avalon | `custom.light.on`, `custom.light.effect`, `custom.light.brightness`, `custom.light.colorTemperature`, `custom.light.color` | `effect` keeps the last effect while the light is off and is used again when it is turned on; choosing an effect also turns the light on |
 | Avalon | `custom.lcd.on` | display on / off |
+| Avalon | `custom.filter.runtime`, `custom.filter.cleanDue`, `custom.filter.reset` | dust filter reminder, see [Avalon dust filter reminder](#avalon-dust-filter-reminder) |
 
 ## Changelog
 <!--
@@ -182,7 +187,7 @@ Once more than one miner type supports the same thing, it is moved to the common
     ### **WORK IN PROGRESS**
 -->
 ### **WORK IN PROGRESS**
-* (claude) **NEW**: Avalon: dust filter reminder. The filter runtime since the last cleaning is shown as `info.filterRuntime` and on the device card; once it exceeds the reminder interval of the device settings (default 30 days, 0 = off), `info.filterCleanDue` turns `true` and an ioBroker notification is raised. After cleaning, reset it with the new "Reset filter reminder" device action or `control.filterReset`, like "Filter Clear" in the Avalon Family app
+* (claude) **NEW**: Avalon: dust filter reminder. The filter runtime since the last cleaning is shown as `custom.filter.runtime` and on the device card; once it reaches the reminder interval of the device settings (default 30 days, 0 = off), `custom.filter.cleanDue` turns `true` and an ioBroker notification is raised. After cleaning, reset it with the "Reset Filter Reminder" device control or `custom.filter.reset`, like "Filter Clear" in the Avalon Family app. Custom features can now raise notifications, and read-only ones are shown on the device card
 * (claude) **NEW**: Avalon: control the LED light (on/off, effect, brightness, color temperature, color) and the display (on/off), as states under `custom.light` / `custom.lcd` and in the device manager behind the device's control button. They come with the existing poll request, so they cost no extra round-trip
 * (claude) **NEW**: Avalon: `control.profile` (and the profile in the device manager) now shows the miner's active work mode, also when it was changed elsewhere, e.g. in the Avalon Family app. It comes with the existing poll request. A work mode the miner rejects is now logged as an error
 * (claude) **NEW**: `custom` channel for features only a single miner type has (not standardised across miners yet); the device manager shows the writable ones, plus running and profile, as device controls

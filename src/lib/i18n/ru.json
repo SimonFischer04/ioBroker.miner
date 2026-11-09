@@ -45,13 +45,5 @@
     "Could not approve the web login: %s": "Не удалось подтвердить веб-вход: %s",
     "Set": "Установить",
     "filter cleaning reminder (days)": "Напоминание об очистке фильтра (дни)",
-    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Дней работы фильтра до напоминания об очистке пылевого фильтра. 0 = выкл.",
-    "Filter runtime": "Время работы фильтра",
-    "Dust filter": "Пылевой фильтр",
-    "Clean now": "Очистить сейчас",
-    "OK": "OK",
-    "Reset filter reminder": "Сбросить напоминание о фильтре",
-    "Did you clean the dust filter? This resets the filter runtime on the miner to 0.": "Вы очистили пылевой фильтр? Время работы фильтра на майнере будет сброшено до 0.",
-    "Filter reminder reset.": "Напоминание о фильтре сброшено.",
-    "Could not reset the filter reminder: %s": "Не удалось сбросить напоминание о фильтре: %s"
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Дней работы фильтра до напоминания об очистке пылевого фильтра. 0 = выкл."
 }

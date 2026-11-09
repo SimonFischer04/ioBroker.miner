@@ -33,11 +33,11 @@ import type { PartialDeep } from 'type-fest';
 import { createMiner } from './miner/miner/MinerFactory';
 import { getMinerFeatureFullId, MinerFeatureKey } from './miner/model/MinerFeature';
 import { describeUpdateStatus } from './update/updateStatus';
-import { DEFAULT_FILTER_CLEAN_INTERVAL_DAYS, formatFilterRuntime } from './miner/model/FilterStatus';
+import { DEFAULT_FILTER_CLEAN_INTERVAL_DAYS } from './miner/model/FilterStatus';
 import { AvalonMiner } from './miner/miner/AvalonMiner';
 import { isWrongPasswordError } from './miner/api/AvalonWebLogin';
 import type { Miner } from './miner/miner/Miner';
-import { CUSTOM_CHANNEL, type CustomFeatureDefinition } from './miner/model/CustomFeature';
+import { CUSTOM_CHANNEL, resolveCustomFeatures, type CustomFeatureDefinition } from './miner/model/CustomFeature';
 
 /**
  * How long a slider, color or text control waits for the user to stop changing it before sending the value: each
@@ -322,7 +322,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                             'Days of filter runtime until the reminder to clean the dust filter. 0 = off.',
                         ),
                         tooltip:
-                            'after this many days of filter runtime the adapter sets info.filterCleanDue and raises a notification. Reset the reminder after cleaning the filter.',
+                            'after this many days of filter runtime the adapter sets custom.filter.cleanDue and raises a notification. Reset the reminder after cleaning the filter.',
                         hidden: "data.category !== 'miner' || data.minerType != 'avalonMiner'",
                     },
                     enabled: {
@@ -680,34 +680,29 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
     }
 
     /**
-     * Device card rows for the dust filter: runtime since the last cleaning, and whether cleaning is due.
-     * Nothing until the miner reported a runtime: an empty row would read as broken.
+     * Device card rows for the read-only custom features (e.g. a maintenance indicator); the writable ones are device
+     * controls (see getControls). Bound to their states, so they update live.
      *
      * @param deviceId - full object id of the device
+     * @param miner - a (not initialized) miner of the device's type
      * @returns the card rows, keyed by name
      */
-    private async getFilterInfoItems(deviceId: string): Promise<Record<string, ConfigItemAny>> {
-        const oid = (key: MinerFeatureKey): string => `${deviceId}.${getMinerFeatureFullId(key)}`;
-        const runtime = (await this.adapter.getForeignStateAsync(oid(MinerFeatureKey.filterRuntime)))?.val;
-        if (typeof runtime !== 'number') {
-            return {};
-        }
-        const due = (await this.adapter.getForeignStateAsync(oid(MinerFeatureKey.filterCleanDue)))?.val;
-
-        const items: Record<string, ConfigItemAny> = {
-            filterRuntime: {
-                type: 'staticInfo',
-                label: I18n.getTranslatedObject('Filter runtime'),
-                data: formatFilterRuntime(runtime),
-            },
-        };
-        // null: the reminder is off
-        if (typeof due === 'boolean') {
-            items.filterStatus = {
-                type: 'staticInfo',
-                label: I18n.getTranslatedObject('Dust filter'),
-                data: I18n.getTranslatedObject(due ? 'Clean now' : 'OK'),
-                styleValue: { color: due ? 'orange' : 'green' },
+    private getCustomInfoItems(deviceId: string, miner: Miner<MinerSettings>): Record<string, ConfigItemAny> {
+        const items: Record<string, ConfigItemAny> = {};
+        for (const { id, feature } of resolveCustomFeatures(miner.getCustomChannels())) {
+            if (!feature.readable || feature.writable) {
+                continue;
+            }
+            items[`${CUSTOM_CHANNEL}_${id.replace(/\./g, '_')}`] = {
+                type: 'state',
+                oid: `${deviceId}.${CUSTOM_CHANNEL}.${id}`,
+                foreign: true,
+                label: feature.label,
+                unit: feature.unit,
+                // a boolean with a notification is a warning: highlight it while true
+                ...(feature.type === 'boolean' && feature.notification
+                    ? { trueTextStyle: { color: 'orange' }, falseTextStyle: { color: 'green' } }
+                    : {}),
             };
         }
         return items;
@@ -796,9 +791,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     }
                 }
 
-                if (supportedFeatures.includes(MinerFeatureKey.filterRuntime)) {
-                    Object.assign(customInfoItems, await this.getFilterInfoItems(device._id));
-                }
+                Object.assign(customInfoItems, this.getCustomInfoItems(device._id, dummyMiner));
 
                 if (supportedFeatures.includes(MinerFeatureKey.updateAvailable)) {
                     Object.assign(
@@ -881,12 +874,6 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                                   description: I18n.getTranslatedObject('Approve web login'),
                                   handler: this.handleApproveWebLogin.bind(this),
                               },
-                              {
-                                  id: 'resetFilter',
-                                  icon: 'refresh',
-                                  description: I18n.getTranslatedObject('Reset filter reminder'),
-                                  handler: this.handleResetFilter.bind(this),
-                              },
                           ]
                         : []),
                 ],
@@ -959,7 +946,12 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     id,
                     stateId: `${deviceId}.${id}`,
                     label: feature.label,
-                    handler,
+                    // a button press carries no value: write true, which is what a press means for a button state
+                    handler:
+                        feature.role === 'button'
+                            ? (dId: string, controlId: string): Promise<ioBroker.State> =>
+                                  this.handleControl(dId, controlId, true)
+                            : handler,
                     getStateHandler,
                 });
             }
@@ -979,6 +971,9 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
      * @param feature - the custom feature
      */
     private getCustomFeatureControl(feature: CustomFeatureDefinition): Omit<DeviceControl<string>, 'id'> {
+        if (feature.role === 'button') {
+            return { type: 'button', variant: 'outlined' };
+        }
         if (feature.states) {
             return {
                 type: 'select',
@@ -1102,47 +1097,6 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             );
         }
         return { refresh: 'none' };
-    }
-
-    /**
-     * Confirms a cleaned dust filter: resets the filter runtime on the miner, like "Filter Clear" in the Avalon Family
-     * app.
-     *
-     * @param id - the device object id
-     * @param context - the action context for showing messages
-     */
-    protected async handleResetFilter(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        const obj = await this.adapter.getObjectAsync(id);
-        if (obj == null) {
-            this.adapter.log.error(`MinerAdapterDeviceManagement/handleResetFilter object ${id} not found`);
-            return { refresh: 'none' };
-        }
-        const settings = decryptDeviceSettings(obj.native as IOBrokerDeviceSettings, value =>
-            this.adapter.decrypt(value),
-        );
-        if (!isMiner(settings)) {
-            return { refresh: 'none' };
-        }
-
-        const confirmed = await context.showConfirmation(
-            I18n.getTranslatedObject(
-                'Did you clean the dust filter? This resets the filter runtime on the miner to 0.',
-            ),
-        );
-        if (!confirmed) {
-            return { refresh: 'none' };
-        }
-
-        try {
-            await this.adapter.resetFilter(settings);
-            await context.showMessage(I18n.getTranslatedObject('Filter reminder reset.'));
-            return { refresh: 'devices' };
-        } catch (e) {
-            const message = e instanceof Error ? e.message : JSON.stringify(e);
-            this.adapter.log.warn(`resetting the filter reminder of ${id} failed: ${message}`);
-            await context.showMessage(translateWithArgs('Could not reset the filter reminder: %s', message));
-            return { refresh: 'none' };
-        }
     }
 
     protected async handleDeleteDevice(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {

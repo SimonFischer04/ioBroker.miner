@@ -45,13 +45,5 @@
     "Could not approve the web login: %s": "Impossible d'approuver la connexion web : %s",
     "Set": "Appliquer",
     "filter cleaning reminder (days)": "rappel de nettoyage du filtre (jours)",
-    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Jours de fonctionnement du filtre avant le rappel de nettoyer le filtre à poussière. 0 = désactivé.",
-    "Filter runtime": "Durée de fonctionnement du filtre",
-    "Dust filter": "Filtre à poussière",
-    "Clean now": "Nettoyer maintenant",
-    "OK": "OK",
-    "Reset filter reminder": "Réinitialiser le rappel du filtre",
-    "Did you clean the dust filter? This resets the filter runtime on the miner to 0.": "Avez-vous nettoyé le filtre à poussière ? Cela remet à 0 la durée de fonctionnement du filtre sur le mineur.",
-    "Filter reminder reset.": "Rappel du filtre réinitialisé.",
-    "Could not reset the filter reminder: %s": "Impossible de réinitialiser le rappel du filtre : %s"
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Jours de fonctionnement du filtre avant le rappel de nettoyer le filtre à poussière. 0 = désactivé."
 }

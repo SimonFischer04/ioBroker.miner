@@ -16,14 +16,18 @@ import {
 import { createMiner } from './lib/miner/miner/MinerFactory';
 import { Logger } from './lib/miner/model/Logger';
 import { isWithinPowerTargetConstraints, type Miner } from './lib/miner/miner/Miner';
-import type { AvalonMinerSettings, MinerSettings } from './lib/miner/model/MinerSettings';
-import { formatFilterRuntime, isFilterCleanDue } from './lib/miner/model/FilterStatus';
+import type { MinerSettings } from './lib/miner/model/MinerSettings';
 import type { MinerStats } from './lib/miner/model/MinerStats';
 import { asyncDynamicInterval, setTimerBackend, type AsyncIntervalReturnType } from './lib/utils/delay';
 import { UpdateSources } from './lib/update/UpdateSources';
 import { runUpdateChecks, type UpdateCheckSummary } from './lib/update/runUpdateChecks';
 import type { UpdateCheckContext, UpdateCheckResult } from './lib/miner/model/UpdateCheckResult';
-import { CUSTOM_CHANNEL, resolveCustomFeatures, type CustomChannelDefinition } from './lib/miner/model/CustomFeature';
+import {
+    CUSTOM_CHANNEL,
+    resolveCustomFeatures,
+    type CustomChannelDefinition,
+    type CustomFeatureNotification,
+} from './lib/miner/model/CustomFeature';
 
 /** First update check shortly after start, once the miners are initialized and reachable. */
 const UPDATE_CHECK_INITIAL_DELAY_MS = 60_000;
@@ -259,22 +263,6 @@ export class MinerAdapter extends utils.Adapter {
 
                     await this.minerManager.setPowerTarget(deviceSettings.settings.id, powerTarget);
                     await this.setState(id, { val: powerTarget, ack: true });
-                    break;
-                }
-
-                case getMinerFeatureFullId(MinerFeatureKey.filterReset): {
-                    if (!state.val) {
-                        return;
-                    }
-                    this.log.info(`filter reminder reset requested for device ${deviceSettings.name}`);
-                    try {
-                        await this.resetFilter(deviceSettings);
-                    } catch (e) {
-                        this.log.error(
-                            `resetting the filter reminder of device ${deviceSettings.name} failed: ${e instanceof Error ? e.message : String(e)}`,
-                        );
-                    }
-                    await this.setState(id, { val: false, ack: true });
                     break;
                 }
 
@@ -707,13 +695,6 @@ export class MinerAdapter extends utils.Adapter {
                 ack: true,
             });
         }
-        if (
-            isMiner(settings) &&
-            supported.includes(MinerFeatureKey.filterRuntime) &&
-            stats.filterRuntime !== undefined
-        ) {
-            await this.updateFilterStates(settings, stats.filterRuntime);
-        }
         // Stats sub-states: write whatever the miner provides
         if (supported.includes(MinerFeatureKey.stats)) {
             const statsValues: Record<string, ioBroker.StateValue | undefined> = {
@@ -733,11 +714,22 @@ export class MinerAdapter extends utils.Adapter {
 
         // Custom features: only the ones the miner declares, only on change (like the power target above)
         if (stats.custom) {
-            const known = new Set(resolveCustomFeatures(miner.getCustomChannels()).map(f => f.id));
+            const known = new Map(resolveCustomFeatures(miner.getCustomChannels()).map(f => [f.id, f.feature]));
             for (const [id, val] of Object.entries(stats.custom)) {
-                if (known.has(id)) {
-                    await this.setStateChangedAsync(`${deviceId}.${CUSTOM_CHANNEL}.${id}`, { val, ack: true });
+                const feature = known.get(id);
+                if (!feature) {
+                    continue;
                 }
+                const stateId = `${deviceId}.${CUSTOM_CHANNEL}.${id}`;
+                if (feature.notification && val === true) {
+                    // compare with the stored value, so the notification is raised once when the feature turns true,
+                    // not on every poll or adapter restart
+                    const wasTrue = (await this.getStateAsync(stateId))?.val === true;
+                    if (!wasTrue && isMiner(settings)) {
+                        await this.raiseCustomFeatureNotification(settings, feature.notification);
+                    }
+                }
+                await this.setStateChangedAsync(stateId, { val, ack: true });
             }
         }
 
@@ -747,53 +739,27 @@ export class MinerAdapter extends utils.Adapter {
     }
 
     /**
-     * Writes the filter runtime and whether cleaning is due, and raises a notification when cleaning becomes due.
+     * Raises the notification a custom feature declares, and logs it as a warning (for js-controllers without
+     * notification support, and for the log).
      *
-     * @param settings - the device the runtime was reported for
-     * @param filterRuntime - filter runtime in minutes since the last reset
+     * @param settings - the device the feature belongs to
+     * @param notification - the notification the feature declares
      */
-    private async updateFilterStates(settings: IOBrokerMinerSettings, filterRuntime: number): Promise<void> {
-        await this.setStateChangedAsync(this.getStateFullObjectId(settings, MinerFeatureKey.filterRuntime), {
-            val: filterRuntime,
-            ack: true,
-        });
-
-        const intervalDays = (settings.settings as Partial<AvalonMinerSettings>).filterCleanIntervalDays;
-        const due = isFilterCleanDue(filterRuntime, intervalDays) ?? null;
-        const dueStateId = this.getStateFullObjectId(settings, MinerFeatureKey.filterCleanDue);
-        // compare with the stored value, so the notification fires once when cleaning becomes due, not on every poll
-        // or adapter restart
-        const wasDue = (await this.getStateAsync(dueStateId))?.val === true;
-        await this.setStateChangedAsync(dueStateId, { val: due, ack: true });
-
-        if (due === true && !wasDue) {
-            const message = `The dust filter of miner "${settings.name}" should be cleaned: it has been running for ${formatFilterRuntime(filterRuntime)} since the last cleaning. After cleaning it, reset the filter reminder (device action "Reset filter reminder" or state ${this.namespace}.${this.getStateFullObjectId(settings, MinerFeatureKey.filterReset)}).`;
-            this.log.warn(message);
-            try {
-                await this.registerNotification('miner', 'filterClean', message);
-            } catch (e) {
-                // js-controller without notification support: the log message above has to do
-                this.log.debug(`could not register filter notification: ${String(e)}`);
-            }
+    private async raiseCustomFeatureNotification(
+        settings: IOBrokerMinerSettings,
+        notification: CustomFeatureNotification,
+    ): Promise<void> {
+        const message = `Miner "${settings.name}": ${notification.message}`;
+        this.log.warn(message);
+        try {
+            await this.registerNotification(
+                'miner',
+                notification.category as ioBroker.NotificationScopes['miner'],
+                message,
+            );
+        } catch (e) {
+            this.log.debug(`could not register notification: ${String(e)}`);
         }
-    }
-
-    /**
-     * Confirms a cleaned dust filter: resets the filter runtime on the miner and clears the reminder right away instead
-     * of waiting for the next poll.
-     *
-     * @param settings - the device whose filter was cleaned
-     * @throws {Error} if the device is disabled or the miner rejects the reset
-     */
-    public async resetFilter(settings: IOBrokerMinerSettings): Promise<void> {
-        if (settings.settings.id === undefined) {
-            throw new Error(`device ${settings.name} has no id`);
-        }
-        if (!this.minerManager.getMiner(settings.settings.id)) {
-            throw new Error('the device is disabled');
-        }
-        await this.minerManager.resetFilter(settings.settings.id);
-        await this.updateFilterStates(settings, 0);
     }
 
     private async createDeviceStateObjects(settings: IOBrokerDeviceSettings): Promise<void> {

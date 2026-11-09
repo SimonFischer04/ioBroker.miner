@@ -74,6 +74,24 @@ export interface CustomFeatureDefinition {
      * Considered advanced, e.g. hidden in the UI by default (sets the "expert" flag in ioBroker).
      */
     advanced?: boolean;
+    /**
+     * For a readable boolean: raise a notification when the miner reports it turning true (e.g. maintenance due).
+     */
+    notification?: CustomFeatureNotification;
+}
+
+/**
+ * A notification raised when a boolean custom feature turns true.
+ */
+export interface CustomFeatureNotification {
+    /**
+     * Notification category, as declared for the adapter (in ioBroker: `notifications` in io-package.json).
+     */
+    category: string;
+    /**
+     * What happened and what to do, in English. The adapter adds the device name.
+     */
+    message: string;
 }
 
 /**

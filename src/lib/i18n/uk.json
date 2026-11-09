@@ -45,13 +45,5 @@
     "Could not approve the web login: %s": "Не вдалося підтвердити веб-вхід: %s",
     "Set": "Встановити",
     "filter cleaning reminder (days)": "Нагадування про очищення фільтра (дні)",
-    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Днів роботи фільтра до нагадування про очищення пилового фільтра. 0 = вимк.",
-    "Filter runtime": "Час роботи фільтра",
-    "Dust filter": "Пиловий фільтр",
-    "Clean now": "Очистити зараз",
-    "OK": "OK",
-    "Reset filter reminder": "Скинути нагадування про фільтр",
-    "Did you clean the dust filter? This resets the filter runtime on the miner to 0.": "Ви очистили пиловий фільтр? Час роботи фільтра на майнері буде скинуто до 0.",
-    "Filter reminder reset.": "Нагадування про фільтр скинуто.",
-    "Could not reset the filter reminder: %s": "Не вдалося скинути нагадування про фільтр: %s"
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Днів роботи фільтра до нагадування про очищення пилового фільтра. 0 = вимк."
 }

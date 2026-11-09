@@ -87,8 +87,8 @@ describe('AvalonMiner', () => {
             expect(stats.rssi).to.be.a('number');
             expect(stats.rssi).to.equal(-55);
 
-            // filter runtime from litestats telemetry: Filter[33862] → 33862 minutes
-            expect(stats.filterRuntime).to.equal(33862);
+            // filter runtime from litestats telemetry: Filter[33862] → 33862 minutes = 564.4 h, due after 30 days
+            expect(stats.custom).to.include({ 'filter.runtime': 564.4, 'filter.cleanDue': false });
 
             // Efficiency: totalHashrate / power
             expect(stats.efficiency).to.be.a('number');
@@ -113,7 +113,8 @@ describe('AvalonMiner', () => {
             const stats = miner.parseSummaryVersionStatsResponse(fixture);
 
             expect(stats.rssi).to.be.undefined;
-            expect(stats.filterRuntime).to.be.undefined;
+            expect(stats.custom?.['filter.runtime']).to.be.undefined;
+            expect(stats.custom?.['filter.cleanDue']).to.be.undefined;
             expect(stats.power).to.equal(131);
             expect(stats.version).to.equal('4.11.1');
         });
@@ -122,7 +123,27 @@ describe('AvalonMiner', () => {
             const garbled = structuredClone(liteStatsFixture) as LiteStatsResponse;
             garbled.STATS[0]['MM ID0'] = garbled.STATS[0]['MM ID0'].replace('Filter[33862]', 'Filter[]');
 
-            expect(miner.parseSummaryVersionStatsResponse(withLiteStats([garbled])).filterRuntime).to.be.undefined;
+            expect(miner.parseSummaryVersionStatsResponse(withLiteStats([garbled])).custom?.['filter.runtime']).to.be
+                .undefined;
+        });
+
+        it('reports the filter cleaning due once the runtime reaches the interval of the device settings', () => {
+            const parse = (filterCleanIntervalDays: number): boolean | undefined =>
+                new AvalonMiner({
+                    minerType: 'avalonMiner',
+                    host: '10.10.30.51',
+                    port: 4028,
+                    pollInterval: 10000,
+                    filterCleanIntervalDays,
+                }).parseSummaryVersionStatsResponse(withLiteStats([liteStatsFixture as LiteStatsResponse])).custom?.[
+                    'filter.cleanDue'
+                ] as boolean | undefined;
+
+            // Filter[33862]: 23.5 days
+            expect(parse(23)).to.equal(true);
+            expect(parse(24)).to.equal(false);
+            // reminder off
+            expect(parse(0)).to.equal(false);
         });
 
         it('reports no RSSI rather than 0 when the value is not a number', () => {
@@ -256,13 +277,6 @@ describe('AvalonMiner', () => {
             expect(features).to.include(MinerFeatureKey.rssi);
         });
 
-        it('should include the filter features', () => {
-            const features = miner.getSupportedFeatures();
-            expect(features).to.include(MinerFeatureKey.filterRuntime);
-            expect(features).to.include(MinerFeatureKey.filterCleanDue);
-            expect(features).to.include(MinerFeatureKey.filterReset);
-        });
-
         it('should not include cliArgs', () => {
             const features = miner.getSupportedFeatures();
             expect(features).to.not.include(MinerFeatureKey.cliArgs);
@@ -367,6 +381,8 @@ describe('Avalon light and display', () => {
                 'light.colorTemperature': 50,
                 'light.color': '#0000ff',
                 'lcd.on': true,
+                'filter.runtime': 564.4,
+                'filter.cleanDue': false,
             });
         });
 
@@ -561,15 +577,17 @@ describe('Avalon light and display', () => {
     });
 });
 
-describe('AvalonMiner.resetFilter', () => {
+describe('Avalon dust filter reset', () => {
     /**
-     * Runs `resetFilter` against a fake cgminer API that answers every request with `reply`.
+     * Writes `filter.reset` against a fake cgminer API that answers every request with `reply`.
      *
      * @param reply - raw reply of the fake miner
-     * @returns the requests the miner received, and the error resetFilter threw (if any)
+     * @param value - the value written
+     * @returns the requests the miner received, and the error setCustomFeature threw (if any)
      */
     async function resetFilterAgainst(
         reply: string,
+        value: unknown = true,
     ): Promise<{ requests: { command: string; parameter: string }[]; error?: Error }> {
         const requests: { command: string; parameter: string }[] = [];
         const server = createServer(socket => {
@@ -588,7 +606,7 @@ describe('AvalonMiner.resetFilter', () => {
                 pollInterval: 10000,
             });
             try {
-                await miner.resetFilter();
+                await miner.setCustomFeature('filter.reset', value);
                 return { requests };
             } catch (e) {
                 return { requests, error: e as Error };
@@ -598,16 +616,23 @@ describe('AvalonMiner.resetFilter', () => {
         }
     }
 
+    const ok = JSON.stringify({
+        STATUS: [{ STATUS: 'I', When: 0, Code: 118, Msg: 'ASC 0 set OK', Description: 'cgminer 4.11.1' }],
+        id: 1,
+    });
+
     it('sends filter-clean with the only value the firmware accepts', async () => {
-        const { requests, error } = await resetFilterAgainst(
-            JSON.stringify({
-                STATUS: [{ STATUS: 'I', When: 0, Code: 118, Msg: 'ASC 0 set OK', Description: 'cgminer 4.11.1' }],
-                id: 1,
-            }),
-        );
+        const { requests, error } = await resetFilterAgainst(ok);
 
         expect(error).to.be.undefined;
         expect(requests).to.deep.equal([{ command: 'ascset', parameter: '0,filter-clean,1' }]);
+    });
+
+    it('sends nothing when the button state is written false', async () => {
+        const { requests, error } = await resetFilterAgainst(ok, false);
+
+        expect(error).to.be.undefined;
+        expect(requests).to.deep.equal([]);
     });
 
     it('rejects when the miner reports an error', async () => {

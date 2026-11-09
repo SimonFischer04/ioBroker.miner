@@ -45,13 +45,5 @@
     "Could not approve the web login: %s": "Webaanmelding kon niet worden goedgekeurd: %s",
     "Set": "Instellen",
     "filter cleaning reminder (days)": "herinnering filter reinigen (dagen)",
-    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Dagen filterlooptijd tot de herinnering om het stoffilter te reinigen. 0 = uit.",
-    "Filter runtime": "Filterlooptijd",
-    "Dust filter": "Stoffilter",
-    "Clean now": "Nu reinigen",
-    "OK": "OK",
-    "Reset filter reminder": "Filterherinnering resetten",
-    "Did you clean the dust filter? This resets the filter runtime on the miner to 0.": "Heb je het stoffilter gereinigd? Hiermee wordt de filterlooptijd op de miner teruggezet naar 0.",
-    "Filter reminder reset.": "Filterherinnering gereset.",
-    "Could not reset the filter reminder: %s": "Kon de filterherinnering niet resetten: %s"
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Dagen filterlooptijd tot de herinnering om het stoffilter te reinigen. 0 = uit."
 }

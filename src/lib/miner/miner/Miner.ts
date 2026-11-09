@@ -104,16 +104,6 @@ export abstract class Miner<S extends MinerSettings> {
     }
 
     /**
-     * Confirm that the dust filter was cleaned: resets the filter runtime on the miner.
-     * Miners that support it override this and declare {@link MinerFeatureKey.filterReset}.
-     *
-     * @throws {Error} if the miner doesn't support it or rejects the reset
-     */
-    public resetFilter(): Promise<void> {
-        return Promise.reject(new Error('resetFilter() not implemented for this miner'));
-    }
-
-    /**
      * Look up whether a newer firmware/software version is available for this miner.
      * Miners that support it override this and declare {@link MinerFeatureKey.updateAvailable}
      * and {@link MinerFeatureKey.latestVersion}.

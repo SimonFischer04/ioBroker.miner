@@ -45,13 +45,5 @@
     "Could not approve the web login: %s": "Web-Anmeldung konnte nicht freigegeben werden: %s",
     "Set": "Setzen",
     "filter cleaning reminder (days)": "Filter-Reinigungserinnerung (Tage)",
-    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Tage Filterlaufzeit bis zur Erinnerung, den Staubfilter zu reinigen. 0 = aus.",
-    "Filter runtime": "Filterlaufzeit",
-    "Dust filter": "Staubfilter",
-    "Clean now": "Jetzt reinigen",
-    "OK": "OK",
-    "Reset filter reminder": "Filtererinnerung zurücksetzen",
-    "Did you clean the dust filter? This resets the filter runtime on the miner to 0.": "Hast du den Staubfilter gereinigt? Damit wird die Filterlaufzeit am Miner auf 0 zurückgesetzt.",
-    "Filter reminder reset.": "Filtererinnerung zurückgesetzt.",
-    "Could not reset the filter reminder: %s": "Filtererinnerung konnte nicht zurückgesetzt werden: %s"
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Tage Filterlaufzeit bis zur Erinnerung, den Staubfilter zu reinigen. 0 = aus."
 }

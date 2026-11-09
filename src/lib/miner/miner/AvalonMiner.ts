@@ -16,6 +16,7 @@ import { toUpdateCheckResult, type UpdateCheckContext, type UpdateCheckResult } 
 import type { UpdateSources } from '../../update/UpdateSources';
 import { parseAvalonBuild } from '../../update/version-compare';
 import { safeParseFloat } from '../../utils/parse-utils';
+import { isFilterCleanDue } from '../model/FilterStatus';
 import { buildQrAuthParameter, parseAuthChallenge, type AvalonAuthChallenge } from '../api/AvalonWebLogin';
 import type { CustomChannelDefinition, CustomFeatureValue } from '../model/CustomFeature';
 
@@ -113,6 +114,9 @@ export enum AvalonCustomFeature {
     lightColorTemperature = 'light.colorTemperature',
     lightColor = 'light.color',
     lcdOn = 'lcd.on',
+    filterRuntime = 'filter.runtime',
+    filterCleanDue = 'filter.cleanDue',
+    filterReset = 'filter.reset',
 }
 
 const AVALON_CUSTOM_CHANNELS: CustomChannelDefinition[] = [
@@ -192,6 +196,47 @@ const AVALON_CUSTOM_CHANNELS: CustomChannelDefinition[] = [
                 type: 'boolean',
                 role: 'switch',
                 readable: true,
+                writable: true,
+            },
+        ],
+    },
+    {
+        id: 'filter',
+        label: 'Dust Filter',
+        features: [
+            {
+                id: 'runtime',
+                label: 'Filter Runtime',
+                description: 'Runtime of the dust filter since it was last cleaned (reset).',
+                type: 'number',
+                role: 'value',
+                unit: 'h',
+                readable: true,
+                writable: false,
+            },
+            {
+                id: 'cleanDue',
+                label: 'Filter Cleaning Due',
+                description:
+                    'Whether the dust filter should be cleaned: its runtime reached the reminder interval of the device settings. Always false while the reminder is off.',
+                type: 'boolean',
+                role: 'indicator.maintenance',
+                readable: true,
+                writable: false,
+                notification: {
+                    category: 'filterClean',
+                    message:
+                        'The dust filter should be cleaned: its runtime reached the reminder interval of the device settings. After cleaning it, reset the filter reminder ("Reset Filter Reminder" in the device controls, or state custom.filter.reset).',
+                },
+            },
+            {
+                id: 'reset',
+                label: 'Reset Filter Reminder',
+                description:
+                    'Confirm that the dust filter was cleaned: resets its runtime on the miner, like "Filter Clear" in the Avalon Family app.',
+                type: 'boolean',
+                role: 'button',
+                readable: false,
                 writable: true,
             },
         ],
@@ -327,9 +372,6 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
             ...super.getSupportedFeatures().filter(feature => !unsupportedFeatures.includes(feature)),
             MinerFeatureKey.profile,
             MinerFeatureKey.rssi,
-            MinerFeatureKey.filterRuntime,
-            MinerFeatureKey.filterCleanDue,
-            MinerFeatureKey.filterReset,
             // MinerFeatureKey.running,
             MinerFeatureKey.latestVersion,
             MinerFeatureKey.updateAvailable,
@@ -419,17 +461,6 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
     }
 
     /**
-     * Confirms a cleaned dust filter, like "Filter Clear" in the Avalon Family app: resets the filter runtime the
-     * miner reports (litestats `Filter[]`) to 0.
-     *
-     * @throws {Error} if the miner can't be reached or rejects the command
-     */
-    public override async resetFilter(): Promise<void> {
-        await this.sendAscset(AvalonMinerParameter.filterClean, 'filter-clean');
-        this.logger.info('filter reminder reset');
-    }
-
-    /**
      * Approves the login a browser is waiting for on the miner's web interface, like scanning its QR code with the
      * Avalon Family app would. The browser showing the login page is logged in on its next status check (within 5 s).
      *
@@ -464,6 +495,14 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
     protected override async applyCustomFeature(id: string, value: CustomFeatureValue): Promise<void> {
         if (id === AvalonCustomFeature.lcdOn) {
             await this.sendAscset(`${AvalonMinerParameter.lcd}:${value ? 1 : 0}`, 'lcd');
+            return;
+        }
+        if (id === AvalonCustomFeature.filterReset) {
+            // a button: only a press (true) resets
+            if (value === true) {
+                await this.sendAscset(AvalonMinerParameter.filterClean, 'filter-clean');
+                this.logger.info('filter reminder reset');
+            }
             return;
         }
 
@@ -609,6 +648,7 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
         const custom = this.toCustomValues(
             this.extractLedSettings(statsEntries, liteStatsEntries),
             this.extractTelemetryField('LcdOnoff', statsEntries, liteStatsEntries),
+            this.extractFilterRuntimeFromLiteStats(liteStatsEntries),
         );
 
         return {
@@ -616,21 +656,22 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
             power,
             efficiency: power != null && baseStats.totalHashrate ? baseStats.totalHashrate / power : undefined,
             rssi: this.extractRssiFromLiteStats(liteStatsEntries),
-            filterRuntime: this.extractFilterRuntimeFromLiteStats(liteStatsEntries),
             profile: AVALON_WORKMODE_PROFILES.get(this.extractTelemetryField('WORKMODE', statsEntries)),
             ...(Object.keys(custom).length > 0 ? { custom } : {}),
         };
     }
 
     /**
-     * Custom feature values for the reported LED settings and display state.
+     * Custom feature values for the reported LED settings, display state and dust filter runtime.
      *
      * @param led - LED settings, if reported
      * @param lcdOnOff - value of the `LcdOnoff` telemetry field, if reported
+     * @param filterRuntime - dust filter runtime in minutes, if reported
      */
     private toCustomValues(
         led: AvalonLedSettings | undefined,
         lcdOnOff: string | undefined,
+        filterRuntime: number | undefined,
     ): Record<string, CustomFeatureValue> {
         const custom: Record<string, CustomFeatureValue> = {};
         if (led) {
@@ -645,6 +686,14 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
         }
         if (lcdOnOff === '0' || lcdOnOff === '1') {
             custom[AvalonCustomFeature.lcdOn] = lcdOnOff === '1';
+        }
+        if (filterRuntime !== undefined) {
+            // hours with one decimal: easier to read than the minutes the miner counts, still precise enough
+            custom[AvalonCustomFeature.filterRuntime] = Math.round(filterRuntime / 6) / 10;
+            custom[AvalonCustomFeature.filterCleanDue] = isFilterCleanDue(
+                filterRuntime,
+                this.settings.filterCleanIntervalDays,
+            );
         }
         return custom;
     }

@@ -4,7 +4,6 @@ export enum MinerFeatureKey {
     reboot = 'reboot',
     profile = 'profile',
     powerTarget = 'powerTarget',
-    filterReset = 'filterReset',
 
     // info
     version = 'version',
@@ -21,10 +20,6 @@ export enum MinerFeatureKey {
 
     // connectivity
     rssi = 'rssi',
-
-    // maintenance – dust filter (see Miner.resetFilter)
-    filterRuntime = 'filterRuntime',
-    filterCleanDue = 'filterCleanDue',
 
     // raw
     rawStats = 'rawStats',
@@ -136,16 +131,6 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
         readable: true,
         writable: true,
     },
-    [MinerFeatureKey.filterReset]: {
-        category: MinerFeatureCategory.control,
-        id: 'filterReset',
-        label: 'Reset Filter Reminder',
-        description: 'Confirm that the dust filter was cleaned: resets the filter runtime on the miner.',
-        type: 'boolean',
-        role: 'button',
-        readable: false,
-        writable: true,
-    },
 
     /*
         info – identity / config / firmware / connection meta
@@ -239,32 +224,6 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
         type: 'number',
         unit: 'dBm',
         role: 'value.rssi',
-        readable: true,
-        writable: false,
-    },
-
-    /*
-        info – dust filter maintenance
-     */
-    [MinerFeatureKey.filterRuntime]: {
-        category: MinerFeatureCategory.info,
-        id: 'filterRuntime',
-        label: 'Filter Runtime',
-        description: 'Runtime of the dust filter since it was last cleaned (reset).',
-        type: 'number',
-        unit: 'min',
-        role: 'value',
-        readable: true,
-        writable: false,
-    },
-    [MinerFeatureKey.filterCleanDue]: {
-        category: MinerFeatureCategory.info,
-        id: 'filterCleanDue',
-        label: 'Filter Clean Due',
-        description:
-            'Whether the dust filter should be cleaned: its runtime exceeds the reminder interval of the device settings. Empty if unknown or the reminder is off.',
-        type: 'boolean',
-        role: 'indicator.maintenance',
         readable: true,
         writable: false,
     },

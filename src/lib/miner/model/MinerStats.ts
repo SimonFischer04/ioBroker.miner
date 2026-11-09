@@ -51,10 +51,6 @@ export interface MinerStats {
      */
     rssi?: number;
     /**
-     * Runtime of the dust filter in minutes since it was last cleaned (reset).
-     */
-    filterRuntime?: number;
-    /**
      * Values of the miner's custom features (see {@link Miner.getCustomChannels}), keyed by `<channel>.<feature>`.
      * Features that are missing keep their last value.
      */
