@@ -90,6 +90,7 @@ export class MinerAdapter extends utils.Adapter {
 
         // this is correct RELATIVE path! actually means "miner.X.miner.<minerid>.control"
         this.subscribeStates('miner.*.control.*');
+        this.subscribeStates(`miner.*.${CUSTOM_CHANNEL}.*`);
         this.subscribeStates('miner.*.enabled');
 
         this.scheduleUpdateChecks();

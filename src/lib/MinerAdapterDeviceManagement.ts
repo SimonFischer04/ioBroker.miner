@@ -677,7 +677,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 const dummyMiner = createMiner(settings.settings);
 
                 const supportedFeatures = dummyMiner.getSupportedFeatures();
-                controls = this.getControls(device._id, dummyMiner, supportedFeatures);
+                controls = await this.getControls(device._id, dummyMiner, supportedFeatures);
 
                 if (supportedFeatures.includes(MinerFeatureKey.running)) {
                     const stateId = `${device._id}.${getMinerFeatureFullId(MinerFeatureKey.running)}`;
@@ -836,12 +836,15 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
      * @param miner - a (not initialized) miner of the device's type
      * @param supportedFeatures - the features the miner supports
      */
-    private getControls(
+    private async getControls(
         deviceId: string,
         miner: Miner<MinerSettings>,
         supportedFeatures: MinerFeatureKey[],
-    ): DeviceControl<string>[] {
+    ): Promise<DeviceControl<string>[]> {
+        // the GUI subscribes to stateId, but takes the value from getStateHandler on each change, and the initial
+        // value from `state`
         const handler = this.handleControl.bind(this);
+        const getStateHandler = this.handleControlState.bind(this);
         const controls: DeviceControl<string>[] = [];
 
         if (supportedFeatures.includes(MinerFeatureKey.running)) {
@@ -852,6 +855,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 stateId: `${deviceId}.${id}`,
                 label: I18n.getTranslatedObject('Running'),
                 handler,
+                getStateHandler,
             });
         }
         if (supportedFeatures.includes(MinerFeatureKey.profile)) {
@@ -864,6 +868,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 options: miner.getProfiles().map(p => ({ label: p, value: p })),
                 noTranslation: true,
                 handler,
+                getStateHandler,
             });
         }
 
@@ -872,7 +877,14 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             if (writable.length === 0) {
                 continue;
             }
-            controls.push({ id: `${CUSTOM_CHANNEL}.${channel.id}`, type: 'header', label: channel.label });
+            controls.push({
+                id: `${CUSTOM_CHANNEL}.${channel.id}`,
+                type: 'header',
+                label: channel.label,
+                // the header's background is the theme's primary color: the default text color can be unreadable on it
+                color: '#fff',
+                style: { padding: '4px 8px', marginTop: 8, borderRadius: 4 },
+            });
             for (const feature of writable) {
                 const id = `${CUSTOM_CHANNEL}.${channel.id}.${feature.id}`;
                 controls.push({
@@ -881,7 +893,14 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     stateId: `${deviceId}.${id}`,
                     label: feature.label,
                     handler,
+                    getStateHandler,
                 });
+            }
+        }
+
+        for (const control of controls) {
+            if (control.stateId) {
+                control.state = (await this.adapter.getForeignStateAsync(control.stateId)) ?? undefined;
             }
         }
         return controls;
@@ -935,13 +954,22 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
      * @returns the state after the write
      */
     protected async handleControl(deviceId: string, controlId: string, state: ControlState): Promise<ioBroker.State> {
-        const stateId = `${deviceId}.${controlId}`;
-        await this.adapter.setForeignStateAsync(stateId, { val: state, ack: false });
+        await this.adapter.setForeignStateAsync(`${deviceId}.${controlId}`, { val: state, ack: false });
+        return this.handleControlState(deviceId, controlId);
+    }
+
+    /**
+     * The current value of a control's state, which the GUI asks for whenever the state changes.
+     *
+     * @param deviceId - the device object id
+     * @param controlId - the control id: the state id relative to the device
+     */
+    protected async handleControlState(deviceId: string, controlId: string): Promise<ioBroker.State> {
         const now = Date.now();
         return (
-            (await this.adapter.getForeignStateAsync(stateId)) ?? {
-                val: state,
-                ack: false,
+            (await this.adapter.getForeignStateAsync(`${deviceId}.${controlId}`)) ?? {
+                val: null,
+                ack: true,
                 ts: now,
                 lc: now,
                 from: `system.adapter.${this.adapter.namespace}`,

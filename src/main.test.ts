@@ -53,7 +53,10 @@ function loadTestAdapterFactory(): () => TestAdapter {
         id: corePath,
         filename: corePath,
         loaded: true,
-        exports: { Adapter: AdapterMock, I18n: { getTranslatedObject: (key: string) => ({ en: key }) } },
+        exports: {
+            Adapter: AdapterMock,
+            I18n: { init: () => Promise.resolve(), getTranslatedObject: (key: string) => ({ en: key }) },
+        },
     } as NodeModule;
     delete require.cache[mainPath];
     try {
@@ -235,7 +238,7 @@ interface CustomFeatureTestAdapter {
     createCustomStateObjects: (deviceId: string, channels: CustomChannelDefinition[]) => Promise<void>;
     onStateChange: (id: string, state: { val: unknown; ack: boolean }) => Promise<void>;
     deviceManagement: {
-        getControls: (deviceId: string, miner: object, features: MinerFeatureKey[]) => DeviceControl<string>[];
+        getControls: (deviceId: string, miner: object, features: MinerFeatureKey[]) => Promise<DeviceControl<string>[]>;
     };
 }
 
@@ -358,9 +361,13 @@ describe('custom features', () => {
         expect(warnings.join()).to.contain('Invalid ascset');
     });
 
-    it('offers the writable custom features as device manager controls, grouped per channel', () => {
-        const adapter = createTestAdapter() as unknown as CustomFeatureTestAdapter;
-        const controls = adapter.deviceManagement.getControls(
+    it('offers the writable custom features as device manager controls, grouped per channel', async () => {
+        const adapter = createTestAdapter() as unknown as CustomFeatureTestAdapter & {
+            getForeignStateAsync: (id: string) => Promise<{ val: unknown; ts: number } | null>;
+        };
+        adapter.getForeignStateAsync = id =>
+            Promise.resolve(id.endsWith('.custom.light.brightness') ? { val: 40, ts: 1 } : null);
+        const controls = await adapter.deviceManagement.getControls(
             'miner.0.miner.dev',
             avalon,
             avalon.getSupportedFeatures(),
@@ -380,9 +387,44 @@ describe('custom features', () => {
         const brightness = controls.find(c => c.id === 'custom.light.brightness');
         expect(brightness?.stateId).to.equal('miner.0.miner.dev.custom.light.brightness');
         expect(brightness?.handler).to.be.a('function');
+        // the GUI takes the value from getStateHandler on each change, and the initial one from state
+        expect(brightness?.getStateHandler).to.be.a('function');
+        expect(brightness?.state?.val).to.equal(40);
         expect(controls.find(c => c.id === 'custom.light.effect')?.options?.[0]).to.deep.equal({
             label: 'Static',
             value: 1,
         });
+    });
+});
+
+describe('state subscriptions', () => {
+    it('subscribes to every writable state the adapter handles, custom features included', async () => {
+        const adapter = createTestAdapter() as unknown as {
+            config: { checkForUpdates: boolean };
+            extendObject: () => Promise<void>;
+            setState: () => Promise<void>;
+            setObjectNotExistsAsync: () => Promise<void>;
+            subscribeStates: (pattern: string) => void;
+            onReady: () => Promise<void>;
+        };
+        const patterns: string[] = [];
+        adapter.config.checkForUpdates = false;
+        adapter.extendObject = () => Promise.resolve();
+        adapter.setState = () => Promise.resolve();
+        adapter.setObjectNotExistsAsync = () => Promise.resolve();
+        adapter.subscribeStates = pattern => patterns.push(pattern);
+
+        await adapter.onReady();
+
+        const subscribed = (id: string): boolean =>
+            patterns.some(p => new RegExp(`^${p.replace(/\./g, '\\.').replace(/\*/g, '.*')}$`).test(id));
+        for (const id of [
+            'miner.dev.enabled',
+            'miner.dev.control.profile',
+            'miner.dev.custom.light.brightness',
+            'miner.dev.custom.lcd.on',
+        ]) {
+            expect(subscribed(id), id).to.equal(true);
+        }
     });
 });
