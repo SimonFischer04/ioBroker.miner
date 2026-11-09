@@ -428,3 +428,28 @@ describe('state subscriptions', () => {
         }
     });
 });
+
+describe('profile read-back', () => {
+    it('reflects the profile the miner reports in control.profile, only on change', async () => {
+        const adapter = createTestAdapter() as unknown as {
+            setState: () => Promise<void>;
+            setStateChangedAsync: (id: string, state: { val: unknown; ack: boolean }) => Promise<void>;
+            processNewStats: (miner: object, settings: object, stats: object) => Promise<void>;
+        };
+        const changed: { id: string; val: unknown; ack: boolean }[] = [];
+        adapter.setState = () => Promise.resolve();
+        adapter.setStateChangedAsync = (id, state) => {
+            changed.push({ id, ...state });
+            return Promise.resolve();
+        };
+        const miner = { getSupportedFeatures: () => [MinerFeatureKey.profile], getCustomChannels: () => [] };
+        const settings = { category: 'miner', name: 'Nano', settings: { id: 'dev' } };
+
+        await adapter.processNewStats(miner, settings, { profile: 'high' });
+        await adapter.processNewStats(miner, settings, {});
+
+        expect(changed.filter(c => c.id.endsWith('.profile'))).to.deep.equal([
+            { id: 'miner.dev.control.profile', val: 'high', ack: true },
+        ]);
+    });
+});

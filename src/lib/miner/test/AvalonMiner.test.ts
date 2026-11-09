@@ -259,6 +259,33 @@ describe('AvalonMiner', () => {
         });
     });
 
+    describe('profile', () => {
+        /**
+         * Profile parsed from the fixture with its WORKMODE field replaced.
+         *
+         * @param workmode - the WORKMODE field, or undefined to remove it
+         */
+        function profileFor(workmode: string | undefined): string | undefined {
+            const json = JSON.stringify(summaryVersionStatsFixture).replace(
+                'WORKMODE[2] ',
+                workmode === undefined ? '' : `WORKMODE[${workmode}] `,
+            );
+            return miner.parseSummaryVersionStatsResponse(JSON.parse(json) as SummaryVersionStatsResponse).profile;
+        }
+
+        it('reads the active profile from the work mode', () => {
+            expect(profileFor('2')).to.equal('high');
+            expect(profileFor('1')).to.equal('medium');
+            expect(profileFor('0')).to.equal('low');
+        });
+
+        it('reports no profile for an unknown or missing work mode', () => {
+            expect(profileFor('7')).to.equal(undefined);
+            expect(profileFor('constructor')).to.equal(undefined);
+            expect(profileFor(undefined)).to.equal(undefined);
+        });
+    });
+
     describe('getProfiles', () => {
         it('should return exactly three profiles', () => {
             expect(miner.getProfiles()).to.have.length(3);
@@ -461,6 +488,22 @@ describe('Avalon light and display', () => {
                 '0,ledset,0-100-50-0-0-255',
                 '0,ledset,3-100-50-0-0-255',
             ]);
+        });
+
+        it('sets the work mode of a profile', async () => {
+            await miner.setProfile('low');
+            expect(ascsets()).to.deep.equal(['0,workmode,set,0']);
+        });
+
+        it('fails when the miner rejects the work mode', async () => {
+            ascsetReply = { STATUS: [{ STATUS: 'E', Msg: 'Invalid ascset' }] };
+            let error: unknown;
+            try {
+                await miner.setProfile('high');
+            } catch (e) {
+                error = e;
+            }
+            expect(String(error)).to.contain('Invalid ascset');
         });
 
         it('turns the display on and off', async () => {

@@ -51,6 +51,15 @@ const AVALON_PROFILE_PARAM_MAP: Record<string, string> = {
 const AVALON_PROFILES = Object.keys(AVALON_PROFILE_PARAM_MAP);
 
 /**
+ * Profile for each work mode the miner reports in the `WORKMODE[<n>]` telemetry field (the `n` of `workmode,set,<n>`).
+ */
+const AVALON_WORKMODE_PROFILES = new Map<string | undefined, string>([
+    ['0', 'low'],
+    ['1', 'medium'],
+    ['2', 'high'],
+]);
+
+/**
  * Effects of the LED ring, as used by `ledset` and reported in `LEDUser`. 0 is off.
  */
 export enum AvalonLedEffect {
@@ -277,7 +286,6 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
      *
      */
     public override async fetchStats(): Promise<MinerStats> {
-        // TODO: also fetch profile (workmode). control.profile is for control, info.profile for profile fetched from stats
         try {
             // litestats carries the WiFi signal strength; it joins the same request instead of costing a second one
             const response = await this.sendCommand<SummaryVersionStatsResponse>(
@@ -402,8 +410,7 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
         }
 
         this.logger.info(`Setting Avalon workmode to "${profile}" (id=${params})`);
-        // TODO: check response status and then set with ack: true
-        await this.sendCommand(AvalonMinerCommand.ascset, params, true);
+        await this.sendAscset(params, 'workmode');
     }
 
     /**
@@ -593,6 +600,7 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
             power,
             efficiency: power != null && baseStats.totalHashrate ? baseStats.totalHashrate / power : undefined,
             rssi: this.extractRssiFromLiteStats(liteStatsEntries),
+            profile: AVALON_WORKMODE_PROFILES.get(this.extractTelemetryField('WORKMODE', statsEntries)),
             ...(Object.keys(custom).length > 0 ? { custom } : {}),
         };
     }
