@@ -30,6 +30,11 @@ export interface MinerStats {
      */
     powerTarget?: number;
     /**
+     * Active performance profile, one of {@link Miner.getProfiles}: also when it was changed elsewhere (e.g. in the
+     * miner's app).
+     */
+    profile?: string;
+    /**
      * Energy efficiency in H/W.
      */
     efficiency?: number;
