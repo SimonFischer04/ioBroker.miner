@@ -1,6 +1,15 @@
 import { expect } from 'chai';
-import { createServer, type AddressInfo } from 'node:net';
-import { AvalonMiner, type SummaryVersionStatsResponse } from '../miner/AvalonMiner';
+import { createServer, type AddressInfo, type Server } from 'node:net';
+import {
+    AvalonMiner,
+    buildLedSetParameter,
+    parseAvalonLedUser,
+    parseHexColor,
+    toHexColor,
+    type SummaryVersionStatsResponse,
+} from '../miner/AvalonMiner';
+import statsFixture from '../fixture/nano3s-stats.json';
+import ascsetFixture from '../fixture/nano3s-ascset-workmode.json';
 import summaryVersionStatsFixture from '../fixture/nano3s-summary+version+stats.json';
 import liteStatsFixture from '../fixture/nano3s-litestats.json';
 import type { LiteStatsResponse } from '../model/CGMinerApiTypes';
@@ -293,5 +302,200 @@ describe('AvalonMiner.fetchStats', () => {
         } finally {
             await new Promise(resolve => server.close(resolve));
         }
+    });
+});
+
+describe('Avalon light and display', () => {
+    describe('parsing', () => {
+        it('reports the LED and display settings as custom features', () => {
+            const stats = new AvalonMiner({
+                minerType: 'avalonMiner',
+                host: '10.10.30.51',
+                port: 4028,
+                pollInterval: 10000,
+            }).parseSummaryVersionStatsResponse(withLiteStats([liteStatsFixture as LiteStatsResponse]));
+
+            // LEDUser[0-100-50-0-0-255] LcdOnoff[1]: light off (so no effect reported), blue, display on
+            expect(stats.custom).to.deep.equal({
+                'light.on': false,
+                'light.brightness': 100,
+                'light.colorTemperature': 50,
+                'light.color': '#0000ff',
+                'lcd.on': true,
+            });
+        });
+
+        it('reports the effect while the light is on', () => {
+            const stats = new AvalonMiner({
+                minerType: 'avalonMiner',
+                host: '10.10.30.51',
+                port: 4028,
+                pollInterval: 10000,
+            }).parseSummaryVersionStatsResponse(
+                JSON.parse(
+                    JSON.stringify(summaryVersionStatsFixture).replace(
+                        'LEDUser[0-100-50-0-0-255]',
+                        'LEDUser[3-40-10-255-128-0]',
+                    ),
+                ) as SummaryVersionStatsResponse,
+            );
+            expect(stats.custom).to.include({ 'light.on': true, 'light.effect': 3, 'light.color': '#ff8000' });
+        });
+
+        it('reports no custom features when the firmware does not report them', () => {
+            const stats = new AvalonMiner({
+                minerType: 'avalonMiner',
+                host: '10.10.30.51',
+                port: 4028,
+                pollInterval: 10000,
+            }).parseSummaryVersionStatsResponse(
+                JSON.parse(
+                    JSON.stringify(summaryVersionStatsFixture)
+                        .replace('LEDUser[0-100-50-0-0-255] ', '')
+                        .replace('LcdOnoff[1] ', ''),
+                ) as SummaryVersionStatsResponse,
+            );
+            expect(stats.custom).to.equal(undefined);
+        });
+
+        it('parses LEDUser and rejects other formats', () => {
+            expect(parseAvalonLedUser('1-100-50-10-20-30')).to.deep.equal({
+                effect: 1,
+                brightness: 100,
+                colorTemperature: 50,
+                red: 10,
+                green: 20,
+                blue: 30,
+            });
+            expect(parseAvalonLedUser('0-0')).to.equal(undefined);
+            expect(parseAvalonLedUser('a-100-50-0-0-255')).to.equal(undefined);
+            expect(parseAvalonLedUser(undefined)).to.equal(undefined);
+        });
+
+        it('converts colors from and to #rrggbb', () => {
+            expect(parseHexColor('#FF8000')).to.deep.equal({ red: 255, green: 128, blue: 0 });
+            expect(parseHexColor('0a0b0c')).to.deep.equal({ red: 10, green: 11, blue: 12 });
+            expect(() => parseHexColor('red')).to.throw('expected #RRGGBB');
+            expect(toHexColor({ red: 10, green: 11, blue: 12 })).to.equal('#0a0b0c');
+        });
+
+        it('builds the ledset parameter from all LED settings', () => {
+            expect(
+                buildLedSetParameter({
+                    effect: 1,
+                    brightness: 80,
+                    colorTemperature: 50,
+                    red: 255,
+                    green: 0,
+                    blue: 0,
+                }),
+            ).to.equal('0,ledset,1-80-50-255-0-0');
+        });
+    });
+
+    describe('setting', () => {
+        let server: Server;
+        let requests: { command: string; parameter: string }[];
+        let ascsetReply: object;
+        let miner: AvalonMiner;
+
+        /** The ascset parameters the miner received. */
+        const ascsets = (): string[] => requests.filter(r => r.command === 'ascset').map(r => r.parameter);
+
+        beforeEach(async () => {
+            requests = [];
+            ascsetReply = ascsetFixture;
+            server = createServer(socket => {
+                socket.on('data', data => {
+                    const request = JSON.parse(data.toString()) as { command: string; parameter: string };
+                    requests.push(request);
+                    const reply =
+                        request.command === 'ascset'
+                            ? ascsetReply
+                            : request.command === 'stats'
+                              ? statsFixture
+                              : {
+                                    ...(summaryVersionStatsFixture as SummaryVersionStatsResponse),
+                                    litestats: [liteStatsFixture],
+                                };
+                    socket.end(JSON.stringify(reply));
+                });
+            });
+            await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+            miner = new AvalonMiner({
+                minerType: 'avalonMiner',
+                host: '127.0.0.1',
+                port: (server.address() as AddressInfo).port,
+                pollInterval: 10000,
+            });
+        });
+
+        afterEach(async () => {
+            await new Promise(resolve => server.close(resolve));
+        });
+
+        it('changes one LED setting and keeps the others the miner reported', async () => {
+            await miner.fetchStats();
+            expect(await miner.setCustomFeature('light.brightness', '40')).to.equal(40);
+            await miner.setCustomFeature('light.color', '#ff0000');
+            // each change builds on the previous one, not on the (now outdated) poll
+            expect(ascsets()).to.deep.equal(['0,ledset,0-40-50-0-0-255', '0,ledset,0-40-50-255-0-0']);
+        });
+
+        it('asks the miner for its LED settings when changing one before the first poll', async () => {
+            await miner.setCustomFeature('light.colorTemperature', 20);
+            expect(requests.map(r => r.command)).to.deep.equal(['stats', 'ascset']);
+            expect(ascsets()).to.deep.equal(['0,ledset,0-100-20-0-0-255']);
+        });
+
+        it('turns the light on with the last effect it had', async () => {
+            await miner.fetchStats();
+            await miner.setCustomFeature('light.on', true);
+            await miner.setCustomFeature('light.effect', 3);
+            await miner.setCustomFeature('light.on', false);
+            await miner.setCustomFeature('light.on', true);
+            expect(ascsets()).to.deep.equal([
+                // nothing known yet: static
+                '0,ledset,1-100-50-0-0-255',
+                '0,ledset,3-100-50-0-0-255',
+                '0,ledset,0-100-50-0-0-255',
+                '0,ledset,3-100-50-0-0-255',
+            ]);
+        });
+
+        it('turns the display on and off', async () => {
+            await miner.setCustomFeature('lcd.on', false);
+            await miner.setCustomFeature('lcd.on', true);
+            expect(ascsets()).to.deep.equal(['0,lcd,0:0', '0,lcd,0:1']);
+        });
+
+        it('fails when the miner rejects the command', async () => {
+            ascsetReply = { STATUS: [{ STATUS: 'E', Msg: 'Invalid ascset' }] };
+            let error: unknown;
+            try {
+                await miner.setCustomFeature('lcd.on', true);
+            } catch (e) {
+                error = e;
+            }
+            expect(String(error)).to.contain('Invalid ascset');
+        });
+
+        it('sends nothing for invalid values or unknown features', async () => {
+            for (const [id, value] of [
+                ['light.brightness', 101],
+                ['light.effect', 0],
+                ['light.color', 'red'],
+                ['light.unknown', 1],
+            ] as const) {
+                let error: unknown;
+                try {
+                    await miner.setCustomFeature(id, value);
+                } catch (e) {
+                    error = e;
+                }
+                expect(error, `${id}=${value}`).to.be.instanceOf(Error);
+            }
+            expect(ascsets()).to.deep.equal([]);
+        });
     });
 });

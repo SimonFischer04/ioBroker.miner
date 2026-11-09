@@ -3,6 +3,8 @@ import {
     DeviceManagement,
     type ConfigItemAny,
     type ActionContext,
+    type ControlState,
+    type DeviceControl,
     type DeviceDetails,
     type DeviceLoadContext,
     type DeviceRefresh,
@@ -33,6 +35,14 @@ import { getMinerFeatureFullId, MinerFeatureKey } from './miner/model/MinerFeatu
 import { describeUpdateStatus } from './update/updateStatus';
 import { AvalonMiner } from './miner/miner/AvalonMiner';
 import { isWrongPasswordError } from './miner/api/AvalonWebLogin';
+import type { Miner } from './miner/miner/Miner';
+import { CUSTOM_CHANNEL, type CustomFeatureDefinition } from './miner/model/CustomFeature';
+
+/**
+ * How long a slider, color or text control waits for the user to stop changing it before sending the value: each
+ * value sent reconfigures the miner.
+ */
+const CONTROL_DELAY_MS = 500;
 
 /**
  * Like `I18n.getTranslatedObject(key, ...args)`, but fills every `%s`: adapter-core only fills the first one
@@ -655,6 +665,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
             // TODO: add more info
 
             const customInfoItems: Record<string, ConfigItemAny> = {};
+            let controls: DeviceControl<string>[] = [];
             let rssiStateId: string | undefined;
 
             const settings: IOBrokerDeviceSettings = decryptDeviceSettings(
@@ -666,6 +677,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 const dummyMiner = createMiner(settings.settings);
 
                 const supportedFeatures = dummyMiner.getSupportedFeatures();
+                controls = this.getControls(device._id, dummyMiner, supportedFeatures);
 
                 if (supportedFeatures.includes(MinerFeatureKey.running)) {
                     const stateId = `${device._id}.${getMinerFeatureFullId(MinerFeatureKey.running)}`;
@@ -746,6 +758,7 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     stateId: `${device._id}.enabled`,
                 },
                 hasDetails: true,
+                ...(controls.length > 0 ? { controls } : {}),
 
                 // Connection type using live state binding:
                 // Instead of a static value, we bind to a state. The DM UI will read the
@@ -812,6 +825,128 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                 ],
             });
         }
+    }
+
+    /**
+     * Controls shown behind the device card's control button: running and profile, if supported, and every writable
+     * custom feature, under a header per custom channel. The power target stays on the card only, where it is sent
+     * with a "Set" button instead of on every change.
+     *
+     * @param deviceId - the device object id
+     * @param miner - a (not initialized) miner of the device's type
+     * @param supportedFeatures - the features the miner supports
+     */
+    private getControls(
+        deviceId: string,
+        miner: Miner<MinerSettings>,
+        supportedFeatures: MinerFeatureKey[],
+    ): DeviceControl<string>[] {
+        const handler = this.handleControl.bind(this);
+        const controls: DeviceControl<string>[] = [];
+
+        if (supportedFeatures.includes(MinerFeatureKey.running)) {
+            const id = getMinerFeatureFullId(MinerFeatureKey.running);
+            controls.push({
+                id,
+                type: 'switch',
+                stateId: `${deviceId}.${id}`,
+                label: I18n.getTranslatedObject('Running'),
+                handler,
+            });
+        }
+        if (supportedFeatures.includes(MinerFeatureKey.profile)) {
+            const id = getMinerFeatureFullId(MinerFeatureKey.profile);
+            controls.push({
+                id,
+                type: 'select',
+                stateId: `${deviceId}.${id}`,
+                label: I18n.getTranslatedObject('Profile'),
+                options: miner.getProfiles().map(p => ({ label: p, value: p })),
+                noTranslation: true,
+                handler,
+            });
+        }
+
+        for (const channel of miner.getCustomChannels()) {
+            const writable = channel.features.filter(feature => feature.writable);
+            if (writable.length === 0) {
+                continue;
+            }
+            controls.push({ id: `${CUSTOM_CHANNEL}.${channel.id}`, type: 'header', label: channel.label });
+            for (const feature of writable) {
+                const id = `${CUSTOM_CHANNEL}.${channel.id}.${feature.id}`;
+                controls.push({
+                    ...this.getCustomFeatureControl(feature),
+                    id,
+                    stateId: `${deviceId}.${id}`,
+                    label: feature.label,
+                    handler,
+                });
+            }
+        }
+        return controls;
+    }
+
+    /**
+     * The kind of control fitting a custom feature's definition.
+     *
+     * @param feature - the custom feature
+     */
+    private getCustomFeatureControl(feature: CustomFeatureDefinition): Omit<DeviceControl<string>, 'id'> {
+        if (feature.states) {
+            return {
+                type: 'select',
+                options: Object.entries(feature.states).map(([value, label]) => ({
+                    label,
+                    value: feature.type === 'number' ? Number(value) : value,
+                })),
+                noTranslation: true,
+            };
+        }
+        switch (feature.type) {
+            case 'boolean':
+                return { type: 'switch' };
+            case 'number':
+                return feature.min !== undefined && feature.max !== undefined
+                    ? {
+                          type: 'slider',
+                          min: feature.min,
+                          max: feature.max,
+                          step: feature.step,
+                          unit: feature.unit,
+                          controlDelay: CONTROL_DELAY_MS,
+                      }
+                    : { type: 'number', min: feature.min, max: feature.max, step: feature.step, unit: feature.unit };
+            case 'string':
+                return {
+                    type: feature.role === 'level.color.rgb' ? 'color' : 'text',
+                    controlDelay: CONTROL_DELAY_MS,
+                };
+        }
+    }
+
+    /**
+     * Writes a control's value to its state as a command, so it takes the same path as any other write (see
+     * MinerAdapter.onStateChange).
+     *
+     * @param deviceId - the device object id
+     * @param controlId - the control id: the state id relative to the device
+     * @param state - the new value
+     * @returns the state after the write
+     */
+    protected async handleControl(deviceId: string, controlId: string, state: ControlState): Promise<ioBroker.State> {
+        const stateId = `${deviceId}.${controlId}`;
+        await this.adapter.setForeignStateAsync(stateId, { val: state, ack: false });
+        const now = Date.now();
+        return (
+            (await this.adapter.getForeignStateAsync(stateId)) ?? {
+                val: state,
+                ack: false,
+                ts: now,
+                lc: now,
+                from: `system.adapter.${this.adapter.namespace}`,
+            }
+        );
     }
 
     protected async handleEnableDisableDevice(id: string): Promise<{ refresh: DeviceRefresh }> {

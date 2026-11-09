@@ -5,6 +5,12 @@ import { Logger } from '../model/Logger';
 import type { MinerStats } from '../model/MinerStats';
 import type { UpdateCheckContext, UpdateCheckResult } from '../model/UpdateCheckResult';
 import type { UpdateSources } from '../../update/UpdateSources';
+import {
+    coerceCustomFeatureValue,
+    resolveCustomFeatures,
+    type CustomChannelDefinition,
+    type CustomFeatureValue,
+} from '../model/CustomFeature';
 
 /**
  * Power target range a miner accepts, in watts.
@@ -131,6 +137,43 @@ export abstract class Miner<S extends MinerSettings> {
      */
     public getPowerTargetConstraints(): Promise<PowerTargetConstraints | undefined> {
         return Promise.resolve(undefined);
+    }
+
+    /**
+     * Features specific to this miner type that are not standardised across miners (yet), grouped into channels.
+     * Their values are reported in {@link MinerStats.custom}. Returns an empty array if there are none.
+     */
+    public getCustomChannels(): CustomChannelDefinition[] {
+        return [];
+    }
+
+    /**
+     * Change a custom feature. The value is checked against the feature's definition first.
+     *
+     * @param id - `<channel>.<feature>`, e.g. `light.brightness`
+     * @param value - the new value
+     * @returns the value in the feature's type, as sent to the miner
+     * @throws {Error} if the feature is unknown or read-only, the value isn't accepted, or the miner rejects it
+     */
+    public async setCustomFeature(id: string, value: unknown): Promise<CustomFeatureValue> {
+        const resolved = resolveCustomFeatures(this.getCustomChannels()).find(f => f.id === id);
+        if (!resolved) {
+            throw new Error(`unknown custom feature "${id}"`);
+        }
+        const coerced = coerceCustomFeatureValue(resolved.feature, value);
+        this.logger.info(`setting custom feature ${id} to ${JSON.stringify(coerced)}`);
+        await this.applyCustomFeature(id, coerced);
+        return coerced;
+    }
+
+    /**
+     * Send a checked custom feature value to the miner. Miners with custom features override this.
+     *
+     * @param id - `<channel>.<feature>`, e.g. `light.brightness`
+     * @param _value - the new value, already checked against the feature's definition
+     */
+    protected applyCustomFeature(id: string, _value: CustomFeatureValue): Promise<void> {
+        return Promise.reject(new Error(`custom feature "${id}" is not implemented for this miner`));
     }
 
     /**
