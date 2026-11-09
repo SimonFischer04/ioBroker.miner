@@ -1,3 +1,5 @@
+import type { CustomFeatureValue } from './CustomFeature';
+
 /**
  *
  */
@@ -43,6 +45,11 @@ export interface MinerStats {
      * WiFi signal strength in dBm.
      */
     rssi?: number;
+    /**
+     * Values of the miner's custom features (see {@link Miner.getCustomChannels}), keyed by `<channel>.<feature>`.
+     * Features that are missing keep their last value.
+     */
+    custom?: Record<string, CustomFeatureValue>;
     /**
      * Raw API response payload.
      */

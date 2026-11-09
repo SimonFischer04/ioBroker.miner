@@ -149,13 +149,36 @@ miner.0
               temp                   (number)
       raw                            (channel)
         stats                        (object/string) raw miner payload (maps to feature: rawStats)
+      custom                         (channel)  features of a single miner type, not standardised across miners (yet)
+        light                        (channel)  e.g. Avalon: LED light
+          on                         (boolean)
+          effect                     (number)   1 static, 2 flash, 3 breath, 4 loop
+          brightness                 (number)   %
+          colorTemperature           (number)   0-100
+          color                      (string)   #RRGGBB
+        lcd                          (channel)  e.g. Avalon: display
+          on                         (boolean)
 ```
+
+### Custom features (`custom`)
+Some miners can do things no other supported miner can, like the LED light of an Avalon Nano. Instead of adding such features to the common states, a miner declares them itself; they appear as sub-channels of `custom` (only for miners that have any) and as controls behind the device's control button in the device manager. Writing a state sends it to the miner; it is acknowledged once the miner accepted it, and the next poll reflects what the miner actually applied.
+
+Once more than one miner type supports the same thing, it is moved to the common states (e.g. `control`), and the old `custom` state is removed.
+
+| Miner | State | Notes |
+| --- | --- | --- |
+| Avalon | `custom.light.on`, `custom.light.effect`, `custom.light.brightness`, `custom.light.colorTemperature`, `custom.light.color` | `effect` keeps the last effect while the light is off and is used again when it is turned on; choosing an effect also turns the light on |
+| Avalon | `custom.lcd.on` | display on / off |
 
 ## Changelog
 <!--
     Placeholder for the next version (at the beginning of the line):
     ### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (claude) **NEW**: Avalon: control the LED light (on/off, effect, brightness, color temperature, color) and the display (on/off), as states under `custom.light` / `custom.lcd` and in the device manager behind the device's control button. They come with the existing poll request, so they cost no extra round-trip
+* (claude) **NEW**: `custom` channel for features only a single miner type has (not standardised across miners yet); the device manager shows the writable ones, plus running and profile, as device controls
+
 ### 1.2.0 (2026-11-03)
 * (claude) **NEW**: Check miners for available firmware/software updates once a day and show them in the device manager: new states `info.latestVersion` and `info.updateAvailable` (Braiins OS, XMRig, TeamRedMiner, IceRiver OC firmware, Avalon Nano 3), plus the auto-upgrade status for Braiins OS. Can be turned off in the instance settings; a "check for updates" action checks right away (#195)
 * (claude) **FIXED**: `info.online` now switches to `false` after 3 failed polls in a row and back to `true` on the next successful one; a poll that hangs counts as failed after its poll interval, but at least 30 seconds, and requests to Braiins OS (gRPC) and XMRig / IceRiver (HTTP) are now cancelled after that time instead of staying open (#222)

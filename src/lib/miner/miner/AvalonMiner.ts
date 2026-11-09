@@ -8,6 +8,7 @@ import {
     type CombinedResponse,
     type LiteStatsData,
     type StatsDeviceData,
+    type StatsResponse,
     type VersionData,
     type VersionResponse,
 } from '../model/CGMinerApiTypes';
@@ -16,6 +17,7 @@ import type { UpdateSources } from '../../update/UpdateSources';
 import { parseAvalonBuild } from '../../update/version-compare';
 import { safeParseFloat } from '../../utils/parse-utils';
 import { buildQrAuthParameter, parseAuthChallenge, type AvalonAuthChallenge } from '../api/AvalonWebLogin';
+import type { CustomChannelDefinition, CustomFeatureValue } from '../model/CustomFeature';
 
 // Avalon devices use the CGMiner-compatible socket API on port 4028
 // Control commands use the 'ascset' command with different parameters
@@ -34,8 +36,10 @@ enum AvalonMinerParameter {
     workModeMedium = '0,workmode,set,1',
     workModeHigh = '0,workmode,set,2',
     // Future: reboot = '0,reboot,0',
-    // Future: lcdOn = '0,lcd,0:1',
-    // Future: lcdOff = '0,lcd,0:0',
+    // LED ring: `0,ledset,<effect>-<brightness>-<colorTemperature>-<red>-<green>-<blue>`, see buildLedSetParameter
+    ledSet = '0,ledset',
+    // LCD: `0,lcd,0:1` (on) / `0,lcd,0:0` (off)
+    lcd = '0,lcd,0',
 }
 
 const AVALON_PROFILE_PARAM_MAP: Record<string, string> = {
@@ -45,6 +49,190 @@ const AVALON_PROFILE_PARAM_MAP: Record<string, string> = {
 } as const;
 
 const AVALON_PROFILES = Object.keys(AVALON_PROFILE_PARAM_MAP);
+
+/**
+ * Effects of the LED ring, as used by `ledset` and reported in `LEDUser`. 0 is off.
+ */
+export enum AvalonLedEffect {
+    off = 0,
+    static = 1,
+    flash = 2,
+    breath = 3,
+    loop = 4,
+}
+
+/**
+ * Settings of the LED ring, as reported in the `LEDUser[effect-brightness-colorTemperature-red-green-blue]` telemetry
+ * field and sent with `ledset` (which always takes all of them).
+ */
+export interface AvalonLedSettings {
+    /**
+     * 0 (off) to 4, see {@link AvalonLedEffect}.
+     */
+    effect: number;
+    /**
+     * 0-100 %.
+     */
+    brightness: number;
+    /**
+     * 0-100.
+     */
+    colorTemperature: number;
+    /**
+     * 0-255.
+     */
+    red: number;
+    /**
+     * 0-255.
+     */
+    green: number;
+    /**
+     * 0-255.
+     */
+    blue: number;
+}
+
+/**
+ * Custom feature ids (`<channel>.<feature>`) of the Avalon miner.
+ */
+export enum AvalonCustomFeature {
+    lightOn = 'light.on',
+    lightEffect = 'light.effect',
+    lightBrightness = 'light.brightness',
+    lightColorTemperature = 'light.colorTemperature',
+    lightColor = 'light.color',
+    lcdOn = 'lcd.on',
+}
+
+const AVALON_CUSTOM_CHANNELS: CustomChannelDefinition[] = [
+    {
+        id: 'light',
+        label: 'Light',
+        features: [
+            {
+                id: 'on',
+                label: 'Light',
+                description: 'Whether the LED light is on.',
+                type: 'boolean',
+                role: 'switch.light',
+                readable: true,
+                writable: true,
+            },
+            {
+                id: 'effect',
+                label: 'Light Effect',
+                description:
+                    'Effect of the LED light. Kept while the light is off and used again when it is turned on.',
+                type: 'number',
+                role: 'level',
+                states: {
+                    [AvalonLedEffect.static]: 'Static',
+                    [AvalonLedEffect.flash]: 'Flash',
+                    [AvalonLedEffect.breath]: 'Breath',
+                    [AvalonLedEffect.loop]: 'Loop',
+                },
+                readable: true,
+                writable: true,
+            },
+            {
+                id: 'brightness',
+                label: 'Light Brightness',
+                description: 'Brightness of the LED light.',
+                type: 'number',
+                role: 'level.dimmer',
+                unit: '%',
+                min: 0,
+                max: 100,
+                step: 1,
+                readable: true,
+                writable: true,
+            },
+            {
+                id: 'colorTemperature',
+                label: 'Light Color Temperature',
+                description: 'Color temperature of the LED light (0-100).',
+                type: 'number',
+                role: 'level',
+                min: 0,
+                max: 100,
+                step: 1,
+                readable: true,
+                writable: true,
+            },
+            {
+                id: 'color',
+                label: 'Light Color',
+                description: 'Color of the LED light as #RRGGBB.',
+                type: 'string',
+                role: 'level.color.rgb',
+                readable: true,
+                writable: true,
+            },
+        ],
+    },
+    {
+        id: 'lcd',
+        label: 'Display',
+        features: [
+            {
+                id: 'on',
+                label: 'Display',
+                description: 'Whether the display (LCD) is on.',
+                type: 'boolean',
+                role: 'switch',
+                readable: true,
+                writable: true,
+            },
+        ],
+    },
+];
+
+/**
+ * Parses the `LEDUser` telemetry field: `effect-brightness-colorTemperature-red-green-blue`, e.g. `0-100-50-0-0-255`.
+ *
+ * @param value - the field's value
+ * @returns the settings, or undefined if the value doesn't have this format
+ */
+export function parseAvalonLedUser(value: string | undefined): AvalonLedSettings | undefined {
+    const parts = value?.trim().split('-');
+    if (parts?.length !== 6 || !parts.every(part => /^\d+$/.test(part))) {
+        return undefined;
+    }
+    const [effect, brightness, colorTemperature, red, green, blue] = parts.map(Number);
+    return { effect, brightness, colorTemperature, red, green, blue };
+}
+
+/**
+ * Builds the `ascset` parameter that applies the given LED settings.
+ *
+ * @param led - the complete LED settings
+ */
+export function buildLedSetParameter(led: AvalonLedSettings): string {
+    return `${AvalonMinerParameter.ledSet},${[led.effect, led.brightness, led.colorTemperature, led.red, led.green, led.blue].join('-')}`;
+}
+
+/**
+ * Formats red, green and blue (0-255) as `#rrggbb`.
+ *
+ * @param led - the LED settings to take the color from
+ */
+export function toHexColor(led: Pick<AvalonLedSettings, 'red' | 'green' | 'blue'>): string {
+    return `#${[led.red, led.green, led.blue].map(c => c.toString(16).padStart(2, '0')).join('')}`;
+}
+
+/**
+ * Parses a `#rrggbb` (or `rrggbb`) color, case-insensitive.
+ *
+ * @param color - the color
+ * @throws {Error} if it isn't in this format
+ */
+export function parseHexColor(color: string): Pick<AvalonLedSettings, 'red' | 'green' | 'blue'> {
+    const match = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color.trim());
+    if (!match) {
+        throw new Error(`invalid color "${color}", expected #RRGGBB`);
+    }
+    return { red: parseInt(match[1], 16), green: parseInt(match[2], 16), blue: parseInt(match[3], 16) };
+}
 
 /**
  * Default port of the miner's web interface.
@@ -64,6 +252,17 @@ export type SummaryVersionStatsResponse = CombinedResponse<
  *
  */
 export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand> {
+    /**
+     * LED settings the miner reported last (or that were set last): `ledset` always takes all of them, so changing one
+     * needs the others.
+     */
+    private ledSettings: AvalonLedSettings | undefined;
+
+    /**
+     * Effect to use when the light is turned on: the last one that wasn't off.
+     */
+    private lastLedEffect: number = AvalonLedEffect.static;
+
     /**
      *
      */
@@ -87,7 +286,11 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
                 true,
             );
 
-            return this.parseSummaryVersionStatsResponse(response);
+            const stats = this.parseSummaryVersionStatsResponse(response);
+            this.rememberLedSettings(
+                this.extractLedSettings(response.stats?.[0]?.STATS, response.litestats?.[0]?.STATS),
+            );
+            return stats;
         } catch (e) {
             return Promise.reject(e instanceof Error ? e : new Error(String(e)));
         }
@@ -217,16 +420,96 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
         }
 
         const challenge = await this.fetchAuthChallenge();
+        await this.sendAscset(buildQrAuthParameter(challenge, password), 'qr_auth');
+        this.logger.info('web login approved');
+    }
+
+    /**
+     * The LED light and the display.
+     */
+    public override getCustomChannels(): CustomChannelDefinition[] {
+        return AVALON_CUSTOM_CHANNELS;
+    }
+
+    /**
+     * Sends a light or display change. Light changes are sent together with the other current LED settings, as
+     * `ledset` needs all of them.
+     *
+     * @param id - see {@link AvalonCustomFeature}
+     * @param value - the new value, checked against the feature's definition
+     */
+    protected override async applyCustomFeature(id: string, value: CustomFeatureValue): Promise<void> {
+        if (id === AvalonCustomFeature.lcdOn) {
+            await this.sendAscset(`${AvalonMinerParameter.lcd}:${value ? 1 : 0}`, 'lcd');
+            return;
+        }
+
+        const led: AvalonLedSettings = { ...(this.ledSettings ?? (await this.fetchLedSettings())) };
+        switch (id as AvalonCustomFeature) {
+            case AvalonCustomFeature.lightOn:
+                led.effect = value ? this.lastLedEffect : AvalonLedEffect.off;
+                break;
+            case AvalonCustomFeature.lightEffect:
+                // choosing an effect also turns the light on
+                led.effect = Number(value);
+                break;
+            case AvalonCustomFeature.lightBrightness:
+                led.brightness = Number(value);
+                break;
+            case AvalonCustomFeature.lightColorTemperature:
+                led.colorTemperature = Number(value);
+                break;
+            case AvalonCustomFeature.lightColor:
+                Object.assign(led, parseHexColor(String(value)));
+                break;
+            default:
+                return super.applyCustomFeature(id, value);
+        }
+
+        await this.sendAscset(buildLedSetParameter(led), 'ledset');
+        this.rememberLedSettings(led);
+    }
+
+    /**
+     * Sends an `ascset` command and checks the miner accepted it.
+     *
+     * @param parameter - the `ascset` parameter
+     * @param what - name of the setting for the error message
+     * @throws {Error} if the miner doesn't answer or rejects the command
+     */
+    private async sendAscset(parameter: string, what: string): Promise<void> {
         const response = await this.sendCommand<{ STATUS?: CGMinerStatus[] }>(
             AvalonMinerCommand.ascset,
-            buildQrAuthParameter(challenge, password),
+            parameter,
             true,
         );
         const status = response?.STATUS?.[0];
         if (!status || status.STATUS === 'E' || status.STATUS === 'F') {
-            throw new Error(status?.Msg ?? 'no reply to qr_auth');
+            throw new Error(status?.Msg ?? `no reply to ${what}`);
         }
-        this.logger.info('web login approved');
+    }
+
+    /**
+     * Asks the miner for its current LED settings, for a light change before the first poll.
+     */
+    private async fetchLedSettings(): Promise<AvalonLedSettings> {
+        const response = await this.sendCommand<StatsResponse>(CGMinerCommand.stats, '', true);
+        const led = this.extractLedSettings(response.STATS);
+        if (!led) {
+            throw new Error('the miner does not report its LED settings');
+        }
+        this.rememberLedSettings(led);
+        return led;
+    }
+
+    private rememberLedSettings(led: AvalonLedSettings | undefined): void {
+        if (!led) {
+            return;
+        }
+        this.ledSettings = led;
+        if (led.effect !== AvalonLedEffect.off) {
+            this.lastLedEffect = led.effect;
+        }
     }
 
     /**
@@ -294,15 +577,92 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
         // Parse summary+version via the parent method
         const baseStats = this.parseSummaryVersionResponse(response);
 
+        const statsEntries = response.stats?.[0]?.STATS;
+        const liteStatsEntries = response.litestats?.[0]?.STATS;
+
         // Extract power from the stats response
-        const power = this.extractPowerFromStats(response.stats?.[0]?.STATS);
+        const power = this.extractPowerFromStats(statsEntries);
+
+        const custom = this.toCustomValues(
+            this.extractLedSettings(statsEntries, liteStatsEntries),
+            this.extractTelemetryField('LcdOnoff', statsEntries, liteStatsEntries),
+        );
 
         return {
             ...baseStats,
             power,
             efficiency: power != null && baseStats.totalHashrate ? baseStats.totalHashrate / power : undefined,
-            rssi: this.extractRssiFromLiteStats(response.litestats?.[0]?.STATS),
+            rssi: this.extractRssiFromLiteStats(liteStatsEntries),
+            ...(Object.keys(custom).length > 0 ? { custom } : {}),
         };
+    }
+
+    /**
+     * Custom feature values for the reported LED settings and display state.
+     *
+     * @param led - LED settings, if reported
+     * @param lcdOnOff - value of the `LcdOnoff` telemetry field, if reported
+     */
+    private toCustomValues(
+        led: AvalonLedSettings | undefined,
+        lcdOnOff: string | undefined,
+    ): Record<string, CustomFeatureValue> {
+        const custom: Record<string, CustomFeatureValue> = {};
+        if (led) {
+            custom[AvalonCustomFeature.lightOn] = led.effect !== AvalonLedEffect.off;
+            // while the light is off, the effect state keeps the effect it will be turned on with
+            if (led.effect !== AvalonLedEffect.off) {
+                custom[AvalonCustomFeature.lightEffect] = led.effect;
+            }
+            custom[AvalonCustomFeature.lightBrightness] = led.brightness;
+            custom[AvalonCustomFeature.lightColorTemperature] = led.colorTemperature;
+            custom[AvalonCustomFeature.lightColor] = toHexColor(led);
+        }
+        if (lcdOnOff === '0' || lcdOnOff === '1') {
+            custom[AvalonCustomFeature.lcdOn] = lcdOnOff === '1';
+        }
+        return custom;
+    }
+
+    /**
+     * LED settings from the `LEDUser` telemetry field.
+     *
+     * @param statsEntries - STATS array from a stats response
+     * @param liteStatsEntries - STATS array from a litestats response, used if stats doesn't report the field
+     */
+    private extractLedSettings(
+        statsEntries: readonly object[] | undefined,
+        liteStatsEntries?: readonly object[],
+    ): AvalonLedSettings | undefined {
+        return parseAvalonLedUser(this.extractTelemetryField('LEDUser', statsEntries, liteStatsEntries));
+    }
+
+    /**
+     * A field of the first device's `MM ID<n>` telemetry string, from the first of the given STATS arrays reporting it.
+     *
+     * @param field - name of the telemetry field, e.g. `LEDUser`
+     * @param entryLists - STATS arrays of stats/litestats responses, in order of preference
+     */
+    private extractTelemetryField(field: string, ...entryLists: (readonly object[] | undefined)[]): string | undefined {
+        for (const entries of entryLists) {
+            const value = this.firstDeviceTelemetry(entries)?.get(field);
+            if (value !== undefined) {
+                return value;
+            }
+        }
+        return undefined;
+    }
+
+    /**
+     * The parsed `MM ID<n>` telemetry string of the first device entry (the one with `MM Count`, not a pool entry).
+     *
+     * @param entries - STATS array from a stats or litestats response
+     */
+    private firstDeviceTelemetry(entries: readonly object[] | undefined): Map<string, string> | undefined {
+        const entry = entries?.find(e => 'MM Count' in e) as Record<string, unknown> | undefined;
+        const mmIdKey = entry && Object.keys(entry).find(key => key.startsWith('MM ID'));
+        const telemetry = mmIdKey ? entry[mmIdKey] : undefined;
+        return typeof telemetry === 'string' && telemetry ? this.parseAvalonTelemetry(telemetry) : undefined;
     }
 
     /**
@@ -315,29 +675,7 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
      * @returns power in watts, or undefined if not available
      */
     private extractPowerFromStats(statsEntries: (StatsDeviceData | { ID: string })[] | undefined): number | undefined {
-        if (!statsEntries) {
-            return undefined;
-        }
-
-        // Find the first device entry (ID starts with "AVALON", not "POOL")
-        const deviceEntry = statsEntries.find((entry): entry is StatsDeviceData => 'MM Count' in entry);
-        if (!deviceEntry) {
-            return undefined;
-        }
-
-        // Find the first MM ID field
-        const mmIdKey = Object.keys(deviceEntry).find(key => key.startsWith('MM ID'));
-        if (!mmIdKey) {
-            return undefined;
-        }
-
-        const telemetry = deviceEntry[mmIdKey as `MM ID${number}`];
-        if (!telemetry) {
-            return undefined;
-        }
-
-        const parsed = this.parseAvalonTelemetry(telemetry);
-        const psValue = parsed.get('PS');
+        const psValue = this.firstDeviceTelemetry(statsEntries)?.get('PS');
         if (!psValue) {
             return undefined;
         }
@@ -360,15 +698,8 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
      * @returns RSSI in dBm, or undefined if not reported (e.g. a wired connection or a firmware without litestats)
      */
     private extractRssiFromLiteStats(liteStatsEntries: LiteStatsData[] | undefined): number | undefined {
-        const entry = liteStatsEntries?.find(e => 'MM Count' in e);
-        const mmIdKey = entry && Object.keys(entry).find(key => key.startsWith('MM ID'));
-        const telemetry = mmIdKey ? entry[mmIdKey as `MM ID${number}`] : undefined;
-        if (!telemetry) {
-            return undefined;
-        }
-
         // not safeParseFloat: it turns garbage into 0, which would look like a (perfect) reading
-        const rssi = Number.parseFloat(this.parseAvalonTelemetry(telemetry).get('RSSI') ?? '');
+        const rssi = Number.parseFloat(this.firstDeviceTelemetry(liteStatsEntries)?.get('RSSI') ?? '');
         return Number.isFinite(rssi) ? rssi : undefined;
     }
 }

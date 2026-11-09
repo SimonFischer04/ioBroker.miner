@@ -22,6 +22,7 @@ import { asyncDynamicInterval, setTimerBackend, type AsyncIntervalReturnType } f
 import { UpdateSources } from './lib/update/UpdateSources';
 import { runUpdateChecks, type UpdateCheckSummary } from './lib/update/runUpdateChecks';
 import type { UpdateCheckContext, UpdateCheckResult } from './lib/miner/model/UpdateCheckResult';
+import { CUSTOM_CHANNEL, resolveCustomFeatures, type CustomChannelDefinition } from './lib/miner/model/CustomFeature';
 
 /** First update check shortly after start, once the miners are initialized and reachable. */
 const UPDATE_CHECK_INITIAL_DELAY_MS = 60_000;
@@ -89,6 +90,7 @@ export class MinerAdapter extends utils.Adapter {
 
         // this is correct RELATIVE path! actually means "miner.X.miner.<minerid>.control"
         this.subscribeStates('miner.*.control.*');
+        this.subscribeStates(`miner.*.${CUSTOM_CHANNEL}.*`);
         this.subscribeStates('miner.*.enabled');
 
         this.scheduleUpdateChecks();
@@ -260,12 +262,50 @@ export class MinerAdapter extends utils.Adapter {
                 }
 
                 default: {
+                    if (minerObjectId.startsWith(`${CUSTOM_CHANNEL}.`)) {
+                        await this.setCustomFeature(
+                            id,
+                            deviceSettings,
+                            minerObjectId.slice(CUSTOM_CHANNEL.length + 1),
+                            state.val,
+                        );
+                        break;
+                    }
                     this.log.warn(`unknown handling of state ${id}`);
                 }
             }
         } else {
             // The state was deleted
             this.log.info(`state ${id} deleted`);
+        }
+    }
+
+    /**
+     * Sends a write to a custom feature state (`custom.<channel>.<feature>`) to the miner. On success the state is
+     * acknowledged; the next poll corrects it should the miner have applied something else.
+     *
+     * @param stateId - the full id of the written state
+     * @param deviceSettings - settings of the device the state belongs to
+     * @param featureId - `<channel>.<feature>`
+     * @param value - the written value
+     */
+    private async setCustomFeature(
+        stateId: string,
+        deviceSettings: IOBrokerMinerSettings,
+        featureId: string,
+        value: ioBroker.StateValue,
+    ): Promise<void> {
+        const miner = deviceSettings.settings.id ? this.minerManager.getMiner(deviceSettings.settings.id) : undefined;
+        if (!miner) {
+            this.log.warn(`cannot set ${featureId} on device ${deviceSettings.name}: the device is disabled`);
+            return;
+        }
+
+        try {
+            const applied = await miner.setCustomFeature(featureId, value);
+            await this.setState(stateId, { val: applied, ack: true });
+        } catch (e) {
+            this.log.warn(`setting ${featureId} on device ${deviceSettings.name} failed: ${String(e)}`);
         }
     }
 
@@ -660,6 +700,16 @@ export class MinerAdapter extends utils.Adapter {
             }
         }
 
+        // Custom features: only the ones the miner declares, only on change (like the power target above)
+        if (stats.custom) {
+            const known = new Set(resolveCustomFeatures(miner.getCustomChannels()).map(f => f.id));
+            for (const [id, val] of Object.entries(stats.custom)) {
+                if (known.has(id)) {
+                    await this.setStateChangedAsync(`${deviceId}.${CUSTOM_CHANNEL}.${id}`, { val, ack: true });
+                }
+            }
+        }
+
         // Always update online / lastSeen
         await this.setDeviceOnline(settings, true);
         await this.setState(`${deviceId}.info.lastSeen`, { val: Date.now(), ack: true });
@@ -779,6 +829,68 @@ export class MinerAdapter extends utils.Adapter {
                 type: 'state',
                 common: common as ioBroker.StateCommon,
             });
+        }
+
+        await this.createCustomStateObjects(deviceId, dummyMiner.getCustomChannels());
+    }
+
+    /**
+     * Creates the `custom` channel with one sub-channel per custom feature channel the miner declares, and removes
+     * custom objects the miner no longer declares (another miner type, or a feature promoted to a regular one).
+     *
+     * @param deviceId - the device object id
+     * @param channels - the custom feature channels of the miner
+     */
+    private async createCustomStateObjects(
+        deviceId: string,
+        channels: readonly CustomChannelDefinition[],
+    ): Promise<void> {
+        const customId = `${deviceId}.${CUSTOM_CHANNEL}`;
+        const wanted = new Set<string>();
+
+        if (channels.length > 0) {
+            await this.extendObject(customId, {
+                type: 'channel',
+                common: { name: 'device specific features' },
+            });
+            wanted.add(customId);
+
+            for (const channel of channels) {
+                const channelId = `${customId}.${channel.id}`;
+                await this.extendObject(channelId, { type: 'channel', common: { name: channel.label } });
+                wanted.add(channelId);
+            }
+
+            for (const { id, feature } of resolveCustomFeatures(channels)) {
+                const common: Partial<ioBroker.StateCommon> = {
+                    name: `${feature.label} - ${feature.description}`,
+                    type: feature.type,
+                    role: feature.role ?? 'state',
+                    read: feature.readable,
+                    write: feature.writable,
+                    unit: feature.unit,
+                    min: feature.min,
+                    max: feature.max,
+                    step: feature.step,
+                    states: feature.states,
+                    expert: feature.advanced === true ? true : undefined, // false needs to be passed in as undefined
+                };
+                const stateId = `${customId}.${id}`;
+                await this.extendObject(stateId, { type: 'state', common: common as ioBroker.StateCommon });
+                wanted.add(stateId);
+            }
+        }
+
+        // longest ids first, so states go before their channels
+        const existing = Object.keys(await this.getForeignObjectsAsync(`${this.namespace}.${customId}.*`))
+            .map(id => id.slice(this.namespace.length + 1))
+            .concat((await this.getObjectAsync(customId)) ? [customId] : [])
+            .sort((a, b) => b.length - a.length);
+        for (const id of existing) {
+            if (!wanted.has(id)) {
+                this.log.info(`Removing custom feature object no longer provided by the miner: ${id}`);
+                await this.delObjectAsync(id);
+            }
         }
     }
 
