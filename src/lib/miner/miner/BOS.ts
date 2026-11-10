@@ -2,6 +2,8 @@ import { BOS_DEFAULT_PASSWORD, BOS_DEFAULT_USERNAME } from '../model/MinerSettin
 import {
     BosApiClient,
     type BosApiVersion,
+    type BosHashboard,
+    type BosHashboards,
     type BosMinerDetails,
     type BosMinerStats,
     type BosTunerState,
@@ -10,6 +12,13 @@ import {
 import { MinerFeatureKey } from '../model/MinerFeature';
 import type { BOSSettings } from '../model/MinerSettings';
 import type { MinerStats } from '../model/MinerStats';
+import {
+    instantiateDynamicCustomChannel,
+    type CustomChannelDefinition,
+    type CustomFeatureDefinition,
+    type CustomFeatureValue,
+    type DynamicCustomChannelDefinition,
+} from '../model/CustomFeature';
 import { PollingMiner } from './PollingMiner';
 import type { PowerTargetConstraints } from './Miner';
 import { toUpdateCheckResult, type UpdateCheckContext, type UpdateCheckResult } from '../model/UpdateCheckResult';
@@ -18,6 +27,140 @@ import { compareBraiinsBuild } from '../../update/version-compare';
 
 const GHASH_TO_HASH = 1_000_000_000;
 const TERAHASH_TO_HASH = 1_000_000_000_000;
+const HERTZ_TO_MEGAHERTZ = 1 / 1_000_000;
+
+const temperatureFeature = (id: string, label: string, description: string): CustomFeatureDefinition => ({
+    id,
+    label,
+    description,
+    type: 'number',
+    role: 'value.temperature',
+    unit: '°C',
+    readable: true,
+    writable: false,
+});
+
+/**
+ * One channel per hashboard (`custom.hashboard<id>`). BOS reports chip data only per board: the chip count and type,
+ * and the temperature of the hottest chip.
+ */
+const HASHBOARD_CHANNEL: DynamicCustomChannelDefinition = {
+    id: 'hashboard',
+    label: 'Hashboard',
+    features: [
+        {
+            id: 'enabled',
+            label: 'Enabled',
+            description: 'Whether the hashboard is enabled.',
+            type: 'boolean',
+            role: 'indicator',
+            readable: true,
+            writable: false,
+        },
+        {
+            id: 'chipsCount',
+            label: 'Chips',
+            description: 'Number of chips on the hashboard.',
+            type: 'number',
+            role: 'value',
+            readable: true,
+            writable: false,
+        },
+        {
+            id: 'chipType',
+            label: 'Chip Type',
+            description: 'Type of the chips on the hashboard.',
+            type: 'string',
+            role: 'text',
+            readable: true,
+            writable: false,
+        },
+        temperatureFeature('highestChipTemp', 'Highest Chip Temperature', 'Temperature of the hottest chip.'),
+        temperatureFeature('boardTemp', 'Board Temperature', 'Temperature of the hashboard.'),
+        temperatureFeature('lowestInletTemp', 'Lowest Inlet Temperature', 'Lowest inlet temperature.'),
+        temperatureFeature('highestOutletTemp', 'Highest Outlet Temperature', 'Highest outlet temperature.'),
+        temperatureFeature(
+            'lowestWaterInletTemp',
+            'Lowest Water Inlet Temperature',
+            'Lowest water inlet temperature (hydro cooling only).',
+        ),
+        temperatureFeature(
+            'highestWaterOutletTemp',
+            'Highest Water Outlet Temperature',
+            'Highest water outlet temperature (hydro cooling only).',
+        ),
+        {
+            id: 'voltage',
+            label: 'Voltage',
+            description: 'Current voltage of the hashboard.',
+            type: 'number',
+            role: 'value.voltage',
+            unit: 'V',
+            readable: true,
+            writable: false,
+        },
+        {
+            id: 'frequency',
+            label: 'Frequency',
+            description: 'Current chip frequency of the hashboard.',
+            type: 'number',
+            role: 'value',
+            unit: 'MHz',
+            readable: true,
+            writable: false,
+        },
+        {
+            id: 'hashrate',
+            label: 'Hashrate',
+            description: 'Hashrate of the hashboard (last 5 seconds).',
+            type: 'number',
+            role: 'value',
+            unit: 'h/s',
+            readable: true,
+            writable: false,
+        },
+        {
+            id: 'nominalHashrate',
+            label: 'Nominal Hashrate',
+            description: 'Nominal hashrate of the hashboard.',
+            type: 'number',
+            role: 'value',
+            unit: 'h/s',
+            readable: true,
+            writable: false,
+        },
+        {
+            id: 'model',
+            label: 'Model',
+            description: 'Model of the hashboard.',
+            type: 'string',
+            role: 'text',
+            readable: true,
+            writable: false,
+            advanced: true,
+        },
+        {
+            id: 'boardName',
+            label: 'Board Name',
+            description: 'Board name of the hashboard.',
+            type: 'string',
+            role: 'text',
+            readable: true,
+            writable: false,
+            advanced: true,
+        },
+        {
+            id: 'serialNumber',
+            label: 'Serial Number',
+            description: 'Serial number of the hashboard.',
+            type: 'string',
+            role: 'text',
+            readable: true,
+            writable: false,
+            advanced: true,
+        },
+    ],
+};
 
 // new "bos public api"
 // see: https://academy.braiins.com/braiins-os/papi-about and https://braiins.com/os-firmware/download
@@ -29,6 +172,10 @@ const TERAHASH_TO_HASH = 1_000_000_000_000;
  */
 export class BOS extends PollingMiner<BOSSettings> {
     private client: BosApiClient | undefined;
+    /**
+     * Ids of the hashboards the last poll reported.
+     */
+    private hashboardIds: string[] = [];
 
     /**
      *
@@ -75,8 +222,18 @@ export class BOS extends PollingMiner<BOSSettings> {
                 this.logger.debug(`active performance mode not available: ${String(e)}`);
                 return undefined;
             });
+        const hashboards = await this.getClient()
+            .getHashboards()
+            .catch((e: unknown) => {
+                // only the hashboard custom features come from here: don't fail the whole poll for them
+                this.logger.debug(`hashboards not available: ${String(e)}`);
+                return undefined;
+            });
+        if (hashboards) {
+            this.hashboardIds = (hashboards.hashboards ?? []).map(hashboardId);
+        }
 
-        return this.parseBosApiResponse(details, stats, apiVersion, tunerState, performanceMode);
+        return this.parseBosApiResponse(details, stats, apiVersion, tunerState, performanceMode, hashboards);
     }
 
     /**
@@ -113,6 +270,20 @@ export class BOS extends PollingMiner<BOSSettings> {
             result.autoUpgrade = await this.fetchAutoUpgradeStatus();
         }
         return result;
+    }
+
+    /**
+     * A channel per hashboard the last poll reported.
+     */
+    public override getCustomChannels(): CustomChannelDefinition[] {
+        return this.hashboardIds.map(id => instantiateDynamicCustomChannel(HASHBOARD_CHANNEL, id));
+    }
+
+    /**
+     * The hashboard channel template: the number of hashboards is only known after a poll.
+     */
+    public override getDynamicCustomChannels(): DynamicCustomChannelDefinition[] {
+        return [HASHBOARD_CHANNEL];
     }
 
     /**
@@ -186,6 +357,7 @@ export class BOS extends PollingMiner<BOSSettings> {
      * @param apiVersion Optional Braiins OS API version payload.
      * @param tunerState Optional tuner state payload containing power target data.
      * @param performanceMode Optional configured performance mode, containing the configured power target.
+     * @param hashboards Optional hashboard details, reported as custom features.
      */
     public parseBosApiResponse(
         details: BosMinerDetails,
@@ -193,6 +365,7 @@ export class BOS extends PollingMiner<BOSSettings> {
         apiVersion?: BosApiVersion,
         tunerState?: BosTunerState,
         performanceMode?: BosPerformanceMode,
+        hashboards?: BosHashboards,
     ): MinerStats {
         const hashrate = stats.minerStats?.realHashrate;
         const totalHashrate =
@@ -204,7 +377,7 @@ export class BOS extends PollingMiner<BOSSettings> {
         const joulePerTerahash = stats.powerStats?.efficiency?.joulePerTerahash;
 
         return {
-            raw: { details, stats, apiVersion, tunerState, performanceMode },
+            raw: { details, stats, apiVersion, tunerState, performanceMode, hashboards },
             version: formatApiVersion(apiVersion),
             firmwareVersion: details.bosVersion?.current,
             totalHashrate,
@@ -218,6 +391,7 @@ export class BOS extends PollingMiner<BOSSettings> {
                     : undefined,
             acceptedShares: stats.poolStats?.acceptedShares,
             rejectedShares: stats.poolStats?.rejectedShares,
+            ...(hashboards ? { custom: toHashboardValues(hashboards) } : {}),
         };
     }
 
@@ -259,4 +433,57 @@ function formatApiVersion(version?: BosApiVersion): string | undefined {
     const preRelease = version.pre ? `-${version.pre}` : '';
     const build = version.build ? `+${version.build}` : '';
     return `${baseVersion}${preRelease}${build}`;
+}
+
+/**
+ * The id of a hashboard as BOS reports it (e.g. `1`), or its position if it has none.
+ *
+ * @param board - the hashboard
+ * @param index - its position in the response
+ */
+function hashboardId(board: BosHashboard, index: number): string {
+    return board.id || String(index + 1);
+}
+
+/**
+ * Custom feature values of all hashboards, keyed by `hashboard<id>.<feature>`. Values a board doesn't report are left
+ * out, so their states keep the last value.
+ *
+ * @param response - the GetHashboards response
+ */
+export function toHashboardValues(response: BosHashboards): Record<string, CustomFeatureValue> {
+    const values: Record<string, CustomFeatureValue> = {};
+
+    (response.hashboards ?? []).forEach((board, index) => {
+        const channel = instantiateDynamicCustomChannel(HASHBOARD_CHANNEL, hashboardId(board, index)).id;
+        const hashrate = board.stats?.realHashrate?.last_5s?.gigahashPerSecond;
+        const nominalHashrate = board.stats?.nominalHashrate?.gigahashPerSecond;
+        const frequency = board.currentFrequency?.hertz;
+        const boardValues: Record<string, CustomFeatureValue | undefined> = {
+            // proto defaults are omitted on the wire, so a missing flag means false
+            enabled: board.enabled === true,
+            chipsCount: board.chipsCount?.value,
+            chipType: board.chipType,
+            highestChipTemp: board.highestChipTemp?.temperature?.degreeC,
+            boardTemp: board.boardTemp?.degreeC,
+            lowestInletTemp: board.lowestInletTemp?.degreeC,
+            highestOutletTemp: board.highestOutletTemp?.degreeC,
+            lowestWaterInletTemp: board.lowestWaterInletTemp?.degreeC,
+            highestWaterOutletTemp: board.highestWaterOutletTemp?.degreeC,
+            voltage: board.currentVoltage?.volt,
+            frequency: frequency !== undefined ? frequency * HERTZ_TO_MEGAHERTZ : undefined,
+            hashrate: hashrate !== undefined ? hashrate * GHASH_TO_HASH : undefined,
+            nominalHashrate: nominalHashrate !== undefined ? nominalHashrate * GHASH_TO_HASH : undefined,
+            model: board.model,
+            boardName: board.boardName,
+            serialNumber: board.serialNumber,
+        };
+        for (const [feature, value] of Object.entries(boardValues)) {
+            if (value !== undefined) {
+                values[`${channel}.${feature}`] = value;
+            }
+        }
+    });
+
+    return values;
 }

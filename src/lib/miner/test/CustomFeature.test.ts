@@ -1,5 +1,12 @@
 import { expect } from 'chai';
-import { coerceCustomFeatureValue, resolveCustomFeatures, type CustomFeatureDefinition } from '../model/CustomFeature';
+import {
+    coerceCustomFeatureValue,
+    findDynamicCustomChannel,
+    instantiateDynamicCustomChannel,
+    resolveCustomFeatures,
+    type CustomFeatureDefinition,
+    type DynamicCustomChannelDefinition,
+} from '../model/CustomFeature';
 
 const base = { label: 'Feature', description: 'test', readable: true, writable: true } as const;
 
@@ -49,5 +56,31 @@ describe('coerceCustomFeatureValue', () => {
 
     it('rejects writes to read-only features', () => {
         expect(() => coerceCustomFeatureValue({ ...bool, writable: false }, true)).to.throw('read-only');
+    });
+});
+
+describe('dynamic custom channels', () => {
+    const template: DynamicCustomChannelDefinition = {
+        id: 'hashboard',
+        label: 'Hashboard',
+        features: [{ id: 'temp', label: 'Temp', description: '', type: 'number', readable: true, writable: false }],
+    };
+
+    it('names an instance after the template and the instance id', () => {
+        expect(instantiateDynamicCustomChannel(template, '2')).to.deep.equal({
+            id: 'hashboard2',
+            label: 'Hashboard 2',
+            features: template.features,
+        });
+    });
+
+    it('keeps an instance id from creating extra levels or invalid object ids', () => {
+        expect(instantiateDynamicCustomChannel(template, 'a.b c').id).to.equal('hashboarda_b_c');
+    });
+
+    it('finds the template of an instance, but not of the template id alone or another channel', () => {
+        expect(findDynamicCustomChannel([template], 'hashboard1')).to.equal(template);
+        expect(findDynamicCustomChannel([template], 'hashboard')).to.be.undefined;
+        expect(findDynamicCustomChannel([template], 'light')).to.be.undefined;
     });
 });

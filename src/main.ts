@@ -22,7 +22,13 @@ import { asyncDynamicInterval, setTimerBackend, type AsyncIntervalReturnType } f
 import { UpdateSources } from './lib/update/UpdateSources';
 import { runUpdateChecks, type UpdateCheckSummary } from './lib/update/runUpdateChecks';
 import type { UpdateCheckContext, UpdateCheckResult } from './lib/miner/model/UpdateCheckResult';
-import { CUSTOM_CHANNEL, resolveCustomFeatures, type CustomChannelDefinition } from './lib/miner/model/CustomFeature';
+import {
+    CUSTOM_CHANNEL,
+    findDynamicCustomChannel,
+    resolveCustomFeatures,
+    type CustomChannelDefinition,
+    type DynamicCustomChannelDefinition,
+} from './lib/miner/model/CustomFeature';
 
 /** First update check shortly after start, once the miners are initialized and reachable. */
 const UPDATE_CHECK_INITIAL_DELAY_MS = 60_000;
@@ -40,6 +46,11 @@ export class MinerAdapter extends utils.Adapter {
      * The devices whose miner is reachable, by object id, with the name `info.connection` lists them by.
      */
     private readonly onlineDevices = new Map<string, string>();
+    /**
+     * The custom channels whose objects exist, by device object id. Instances of dynamic channels (see
+     * DynamicCustomChannelDefinition) are created when a poll first reports them.
+     */
+    private readonly customChannelObjects = new Map<string, Set<string>>();
 
     /**
      *
@@ -461,6 +472,7 @@ export class MinerAdapter extends utils.Adapter {
         await this.delObjectAsync(deviceId, { recursive: true });
         // deviceId is the full object id here, the set holds the relative one
         this.onlineDevices.delete(this.getDeviceObjectId(settings));
+        this.customChannelObjects.delete(this.getDeviceObjectId(settings));
         await this.updateConnectionState();
 
         this.log.info(`${deviceId} deleted`);
@@ -709,7 +721,9 @@ export class MinerAdapter extends utils.Adapter {
 
         // Custom features: only the ones the miner declares, only on change (like the power target above)
         if (stats.custom) {
-            const known = new Set(resolveCustomFeatures(miner.getCustomChannels()).map(f => f.id));
+            const channels = miner.getCustomChannels();
+            await this.createNewCustomChannels(deviceId, channels);
+            const known = new Set(resolveCustomFeatures(channels).map(f => f.id));
             for (const [id, val] of Object.entries(stats.custom)) {
                 if (known.has(id)) {
                     await this.setStateChangedAsync(`${deviceId}.${CUSTOM_CHANNEL}.${id}`, { val, ack: true });
@@ -838,53 +852,43 @@ export class MinerAdapter extends utils.Adapter {
             });
         }
 
-        await this.createCustomStateObjects(deviceId, dummyMiner.getCustomChannels());
+        await this.createCustomStateObjects(
+            deviceId,
+            dummyMiner.getCustomChannels(),
+            dummyMiner.getDynamicCustomChannels(),
+        );
     }
 
     /**
      * Creates the `custom` channel with one sub-channel per custom feature channel the miner declares, and removes
      * custom objects the miner no longer declares (another miner type, or a feature promoted to a regular one).
      *
+     * Instances of dynamic channels (e.g. one per hashboard) are only known after a poll: their objects are kept
+     * here as long as the miner declares their template, and created by {@link createNewCustomChannels}.
+     *
      * @param deviceId - the device object id
      * @param channels - the custom feature channels of the miner
+     * @param dynamicChannels - the templates of the miner's dynamic custom channels
      */
     private async createCustomStateObjects(
         deviceId: string,
         channels: readonly CustomChannelDefinition[],
+        dynamicChannels: readonly DynamicCustomChannelDefinition[] = [],
     ): Promise<void> {
         const customId = `${deviceId}.${CUSTOM_CHANNEL}`;
         const wanted = new Set<string>();
+        this.customChannelObjects.set(deviceId, new Set());
 
-        if (channels.length > 0) {
+        if (channels.length > 0 || dynamicChannels.length > 0) {
             await this.extendObject(customId, {
                 type: 'channel',
                 common: { name: 'device specific features' },
             });
             wanted.add(customId);
-
-            for (const channel of channels) {
-                const channelId = `${customId}.${channel.id}`;
-                await this.extendObject(channelId, { type: 'channel', common: { name: channel.label } });
-                wanted.add(channelId);
-            }
-
-            for (const { id, feature } of resolveCustomFeatures(channels)) {
-                const common: Partial<ioBroker.StateCommon> = {
-                    name: `${feature.label} - ${feature.description}`,
-                    type: feature.type,
-                    role: feature.role ?? 'state',
-                    read: feature.readable,
-                    write: feature.writable,
-                    unit: feature.unit,
-                    min: feature.min,
-                    max: feature.max,
-                    step: feature.step,
-                    states: feature.states,
-                    expert: feature.advanced === true ? true : undefined, // false needs to be passed in as undefined
-                };
-                const stateId = `${customId}.${id}`;
-                await this.extendObject(stateId, { type: 'state', common: common as ioBroker.StateCommon });
-                wanted.add(stateId);
+        }
+        for (const channel of channels) {
+            for (const id of await this.createCustomChannelObjects(deviceId, channel)) {
+                wanted.add(id);
             }
         }
 
@@ -894,11 +898,93 @@ export class MinerAdapter extends utils.Adapter {
             .concat((await this.getObjectAsync(customId)) ? [customId] : [])
             .sort((a, b) => b.length - a.length);
         for (const id of existing) {
-            if (!wanted.has(id)) {
+            if (!wanted.has(id) && !this.isDynamicCustomObject(customId, id, dynamicChannels)) {
                 this.log.info(`Removing custom feature object no longer provided by the miner: ${id}`);
                 await this.delObjectAsync(id);
             }
         }
+    }
+
+    /**
+     * Creates the objects of custom channels the miner reports for the first time, e.g. a hashboard it detected.
+     * Channels it no longer reports are left alone: a board can be missing from a single poll.
+     *
+     * @param deviceId - the device object id
+     * @param channels - the custom feature channels the miner currently declares
+     */
+    private async createNewCustomChannels(
+        deviceId: string,
+        channels: readonly CustomChannelDefinition[],
+    ): Promise<void> {
+        let created = this.customChannelObjects.get(deviceId);
+        if (!created) {
+            created = new Set();
+            this.customChannelObjects.set(deviceId, created);
+        }
+        for (const channel of channels) {
+            if (!created.has(channel.id)) {
+                await this.createCustomChannelObjects(deviceId, channel);
+            }
+        }
+    }
+
+    /**
+     * Creates the objects of one custom channel and its features.
+     *
+     * @param deviceId - the device object id
+     * @param channel - the channel
+     * @returns the ids of the created objects
+     */
+    private async createCustomChannelObjects(deviceId: string, channel: CustomChannelDefinition): Promise<string[]> {
+        const channelId = `${deviceId}.${CUSTOM_CHANNEL}.${channel.id}`;
+        await this.extendObject(channelId, { type: 'channel', common: { name: channel.label } });
+        const ids = [channelId];
+
+        for (const feature of channel.features) {
+            const common: Partial<ioBroker.StateCommon> = {
+                name: `${feature.label} - ${feature.description}`,
+                type: feature.type,
+                role: feature.role ?? 'state',
+                read: feature.readable,
+                write: feature.writable,
+                unit: feature.unit,
+                min: feature.min,
+                max: feature.max,
+                step: feature.step,
+                states: feature.states,
+                expert: feature.advanced === true ? true : undefined, // false needs to be passed in as undefined
+            };
+            const stateId = `${channelId}.${feature.id}`;
+            await this.extendObject(stateId, { type: 'state', common: common as ioBroker.StateCommon });
+            ids.push(stateId);
+        }
+
+        this.customChannelObjects.get(deviceId)?.add(channel.id);
+        return ids;
+    }
+
+    /**
+     * Whether an object below `custom` belongs to an instance of a dynamic channel the miner declares: the channel
+     * itself, or one of the template's features.
+     *
+     * @param customId - the device's custom channel id
+     * @param id - the object id
+     * @param dynamicChannels - the templates of the miner's dynamic custom channels
+     */
+    private isDynamicCustomObject(
+        customId: string,
+        id: string,
+        dynamicChannels: readonly DynamicCustomChannelDefinition[],
+    ): boolean {
+        if (!id.startsWith(`${customId}.`)) {
+            return false;
+        }
+        const [channelId, featureId, ...rest] = id.slice(customId.length + 1).split('.');
+        const template = findDynamicCustomChannel(dynamicChannels, channelId);
+        if (!template || rest.length > 0) {
+            return false;
+        }
+        return featureId === undefined || template.features.some(feature => feature.id === featureId);
     }
 
     /**

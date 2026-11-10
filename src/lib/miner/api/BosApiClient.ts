@@ -24,6 +24,8 @@ import type { LoginResponse__Output } from '../../generated/bos-api/types/braiin
 import type { SetPowerTargetResponse__Output } from '../../generated/bos-api/types/braiins/bos/v1/SetPowerTargetResponse';
 import type { ApiVersion__Output } from '../../generated/bos-api/types/braiins/bos/ApiVersion';
 import type { GetAutoUpgradeStatusResponse__Output } from '../../generated/bos-api/types/braiins/bos/v1/GetAutoUpgradeStatusResponse';
+import type { GetHashboardsResponse__Output } from '../../generated/bos-api/types/braiins/bos/v1/GetHashboardsResponse';
+import type { Hashboard__Output } from '../../generated/bos-api/types/braiins/bos/v1/Hashboard';
 
 export type BosMinerDetails = GetMinerDetailsResponse__Output;
 export type BosMinerStats = GetMinerStatsResponse__Output;
@@ -34,6 +36,8 @@ export type BosApiVersion = ApiVersion__Output;
 export type BosAutoUpgradeStatus = GetAutoUpgradeStatusResponse__Output;
 export type BosPerformanceMode = PerformanceMode__Output;
 export type BosConstraints = GetConstraintsResponse__Output;
+export type BosHashboards = GetHashboardsResponse__Output;
+export type BosHashboard = Hashboard__Output;
 
 /**
  *
@@ -241,6 +245,17 @@ export class BosApiClient {
         return this.authenticatedUnary(
             'ApiVersionService.GetApiVersion',
             this.apiVersionService.getApiVersion.bind(this.apiVersionService),
+            {},
+        );
+    }
+
+    /**
+     * Details of all hashboards: chip count and type, voltage, frequency, temperatures and hashrate per board.
+     */
+    public getHashboards(): Promise<BosHashboards> {
+        return this.authenticatedUnary(
+            'MinerService.GetHashboards',
+            this.minerService.getHashboards.bind(this.minerService),
             {},
         );
     }
