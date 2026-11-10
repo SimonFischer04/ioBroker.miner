@@ -95,6 +95,63 @@ export interface CustomChannelDefinition {
 }
 
 /**
+ * A template for custom channels a miner only knows once it has talked to the hardware, e.g. one channel per hashboard.
+ * The miner declares the template up front ({@link Miner.getDynamicCustomChannels}) and returns an instance per
+ * detected unit from {@link Miner.getCustomChannels} (see {@link instantiateDynamicCustomChannel}). The adapter creates
+ * an instance's objects when it first appears, and keeps them while the miner isn't polled yet, e.g. after a restart.
+ */
+export interface DynamicCustomChannelDefinition {
+    /**
+     * Prefix of the channel ids, e.g. `hashboard`: instance `1` becomes channel `hashboard1`. No dots.
+     */
+    id: string;
+    /**
+     * Prefix of the channel labels, e.g. `Hashboard`: instance `1` becomes `Hashboard 1`.
+     */
+    label: string;
+    /**
+     * The features of every instance.
+     */
+    features: CustomFeatureDefinition[];
+}
+
+/**
+ * The channel of one instance of a dynamic channel template.
+ *
+ * @param template - the template
+ * @param instance - id of the instance as the miner reports it, e.g. a hashboard id. Characters other than letters,
+ *     digits, `_` and `-` are replaced, so it can't create extra levels or invalid object ids.
+ */
+export function instantiateDynamicCustomChannel(
+    template: DynamicCustomChannelDefinition,
+    instance: string,
+): CustomChannelDefinition {
+    return {
+        id: `${template.id}${instance.replace(/[^A-Za-z0-9_-]/g, '_')}`,
+        label: `${template.label} ${instance}`,
+        features: template.features,
+    };
+}
+
+/**
+ * The template a channel id is an instance of, if any.
+ *
+ * @param templates - the dynamic channel templates a miner declares
+ * @param channelId - a channel id below {@link CUSTOM_CHANNEL}, e.g. `hashboard1`
+ */
+export function findDynamicCustomChannel(
+    templates: readonly DynamicCustomChannelDefinition[],
+    channelId: string,
+): DynamicCustomChannelDefinition | undefined {
+    return templates.find(
+        template =>
+            channelId.length > template.id.length &&
+            channelId.startsWith(template.id) &&
+            /^[A-Za-z0-9_-]+$/.test(channelId.slice(template.id.length)),
+    );
+}
+
+/**
  * A custom feature together with its channel and its id relative to {@link CUSTOM_CHANNEL}.
  */
 export interface ResolvedCustomFeature {
