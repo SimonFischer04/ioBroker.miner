@@ -18,6 +18,7 @@ import { Logger } from './lib/miner/model/Logger';
 import { isWithinPowerTargetConstraints, type Miner } from './lib/miner/miner/Miner';
 import type { MinerSettings } from './lib/miner/model/MinerSettings';
 import type { MinerStats } from './lib/miner/model/MinerStats';
+import type { CustomStates } from './lib/miner/model/CustomStates';
 import { asyncDynamicInterval, setTimerBackend, type AsyncIntervalReturnType } from './lib/utils/delay';
 import { UpdateSources } from './lib/update/UpdateSources';
 import { runUpdateChecks, type UpdateCheckSummary } from './lib/update/runUpdateChecks';
@@ -39,6 +40,11 @@ export class MinerAdapter extends utils.Adapter {
      * The devices whose miner is reachable, by object id, with the name `info.connection` lists them by.
      */
     private readonly onlineDevices = new Map<string, string>();
+    /**
+     * Object ids below `<device>.custom` already created in this run, by device object id, so a poll doesn't
+     * rewrite the objects every few seconds.
+     */
+    private readonly createdCustomObjects = new Map<string, Set<string>>();
 
     /**
      *
@@ -421,6 +427,7 @@ export class MinerAdapter extends utils.Adapter {
         await this.delObjectAsync(deviceId, { recursive: true });
         // deviceId is the full object id here, the set holds the relative one
         this.onlineDevices.delete(this.getDeviceObjectId(settings));
+        this.createdCustomObjects.delete(this.getDeviceObjectId(settings));
         await this.updateConnectionState();
 
         this.log.info(`${deviceId} deleted`);
@@ -660,6 +667,10 @@ export class MinerAdapter extends utils.Adapter {
             }
         }
 
+        if (supported.includes(MinerFeatureKey.custom) && stats.custom !== undefined) {
+            await this.writeCustomStates(deviceId, stats.custom);
+        }
+
         // Always update online / lastSeen
         await this.setDeviceOnline(settings, true);
         await this.setState(`${deviceId}.info.lastSeen`, { val: Date.now(), ack: true });
@@ -679,9 +690,19 @@ export class MinerAdapter extends utils.Adapter {
             [MinerFeatureCategory.info]: 'device information',
             [MinerFeatureCategory.stats]: 'mining statistics',
             [MinerFeatureCategory.raw]: 'raw API data',
+            [MinerFeatureCategory.custom]: 'miner-specific data',
         };
 
+        const dummyMiner = createMiner(settings.settings);
+        const supportedFeatures = dummyMiner.getSupportedFeatures();
+        // the custom states below it are created as the miner reports them; make sure they are created again
+        this.createdCustomObjects.delete(deviceId);
+
         for (const category of Object.values(MinerFeatureCategory)) {
+            // only miners with miner-specific data get this channel
+            if (category === MinerFeatureCategory.custom && !supportedFeatures.includes(MinerFeatureKey.custom)) {
+                continue;
+            }
             await this.extendObject(`${deviceId}.${category}`, {
                 type: 'channel',
                 common: {
@@ -720,9 +741,6 @@ export class MinerAdapter extends utils.Adapter {
         }
 
         // --- Always-present stats sub-states (created when miner declares MinerFeatureKey.stats) ---
-        const dummyMiner = createMiner(settings.settings);
-        const supportedFeatures = dummyMiner.getSupportedFeatures();
-
         if (supportedFeatures.includes(MinerFeatureKey.stats)) {
             const statsStates: Record<string, Partial<ioBroker.StateCommon>> = {
                 totalHashrate: { name: 'Total Hashrate', type: 'number', unit: 'h/s', read: true, write: false },
@@ -748,8 +766,8 @@ export class MinerAdapter extends utils.Adapter {
 
         // --- Feature-driven states (control, info.version, raw) ---
         for (const featureKey of supportedFeatures) {
-            // Skip the 'stats' capability marker — sub-states handled above
-            if (featureKey === MinerFeatureKey.stats) {
+            // Skip the 'stats' capability marker — sub-states handled above; custom states come with the stats
+            if (featureKey === MinerFeatureKey.stats || featureKey === MinerFeatureKey.custom) {
                 continue;
             }
             const feature = minerFeatures[featureKey];
@@ -779,6 +797,52 @@ export class MinerAdapter extends utils.Adapter {
                 type: 'state',
                 common: common as ioBroker.StateCommon,
             });
+        }
+    }
+
+    /**
+     * Write miner-specific states below `<device>.custom`, creating their objects the first time they are reported:
+     * which ones exist can depend on the hardware, e.g. the number of hashboards.
+     *
+     * @param deviceId - the device object id prefix
+     * @param custom - the channels and states the miner reported
+     */
+    private async writeCustomStates(deviceId: string, custom: CustomStates): Promise<void> {
+        let created = this.createdCustomObjects.get(deviceId);
+        if (!created) {
+            created = new Set();
+            this.createdCustomObjects.set(deviceId, created);
+        }
+        const toObjectId = (id: string): string =>
+            `${deviceId}.custom.${id
+                .split('.')
+                .map(part => part.replace(this.FORBIDDEN_CHARS, '_'))
+                .join('.')}`;
+
+        for (const channel of custom.channels) {
+            const id = toObjectId(channel.id);
+            if (!created.has(id)) {
+                await this.extendObject(id, { type: 'channel', common: { name: channel.name } });
+                created.add(id);
+            }
+        }
+        for (const state of custom.states) {
+            const id = toObjectId(state.id);
+            if (!created.has(id)) {
+                await this.extendObject(id, {
+                    type: 'state',
+                    common: {
+                        name: state.name,
+                        type: state.type,
+                        role: state.role ?? (state.type === 'string' ? 'text' : 'value'),
+                        unit: state.unit,
+                        read: true,
+                        write: false,
+                    },
+                });
+                created.add(id);
+            }
+            await this.setState(id, { val: state.val, ack: true });
         }
     }
 

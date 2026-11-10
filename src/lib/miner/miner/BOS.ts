@@ -2,6 +2,8 @@ import { BOS_DEFAULT_PASSWORD, BOS_DEFAULT_USERNAME } from '../model/MinerSettin
 import {
     BosApiClient,
     type BosApiVersion,
+    type BosHashboard,
+    type BosHashboards,
     type BosMinerDetails,
     type BosMinerStats,
     type BosTunerState,
@@ -10,6 +12,7 @@ import {
 import { MinerFeatureKey } from '../model/MinerFeature';
 import type { BOSSettings } from '../model/MinerSettings';
 import type { MinerStats } from '../model/MinerStats';
+import type { CustomStates } from '../model/CustomStates';
 import { PollingMiner } from './PollingMiner';
 import type { PowerTargetConstraints } from './Miner';
 import { toUpdateCheckResult, type UpdateCheckContext, type UpdateCheckResult } from '../model/UpdateCheckResult';
@@ -18,6 +21,7 @@ import { compareBraiinsBuild } from '../../update/version-compare';
 
 const GHASH_TO_HASH = 1_000_000_000;
 const TERAHASH_TO_HASH = 1_000_000_000_000;
+const HERTZ_TO_MEGAHERTZ = 1 / 1_000_000;
 
 // new "bos public api"
 // see: https://academy.braiins.com/braiins-os/papi-about and https://braiins.com/os-firmware/download
@@ -75,8 +79,15 @@ export class BOS extends PollingMiner<BOSSettings> {
                 this.logger.debug(`active performance mode not available: ${String(e)}`);
                 return undefined;
             });
+        const hashboards = await this.getClient()
+            .getHashboards()
+            .catch((e: unknown) => {
+                // only the per-hashboard states come from here: don't fail the whole poll for them
+                this.logger.debug(`hashboards not available: ${String(e)}`);
+                return undefined;
+            });
 
-        return this.parseBosApiResponse(details, stats, apiVersion, tunerState, performanceMode);
+        return this.parseBosApiResponse(details, stats, apiVersion, tunerState, performanceMode, hashboards);
     }
 
     /**
@@ -162,6 +173,7 @@ export class BOS extends PollingMiner<BOSSettings> {
             MinerFeatureKey.updateAvailable,
             MinerFeatureKey.autoUpgrade,
             MinerFeatureKey.autoUpgradeNextRun,
+            MinerFeatureKey.custom,
         ];
     }
 
@@ -186,6 +198,7 @@ export class BOS extends PollingMiner<BOSSettings> {
      * @param apiVersion Optional Braiins OS API version payload.
      * @param tunerState Optional tuner state payload containing power target data.
      * @param performanceMode Optional configured performance mode, containing the configured power target.
+     * @param hashboards Optional hashboard details, reported as custom states.
      */
     public parseBosApiResponse(
         details: BosMinerDetails,
@@ -193,6 +206,7 @@ export class BOS extends PollingMiner<BOSSettings> {
         apiVersion?: BosApiVersion,
         tunerState?: BosTunerState,
         performanceMode?: BosPerformanceMode,
+        hashboards?: BosHashboards,
     ): MinerStats {
         const hashrate = stats.minerStats?.realHashrate;
         const totalHashrate =
@@ -204,7 +218,7 @@ export class BOS extends PollingMiner<BOSSettings> {
         const joulePerTerahash = stats.powerStats?.efficiency?.joulePerTerahash;
 
         return {
-            raw: { details, stats, apiVersion, tunerState, performanceMode },
+            raw: { details, stats, apiVersion, tunerState, performanceMode, hashboards },
             version: formatApiVersion(apiVersion),
             firmwareVersion: details.bosVersion?.current,
             totalHashrate,
@@ -218,6 +232,7 @@ export class BOS extends PollingMiner<BOSSettings> {
                     : undefined,
             acceptedShares: stats.poolStats?.acceptedShares,
             rejectedShares: stats.poolStats?.rejectedShares,
+            custom: hashboards ? toHashboardStates(hashboards) : undefined,
         };
     }
 
@@ -259,4 +274,103 @@ function formatApiVersion(version?: BosApiVersion): string | undefined {
     const preRelease = version.pre ? `-${version.pre}` : '';
     const build = version.build ? `+${version.build}` : '';
     return `${baseVersion}${preRelease}${build}`;
+}
+
+/**
+ * Per-hashboard states below `custom.hashboards.<boardId>`. BOS reports chip data only per board: the chip count and
+ * type, and the temperature of the hottest chip.
+ *
+ * @param response - the GetHashboards response
+ */
+export function toHashboardStates(response: BosHashboards): CustomStates {
+    const result: CustomStates = { channels: [{ id: 'hashboards', name: 'Hashboards' }], states: [] };
+
+    (response.hashboards ?? []).forEach((board, index) => {
+        // ids are short numbers like "1"; anything else must not create extra levels or invalid object ids
+        const boardId = (board.id || String(index + 1)).replace(/[^A-Za-z0-9_-]/g, '_');
+        const prefix = `hashboards.${boardId}`;
+        result.channels.push({ id: prefix, name: `Hashboard ${board.id || index + 1}` });
+        for (const state of hashboardStates(board)) {
+            result.states.push({ ...state, id: `${prefix}.${state.id}` });
+        }
+    });
+
+    return result;
+}
+
+function hashboardStates(board: BosHashboard): CustomStates['states'] {
+    const hashrate = board.stats?.realHashrate?.last_5s?.gigahashPerSecond;
+    const nominalHashrate = board.stats?.nominalHashrate?.gigahashPerSecond;
+    const frequency = board.currentFrequency?.hertz;
+    const temperature = (name: string, id: string, value: number | undefined): CustomStates['states'][number] => ({
+        id,
+        name,
+        type: 'number',
+        role: 'value.temperature',
+        unit: '°C',
+        val: value ?? null,
+    });
+
+    const states: CustomStates['states'] = [
+        // proto defaults are omitted on the wire, so a missing flag means false
+        { id: 'enabled', name: 'Enabled', type: 'boolean', role: 'indicator', val: board.enabled === true },
+        { id: 'chipsCount', name: 'Number of chips', type: 'number', val: board.chipsCount?.value ?? null },
+        { id: 'chipType', name: 'Chip type', type: 'string', role: 'text', val: board.chipType ?? null },
+        { id: 'model', name: 'Model', type: 'string', role: 'text', val: board.model ?? null },
+        { id: 'boardName', name: 'Board name', type: 'string', role: 'text', val: board.boardName ?? null },
+        { id: 'serialNumber', name: 'Serial number', type: 'string', role: 'text', val: board.serialNumber ?? null },
+        {
+            id: 'voltage',
+            name: 'Voltage',
+            type: 'number',
+            role: 'value.voltage',
+            unit: 'V',
+            val: board.currentVoltage?.volt ?? null,
+        },
+        {
+            id: 'frequency',
+            name: 'Frequency',
+            type: 'number',
+            role: 'value',
+            unit: 'MHz',
+            val: frequency !== undefined ? frequency * HERTZ_TO_MEGAHERTZ : null,
+        },
+        temperature('Highest chip temperature', 'highestChipTemp', board.highestChipTemp?.temperature?.degreeC),
+        temperature('Board temperature', 'boardTemp', board.boardTemp?.degreeC),
+        temperature('Lowest inlet temperature', 'lowestInletTemp', board.lowestInletTemp?.degreeC),
+        temperature('Highest outlet temperature', 'highestOutletTemp', board.highestOutletTemp?.degreeC),
+        {
+            id: 'hashrate',
+            name: 'Hashrate',
+            type: 'number',
+            role: 'value',
+            unit: 'h/s',
+            val: hashrate !== undefined ? hashrate * GHASH_TO_HASH : null,
+        },
+        {
+            id: 'nominalHashrate',
+            name: 'Nominal hashrate',
+            type: 'number',
+            role: 'value',
+            unit: 'h/s',
+            val: nominalHashrate !== undefined ? nominalHashrate * GHASH_TO_HASH : null,
+        },
+    ];
+
+    // hydro cooling only: don't create these states on air- or immersion-cooled miners
+    if (board.lowestWaterInletTemp) {
+        states.push(
+            temperature('Lowest water inlet temperature', 'lowestWaterInletTemp', board.lowestWaterInletTemp.degreeC),
+        );
+    }
+    if (board.highestWaterOutletTemp) {
+        states.push(
+            temperature(
+                'Highest water outlet temperature',
+                'highestWaterOutletTemp',
+                board.highestWaterOutletTemp.degreeC,
+            ),
+        );
+    }
+    return states;
 }

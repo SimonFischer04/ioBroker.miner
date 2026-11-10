@@ -7,6 +7,7 @@ import type { MinerAdapter } from './main';
 import type { ConfigItemAny } from '@iobroker/dm-utils';
 import { BOS } from './lib/miner/miner/BOS';
 import { UpdateSources } from './lib/update/UpdateSources';
+import type { CustomStates } from './lib/miner/model/CustomStates';
 
 /** Only the adapter dependencies used by initialization and update checks. */
 class AdapterMock extends EventEmitter {
@@ -32,6 +33,9 @@ interface TestAdapter {
     updateSources: UpdateSources;
     getDevicesAsync: () => Promise<ioBroker.DeviceObject[]>;
     getForeignStateAsync: (id: string) => Promise<{ val: unknown } | null>;
+    FORBIDDEN_CHARS: RegExp;
+    extendObject: (id: string, obj: object) => Promise<void>;
+    writeCustomStates: (deviceId: string, custom: CustomStates) => Promise<void>;
     deviceManagement: {
         getUpdateInfoItems: (
             id: string,
@@ -216,5 +220,60 @@ describe('device manager latest version', () => {
         );
         expect(items.latestVersion.type).to.equal('state');
         expect(Reflect.get(items.latestVersion, 'oid')).to.equal('miner.0.miner.test.info.latestVersion');
+    });
+});
+
+describe('custom states', () => {
+    const custom: CustomStates = {
+        channels: [
+            { id: 'hashboards', name: 'Hashboards' },
+            { id: 'hashboards.1', name: 'Hashboard 1' },
+        ],
+        states: [
+            {
+                id: 'hashboards.1.highestChipTemp',
+                name: 'Highest chip temperature',
+                type: 'number',
+                role: 'value.temperature',
+                unit: '°C',
+                val: 71.5,
+            },
+            { id: 'hashboards.1.chipType', name: 'Chip type', type: 'string', val: null },
+        ],
+    };
+
+    it('creates the objects below the custom channel once and writes the values on every poll', async () => {
+        const adapter = createTestAdapter();
+        const objects: { id: string; obj: { type: string; common: Record<string, unknown> } }[] = [];
+        const written: { id: string; val: unknown }[] = [];
+        adapter.FORBIDDEN_CHARS = /[^._\-/ :!#$%&()+=@^{}|~\p{Ll}\p{Lu}\p{Nd}]+/gu;
+        adapter.extendObject = (id, obj) => {
+            objects.push({ id, obj: obj as (typeof objects)[number]['obj'] });
+            return Promise.resolve();
+        };
+        adapter.setState = (id, state) => {
+            written.push({ id, val: state.val });
+            return Promise.resolve();
+        };
+
+        await adapter.writeCustomStates('miner.abc', custom);
+        await adapter.writeCustomStates('miner.abc', custom);
+
+        expect(objects.map(o => [o.id, o.obj.type])).to.deep.equal([
+            ['miner.abc.custom.hashboards', 'channel'],
+            ['miner.abc.custom.hashboards.1', 'channel'],
+            ['miner.abc.custom.hashboards.1.highestChipTemp', 'state'],
+            ['miner.abc.custom.hashboards.1.chipType', 'state'],
+        ]);
+        expect(objects[2].obj.common).to.include({
+            type: 'number',
+            role: 'value.temperature',
+            unit: '°C',
+            write: false,
+        });
+        // without a role, a string is text
+        expect(objects[3].obj.common.role).to.equal('text');
+        expect(written).to.have.length(4);
+        expect(written[2]).to.deep.equal({ id: 'miner.abc.custom.hashboards.1.highestChipTemp', val: 71.5 });
     });
 });

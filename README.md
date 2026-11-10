@@ -147,6 +147,22 @@ miner.0
             stats
               hashrate               (number)
               temp                   (number)
+      custom                         (channel)  miner-specific data, only for miners that provide it
+        hashboards                   (channel)  Braiins OS (bos): one channel per hashboard
+          <boardId>                  (channel)
+            enabled                  (boolean)
+            chipsCount               (number)
+            chipType                 (string)
+            model / boardName / serialNumber (string)
+            voltage                  (number)   V
+            frequency                (number)   MHz
+            highestChipTemp          (number)   °C, hottest chip on the board
+            boardTemp                (number)   °C
+            lowestInletTemp          (number)   °C
+            highestOutletTemp        (number)   °C
+            lowestWaterInletTemp / highestWaterOutletTemp (number) °C, hydro cooling only
+            hashrate                 (number)   H/s
+            nominalHashrate          (number)   H/s
       raw                            (channel)
         stats                        (object/string) raw miner payload (maps to feature: rawStats)
 ```
@@ -156,6 +172,8 @@ miner.0
     Placeholder for the next version (at the beginning of the line):
     ### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+* (claude) **NEW**: Braiins OS (`bos`): per-hashboard states below `custom.hashboards.<boardId>`: chip count and type, hottest chip temperature, board/inlet/outlet temperatures, voltage, frequency, hashrate and nominal hashrate. Braiins OS reports chip data only per board, not per chip. The new `custom` channel holds miner-specific data that has no generic state (yet)
 ### 1.2.0 (2026-11-03)
 * (claude) **NEW**: Check miners for available firmware/software updates once a day and show them in the device manager: new states `info.latestVersion` and `info.updateAvailable` (Braiins OS, XMRig, TeamRedMiner, IceRiver OC firmware, Avalon Nano 3), plus the auto-upgrade status for Braiins OS. Can be turned off in the instance settings; a "check for updates" action checks right away (#195)
 * (claude) **FIXED**: `info.online` now switches to `false` after 3 failed polls in a row and back to `true` on the next successful one; a poll that hangs counts as failed after its poll interval, but at least 30 seconds, and requests to Braiins OS (gRPC) and XMRig / IceRiver (HTTP) are now cancelled after that time instead of staying open (#222)

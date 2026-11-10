@@ -26,6 +26,9 @@ export enum MinerFeatureKey {
 
     // info – CLI arguments needed for the miner to expose its API
     cliArgs = 'cliArgs',
+
+    // custom – miner-specific states without a generic feature (see MinerStats.custom)
+    custom = 'custom',
 }
 
 export enum MinerFeatureCategory {
@@ -33,6 +36,7 @@ export enum MinerFeatureCategory {
     info = 'info',
     stats = 'stats',
     raw = 'raw',
+    custom = 'custom',
 }
 
 /**
@@ -256,6 +260,20 @@ export const minerFeatures: Record<MinerFeatureKey, MinerFeatureProperties> = {
         readable: true,
         writable: false,
         advanced: true,
+    },
+
+    /*
+        custom – miner-specific states, created from the values the miner reports.
+        A miner declaring this feature fills MinerStats.custom.
+     */
+    [MinerFeatureKey.custom]: {
+        category: MinerFeatureCategory.custom,
+        id: 'custom',
+        label: 'Miner-specific Data',
+        description: 'Data only this miner type provides, e.g. per-hashboard values.',
+        type: 'mixed',
+        readable: true,
+        writable: false,
     },
 } as const;
 

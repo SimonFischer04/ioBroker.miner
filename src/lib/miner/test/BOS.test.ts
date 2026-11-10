@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 import { createServer, type AddressInfo, type Server, type Socket } from 'node:net';
-import { BOS } from '../miner/BOS';
+import { BOS, toHashboardStates } from '../miner/BOS';
 import { isWithinPowerTargetConstraints } from '../miner/Miner';
-import { BosApiClient } from '../api/BosApiClient';
+import { BosApiClient, type BosHashboard, type BosHashboards } from '../api/BosApiClient';
 import type { BOSSettings } from '../model/MinerSettings';
 
 /**
@@ -97,6 +97,7 @@ describe('BOS power target', () => {
         // Dynamic Performance Scaling currently runs the miner below the configured target
         getTunerState: () => Promise.resolve({ powerTargetModeState: { currentTarget: { watt: 2800 } } }),
         getActivePerformanceMode: performanceMode,
+        getHashboards: () => Promise.resolve({ hashboards: [] }),
     });
 
     it('reports the configured power target, not the one Dynamic Performance Scaling currently applies', async () => {
@@ -142,6 +143,136 @@ describe('BOS power target', () => {
         const bos = bosWithClient({ getConstraints: () => Promise.resolve({ tunerConstraints: {} }) });
 
         expect(await bos.getPowerTargetConstraints()).to.be.undefined;
+    });
+});
+
+describe('BOS hashboards', () => {
+    // a Hashboard as grpc-js decodes it (defaults: false, so unset fields are missing)
+    const board: BosHashboard = {
+        id: '1',
+        enabled: true,
+        chipsCount: { value: 126 },
+        chipType: 'BM1368',
+        model: 'S21',
+        boardName: 'BHB68601',
+        serialNumber: 'HB123',
+        currentVoltage: { volt: 13.2 },
+        currentFrequency: { hertz: 525_000_000 },
+        highestChipTemp: { temperature: { degreeC: 71.5 } },
+        boardTemp: { degreeC: 60 },
+        lowestInletTemp: { degreeC: 55 },
+        highestOutletTemp: { degreeC: 70 },
+        stats: {
+            realHashrate: { last_5s: { gigahashPerSecond: 66_000 } },
+            nominalHashrate: { gigahashPerSecond: 67_000 },
+        },
+    };
+
+    /**
+     * The state values of one board, by state name.
+     *
+     * @param hashboards - the GetHashboards response
+     * @param boardId - the board's id below custom.hashboards
+     */
+    function valuesOf(hashboards: BosHashboards, boardId: string): Record<string, unknown> {
+        const prefix = `hashboards.${boardId}.`;
+        return Object.fromEntries(
+            toHashboardStates(hashboards)
+                .states.filter(state => state.id.startsWith(prefix))
+                .map(state => [state.id.slice(prefix.length), state.val]),
+        );
+    }
+
+    it('reports chip count, chip type, temperatures, voltage, frequency and hashrate per board', () => {
+        expect(valuesOf({ hashboards: [board] }, '1')).to.deep.equal({
+            enabled: true,
+            chipsCount: 126,
+            chipType: 'BM1368',
+            model: 'S21',
+            boardName: 'BHB68601',
+            serialNumber: 'HB123',
+            voltage: 13.2,
+            frequency: 525,
+            highestChipTemp: 71.5,
+            boardTemp: 60,
+            lowestInletTemp: 55,
+            highestOutletTemp: 70,
+            hashrate: 66_000_000_000_000,
+            nominalHashrate: 67_000_000_000_000,
+        });
+    });
+
+    it('creates a channel per board, before its states', () => {
+        const result = toHashboardStates({ hashboards: [board, { ...board, id: '2' }] });
+
+        expect(result.channels).to.deep.equal([
+            { id: 'hashboards', name: 'Hashboards' },
+            { id: 'hashboards.1', name: 'Hashboard 1' },
+            { id: 'hashboards.2', name: 'Hashboard 2' },
+        ]);
+        expect(result.states.find(s => s.id === 'hashboards.1.highestChipTemp')).to.include({
+            type: 'number',
+            role: 'value.temperature',
+            unit: '°C',
+        });
+    });
+
+    it('reports a disabled board without values as disabled, with empty values', () => {
+        const values = valuesOf({ hashboards: [{ id: '3' }] }, '3');
+
+        expect(values.enabled).to.equal(false);
+        expect(values.chipsCount).to.equal(null);
+        expect(values.hashrate).to.equal(null);
+        expect(values.highestChipTemp).to.equal(null);
+    });
+
+    it('adds the water temperatures only for hydro-cooled boards', () => {
+        expect(valuesOf({ hashboards: [board] }, '1')).not.to.have.property('lowestWaterInletTemp');
+
+        const hydro = { ...board, lowestWaterInletTemp: { degreeC: 30 }, highestWaterOutletTemp: { degreeC: 40 } };
+        expect(valuesOf({ hashboards: [hydro] }, '1')).to.include({
+            lowestWaterInletTemp: 30,
+            highestWaterOutletTemp: 40,
+        });
+    });
+
+    it('keeps board ids from creating extra levels or invalid object ids', () => {
+        const result = toHashboardStates({
+            hashboards: [
+                { ...board, id: 'a.b c' },
+                { ...board, id: '' },
+            ],
+        });
+
+        expect(result.channels.map(c => c.id)).to.deep.equal(['hashboards', 'hashboards.a_b_c', 'hashboards.2']);
+    });
+
+    it('reports the boards with the poll, and all other stats when they cannot be read', async () => {
+        const bos = new BOS({
+            minerType: 'bos',
+            host: '10.0.0.2',
+            port: 50051,
+            username: 'root',
+            password: 'root',
+            pollInterval: 10000,
+        });
+        const client = {
+            getMinerDetails: () => Promise.resolve({ bosVersion: { current: '26.09.1' } }),
+            getMinerStats: () => Promise.resolve({}),
+            getApiVersion: () => Promise.resolve({ major: 1, minor: 2, patch: 0 }),
+            getTunerState: () => Promise.resolve({}),
+            getActivePerformanceMode: () => Promise.resolve({}),
+            getHashboards: (): Promise<object> => Promise.resolve({ hashboards: [board] }),
+        };
+        (bos as unknown as { client: object }).client = client;
+
+        const stats = await bos.fetchStats();
+        expect(stats.custom?.states.find(s => s.id === 'hashboards.1.chipsCount')?.val).to.equal(126);
+
+        client.getHashboards = () => Promise.reject(new Error('UNIMPLEMENTED'));
+        const withoutBoards = await bos.fetchStats();
+        expect(withoutBoards.custom).to.be.undefined;
+        expect(withoutBoards.firmwareVersion).to.equal('26.09.1');
     });
 });
 

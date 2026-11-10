@@ -1,3 +1,5 @@
+import type { CustomStates } from './CustomStates';
+
 /**
  *
  */
@@ -43,6 +45,10 @@ export interface MinerStats {
      * WiFi signal strength in dBm.
      */
     rssi?: number;
+    /**
+     * Miner-specific states, for miners declaring the `custom` feature.
+     */
+    custom?: CustomStates;
     /**
      * Raw API response payload.
      */
