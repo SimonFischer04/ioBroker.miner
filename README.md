@@ -173,6 +173,8 @@ miner.0
 ### Custom features (`custom`)
 Some miners can do things no other supported miner can, like the LED light of an Avalon Nano. Instead of adding such features to the common states, a miner declares them itself; they appear as sub-channels of `custom` (only for miners that have any) in the device manager: writable ones as controls behind the device's control button, read-only ones (e.g. a maintenance indicator) on the device card. A read-only boolean can raise an ioBroker notification when it turns `true`. Writing a state sends it to the miner; it is acknowledged once the miner accepted it, and the next poll reflects what the miner actually applied.
 
+Some channels depend on the hardware, e.g. one per hashboard: they are created once a poll reports them, and kept (with their last values) when a unit is missing from a poll or the miner isn't reachable yet.
+
 Once more than one miner type supports the same thing, it is moved to the common states (e.g. `control`), and the old `custom` state is removed.
 
 | Miner | State | Notes |
@@ -180,6 +182,7 @@ Once more than one miner type supports the same thing, it is moved to the common
 | Avalon | `custom.light.on`, `custom.light.effect`, `custom.light.brightness`, `custom.light.colorTemperature`, `custom.light.color` | `effect` keeps the last effect while the light is off and is used again when it is turned on; choosing an effect also turns the light on |
 | Avalon | `custom.lcd.on` | display on / off |
 | Avalon | `custom.filter.runtime`, `custom.filter.cleanDue`, `custom.filter.reset` | dust filter reminder, see [Avalon dust filter reminder](#avalon-dust-filter-reminder) |
+| Braiins OS (`bos`) | `custom.hashboard<id>.*`: `enabled`, `chipsCount`, `chipType`, `highestChipTemp`, `boardTemp`, `lowestInletTemp`, `highestOutletTemp`, `lowestWaterInletTemp`, `highestWaterOutletTemp`, `voltage`, `frequency`, `hashrate`, `nominalHashrate`, `model`, `boardName`, `serialNumber` | read-only, one channel per hashboard (e.g. `custom.hashboard1`). Braiins OS reports chip data only per board, not per chip: `highestChipTemp` is the hottest chip on the board. Temperatures in °C, voltage in V, frequency in MHz, hashrates in H/s; the water temperatures are only filled on hydro-cooled miners |
 
 ## Changelog
 <!--
@@ -190,6 +193,8 @@ Once more than one miner type supports the same thing, it is moved to the common
 * (claude) **NEW**: Avalon: dust filter reminder. The filter runtime since the last cleaning is shown as `custom.filter.runtime` and on the device card; once it reaches the reminder interval of the device settings (default 30 days, 0 = off), `custom.filter.cleanDue` turns `true` and an ioBroker notification is raised. After cleaning, reset it with the "Reset Filter Reminder" device control or `custom.filter.reset`, like "Filter Clear" in the Avalon Family app. Custom features can now raise notifications, and read-only ones are shown on the device card
 * (claude) **NEW**: Avalon: control the LED light (on/off, effect, brightness, color temperature, color) and the display (on/off), as states under `custom.light` / `custom.lcd` and in the device manager behind the device's control button. They come with the existing poll request, so they cost no extra round-trip
 * (claude) **NEW**: Avalon: `control.profile` (and the profile in the device manager) now shows the miner's active work mode, also when it was changed elsewhere, e.g. in the Avalon Family app. It comes with the existing poll request. A work mode the miner rejects is now logged as an error
+* (claude) **NEW**: Braiins OS (`bos`): per-hashboard custom features under `custom.hashboard<id>`: chip count and type, hottest chip temperature, board/inlet/outlet (and water) temperatures, voltage, frequency, hashrate and nominal hashrate. Braiins OS reports chip data only per board, not per chip
+* (claude) **NEW**: Custom feature channels can depend on the hardware (e.g. one per hashboard): they are created when a poll first reports them, and their objects are kept while the miner isn't polled yet
 * (claude) **NEW**: `custom` channel for features only a single miner type has (not standardised across miners yet); the device manager shows the writable ones, plus running and profile, as device controls
 
 ### 1.2.0 (2026-11-03)

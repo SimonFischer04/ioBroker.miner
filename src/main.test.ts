@@ -8,7 +8,7 @@ import type { ConfigItemAny, DeviceControl } from '@iobroker/dm-utils';
 import { BOS } from './lib/miner/miner/BOS';
 import { UpdateSources } from './lib/update/UpdateSources';
 import { AvalonMiner } from './lib/miner/miner/AvalonMiner';
-import type { CustomChannelDefinition } from './lib/miner/model/CustomFeature';
+import type { CustomChannelDefinition, DynamicCustomChannelDefinition } from './lib/miner/model/CustomFeature';
 
 /** Only the adapter dependencies used by initialization and update checks. */
 class AdapterMock extends EventEmitter {
@@ -235,7 +235,12 @@ interface CustomFeatureTestAdapter {
     delObjectAsync: (id: string) => Promise<void>;
     getStateAsync: (id: string) => Promise<{ val: unknown } | null>;
     setState: (id: string, state: { val: unknown; ack: boolean }) => Promise<void>;
-    createCustomStateObjects: (deviceId: string, channels: CustomChannelDefinition[]) => Promise<void>;
+    createCustomStateObjects: (
+        deviceId: string,
+        channels: CustomChannelDefinition[],
+        dynamicChannels?: DynamicCustomChannelDefinition[],
+    ) => Promise<void>;
+    createNewCustomChannels: (deviceId: string, channels: CustomChannelDefinition[]) => Promise<void>;
     onStateChange: (id: string, state: { val: unknown; ack: boolean }) => Promise<void>;
     deviceManagement: {
         getControls: (deviceId: string, miner: object, features: MinerFeatureKey[]) => Promise<DeviceControl<string>[]>;
@@ -310,6 +315,64 @@ describe('custom features', () => {
             'miner.dev.custom.old',
             'miner.dev.custom',
         ]);
+    });
+
+    it('keeps the objects of dynamic channels before the first poll and creates new ones when a poll reports them', async () => {
+        const adapter = createTestAdapter() as unknown as CustomFeatureTestAdapter;
+        const created: string[] = [];
+        const deleted: string[] = [];
+        adapter.namespace = 'miner.0';
+        adapter.extendObject = id => {
+            created.push(id);
+            return Promise.resolve();
+        };
+        adapter.getObjectAsync = () => Promise.resolve({});
+        adapter.getForeignObjectsAsync = () =>
+            Promise.resolve({
+                // from an earlier run: may carry e.g. history settings
+                'miner.0.miner.dev.custom.hashboard1': {},
+                'miner.0.miner.dev.custom.hashboard1.highestChipTemp': {},
+                // a feature the template no longer has
+                'miner.0.miner.dev.custom.hashboard1.removed': {},
+                'miner.0.miner.dev.custom.old': {},
+            });
+        adapter.delObjectAsync = id => {
+            deleted.push(id);
+            return Promise.resolve();
+        };
+        const bos = new BOS({
+            minerType: 'bos',
+            id: 'dev',
+            host: 'localhost',
+            port: 50051,
+            username: 'root',
+            password: 'root',
+            pollInterval: 1000,
+        });
+
+        await adapter.createCustomStateObjects('miner.dev', bos.getCustomChannels(), bos.getDynamicCustomChannels());
+
+        expect(created).to.deep.equal(['miner.dev.custom']);
+        expect(deleted).to.deep.equal(['miner.dev.custom.hashboard1.removed', 'miner.dev.custom.old']);
+
+        // the first poll reports two boards
+        created.length = 0;
+        const [template] = bos.getDynamicCustomChannels();
+        const boards = ['1', '2'].map(id => ({ ...template, id: `hashboard${id}`, label: `Hashboard ${id}` }));
+        await adapter.createNewCustomChannels('miner.dev', boards);
+
+        expect(created).to.include.members([
+            'miner.dev.custom.hashboard1',
+            'miner.dev.custom.hashboard1.highestChipTemp',
+            'miner.dev.custom.hashboard2',
+            'miner.dev.custom.hashboard2.chipsCount',
+        ]);
+        expect(created).to.have.length(2 * (template.features.length + 1));
+
+        // later polls: nothing to create
+        created.length = 0;
+        await adapter.createNewCustomChannels('miner.dev', boards);
+        expect(created).to.deep.equal([]);
     });
 
     /**
@@ -492,9 +555,12 @@ describe('custom feature notifications', () => {
             getStateAsync: (id: string) => Promise<{ val: unknown } | null>;
             setStateChangedAsync: (id: string, state: { val: unknown; ack: boolean }) => Promise<void>;
             registerNotification: (scope: string, category: string, message: string) => Promise<void>;
+            extendObject: () => Promise<void>;
             processNewStats: (miner: object, settings: object, stats: object) => Promise<void>;
         };
         const stored = new Map<string, unknown>();
+        // processNewStats creates the objects of custom channels it sees for the first time
+        adapter.extendObject = () => Promise.resolve();
         const notifications: [string, string, string][] = [];
         adapter.log = { warn: () => {}, debug: () => {} };
         adapter.setState = () => Promise.resolve();

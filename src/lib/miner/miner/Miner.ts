@@ -10,6 +10,7 @@ import {
     resolveCustomFeatures,
     type CustomChannelDefinition,
     type CustomFeatureValue,
+    type DynamicCustomChannelDefinition,
 } from '../model/CustomFeature';
 
 /**
@@ -144,6 +145,15 @@ export abstract class Miner<S extends MinerSettings> {
      * Their values are reported in {@link MinerStats.custom}. Returns an empty array if there are none.
      */
     public getCustomChannels(): CustomChannelDefinition[] {
+        return [];
+    }
+
+    /**
+     * Templates for custom channels that depend on the hardware, e.g. one per hashboard. Declared up front, unlike
+     * their instances, which {@link getCustomChannels} returns once the miner knows them. Returns an empty array if
+     * there are none.
+     */
+    public getDynamicCustomChannels(): DynamicCustomChannelDefinition[] {
         return [];
     }
 
