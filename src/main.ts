@@ -39,7 +39,7 @@ import {
 import { PoolManager } from './lib/miner/pool/PoolManager';
 import type { Pool } from './lib/miner/pool/Pool';
 import type { PoolSettings } from './lib/miner/model/PoolSettings';
-import type { PoolStats } from './lib/miner/model/PoolStats';
+import type { PoolStats, PoolWorkerStats } from './lib/miner/model/PoolStats';
 import { PoolFeatureKey } from './lib/miner/model/PoolFeature';
 import {
     getPoolStateObjects,
@@ -73,9 +73,14 @@ export class MinerAdapter extends utils.Adapter {
      */
     private readonly customChannelObjects = new Map<string, Set<string>>();
     /**
-     * Worker channels already created in this run, by full relative object id, so a poll doesn't recreate them.
+     * The worker channels of a pool that were created or refreshed in this run, by device object id, so a poll
+     * doesn't recreate them. A pool without an entry hasn't been polled in this run yet.
      */
-    private readonly knownPoolWorkers = new Set<string>();
+    private readonly poolWorkerChannels = new Map<string, Set<string>>();
+    /**
+     * The last enable/disable in progress per device, see {@link runExclusive}.
+     */
+    private readonly deviceQueues = new Map<string, Promise<void>>();
 
     /**
      *
@@ -216,8 +221,12 @@ export class MinerAdapter extends utils.Adapter {
                 const enabled = state.val === true;
                 this.log.info(`${enabled ? 'enable' : 'disable'} requested for device ${deviceSettings.name}`);
 
-                await this.setDeviceEnabled(deviceObjectId, deviceSettings, enabled);
-                await this.setState(id, { val: enabled, ack: true });
+                // one after another per device: two requests arriving together would both find the device inactive
+                // and initialize it twice, and a disable arriving during an enable would have nothing to close yet
+                await this.runExclusive(deviceObjectId, async () => {
+                    await this.setDeviceEnabled(deviceObjectId, deviceSettings, enabled);
+                    await this.setState(id, { val: enabled, ack: true });
+                });
                 return;
             }
 
@@ -503,11 +512,7 @@ export class MinerAdapter extends utils.Adapter {
         // deviceId is the full object id here, the set holds the relative one
         const relativeDeviceId = this.getDeviceObjectId(settings);
         this.onlineDevices.delete(relativeDeviceId);
-        for (const workerId of this.knownPoolWorkers) {
-            if (workerId.startsWith(`${relativeDeviceId}.`)) {
-                this.knownPoolWorkers.delete(workerId);
-            }
-        }
+        this.poolWorkerChannels.delete(relativeDeviceId);
         this.customChannelObjects.delete(relativeDeviceId);
         await this.updateConnectionState();
 
@@ -536,6 +541,27 @@ export class MinerAdapter extends utils.Adapter {
 
         await this.closeDevice(settings);
         return true;
+    }
+
+    /**
+     * Runs tasks for the same device one after another, in the order they were requested. A failed task doesn't
+     * keep the following ones from running.
+     *
+     * @param deviceObjectId - the device the task is for
+     * @param task - what to run once the earlier tasks for the device are done
+     */
+    private runExclusive(deviceObjectId: string, task: () => Promise<void>): Promise<void> {
+        const previous = this.deviceQueues.get(deviceObjectId) ?? Promise.resolve();
+        const run = previous.then(task);
+        const settled = run
+            .catch(() => undefined)
+            .then(() => {
+                if (this.deviceQueues.get(deviceObjectId) === settled) {
+                    this.deviceQueues.delete(deviceObjectId);
+                }
+            });
+        this.deviceQueues.set(deviceObjectId, settled);
+        return run;
     }
 
     /**
@@ -1163,6 +1189,10 @@ export class MinerAdapter extends utils.Adapter {
                 return;
             }
 
+            if (settings.settings.id !== undefined && this.poolManager.hasPool(settings.settings.id)) {
+                this.log.debug(`pool ${settings.settings.id} is already initialized`);
+                return;
+            }
             pool = await this.poolManager.init(settings.settings);
         } catch (e) {
             this.log.error(`could not initialize pool ${settings.name || settings.settings.poolType}: ${String(e)}`);
@@ -1216,24 +1246,70 @@ export class MinerAdapter extends utils.Adapter {
             await this.setState(`${deviceId}.${id}`, { val, ack: true });
         }
 
-        if (features.includes(PoolFeatureKey.workers)) {
-            for (const worker of stats.workers ?? []) {
-                const workerId = `${deviceId}.workers.${getWorkerObjectId(worker.name, stats.username)}`;
-                if (!this.knownPoolWorkers.has(workerId)) {
-                    await this.extendObject(workerId, { type: 'channel', common: { name: worker.name } });
-                    for (const [id, common] of Object.entries(getWorkerStateObjects())) {
-                        await this.extendObject(`${workerId}.${id}`, { type: 'state', common });
-                    }
-                    this.knownPoolWorkers.add(workerId);
-                }
-                for (const [id, val] of Object.entries(getWorkerStateValues(worker))) {
-                    await this.setState(`${workerId}.${id}`, { val, ack: true });
-                }
-            }
+        if (features.includes(PoolFeatureKey.workers) && stats.workers !== undefined) {
+            await this.writePoolWorkers(deviceId, stats.workers, stats.username);
         }
 
         await this.setDeviceOnline(settings, true);
         await this.setState(`${deviceId}.info.lastSeen`, { val: Date.now(), ack: true });
+    }
+
+    /**
+     * Writes the states of the workers a pool reported: creates the channel of a worker that is new, and removes the
+     * channel of one the pool no longer reports (deleted or renamed there), so it doesn't stay behind with its last
+     * state and hashrate.
+     *
+     * @param deviceId - object id of the pool device
+     * @param workers - all workers of the account
+     * @param username - the account's username, if known
+     */
+    private async writePoolWorkers(deviceId: string, workers: PoolWorkerStats[], username?: string): Promise<void> {
+        const reported = new Map(
+            workers.map(worker => [`${deviceId}.workers.${getWorkerObjectId(worker.name, username)}`, worker]),
+        );
+
+        let created = this.poolWorkerChannels.get(deviceId);
+        // first poll of this run: the channels of earlier runs are the ones to check for removed workers
+        const existing = created ?? (await this.getPoolWorkerChannelIds(deviceId));
+        if (!created) {
+            created = new Set();
+            this.poolWorkerChannels.set(deviceId, created);
+        }
+        for (const workerId of existing) {
+            if (!reported.has(workerId)) {
+                this.log.info(`Removing worker no longer reported by the pool: ${workerId}`);
+                await this.delObjectAsync(workerId, { recursive: true });
+                created.delete(workerId);
+            }
+        }
+
+        for (const [workerId, worker] of reported) {
+            if (!created.has(workerId)) {
+                await this.extendObject(workerId, { type: 'channel', common: { name: worker.name } });
+                for (const [id, common] of Object.entries(getWorkerStateObjects())) {
+                    await this.extendObject(`${workerId}.${id}`, { type: 'state', common });
+                }
+                created.add(workerId);
+            }
+            for (const [id, val] of Object.entries(getWorkerStateValues(worker))) {
+                await this.setState(`${workerId}.${id}`, { val, ack: true });
+            }
+        }
+    }
+
+    /**
+     * The worker channels that exist below a pool device, as relative object ids.
+     *
+     * @param deviceId - object id of the pool device
+     */
+    private async getPoolWorkerChannelIds(deviceId: string): Promise<string[]> {
+        const prefix = `${deviceId}.workers.`;
+        return (
+            Object.keys(await this.getForeignObjectsAsync(`${this.namespace}.${prefix}*`, 'channel'))
+                .map(id => id.slice(this.namespace.length + 1))
+                // the worker channels only, nothing below them
+                .filter(id => !id.slice(prefix.length).includes('.'))
+        );
     }
 
     private scheduleUpdateChecks(): void {

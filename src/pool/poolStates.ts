@@ -1,3 +1,4 @@
+import * as crypto from 'node:crypto';
 import { PoolFeatureKey } from '../lib/miner/model/PoolFeature';
 import { poolWorkerStateKeys, type PoolStats, type PoolWorkerStats } from '../lib/miner/model/PoolStats';
 
@@ -196,7 +197,11 @@ export function getPoolStateValues(
 
 /**
  * Object id segment for a worker. Pool worker names are usually `<username>.<worker>`: the username is the same for
- * all workers of the account, so only the part after it is used. Characters not allowed in object ids are replaced.
+ * all workers of the account, so only the part after it is used.
+ *
+ * Characters not allowed in object ids are replaced by `_`. Such an id gets a short hash of the worker name appended:
+ * otherwise workers like `rig.1` and `rig_1` would share one id. The hash is always appended, not only once two
+ * workers collide, so a worker keeps its id (and history) when another one is added later.
  *
  * @param workerName - the worker name as the pool reports it
  * @param username - the account's username, if known
@@ -207,7 +212,11 @@ export function getWorkerObjectId(workerName: string, username?: string): string
         name = name.slice(username.length + 1);
     }
     const id = name.replace(/[^A-Za-z0-9_-]/g, '_');
-    return id === '' ? '_' : id;
+    if (id === name && id !== '') {
+        return id;
+    }
+    const hash = crypto.createHash('sha1').update(workerName).digest('hex').slice(0, 6);
+    return `${id}_${hash}`;
 }
 
 /**

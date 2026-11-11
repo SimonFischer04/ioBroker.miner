@@ -71,7 +71,7 @@ Besides miners, the adapter can monitor your account at a mining pool. Add a dev
 
 - **Braiins Pool** (`braiinsPool`, BTC): uses the pool's [monitoring API](https://academy.braiins.com/en/braiins-pool/monitoring/). In the pool's web interface go to Settings → Access Profiles, create an access profile with web API access and generate a token, then enter it as `API token`. The adapter only reads statistics: hashrate, worker counts and states, balance and rewards.
 
-  The pool updates its statistics about once a minute and allows only about one API request every 5 seconds (more can get your IP banned). Each poll makes two requests, so the poll interval is at least 30 seconds (default: 60 seconds), and requests of all Braiins Pool accounts in the adapter are spaced 5 seconds apart.
+  The pool updates its statistics about once a minute and allows only about one API request every 5 seconds (more can get your IP banned). Each poll makes two requests, so the poll interval is at least 30 seconds (default: 60 seconds), and requests of all Braiins Pool accounts in the adapter are spaced 5 seconds apart. With many accounts a poll simply waits its turn, so with more than about 5 accounts each one is polled less often than every 60 seconds.
 
 `info.online` of a pool shows whether the pool API is reachable with the token; it switches to `false` after 3 failed polls in a row.
 
@@ -128,7 +128,9 @@ miner.0
       rewards
         currentBalance / todayReward / estimatedReward / allTimeReward (number) BTC
       workers
-        <worker>                     (channel)  worker name without the "<username>." prefix
+        <worker>                     (channel)  worker name without the "<username>." prefix; removed when the
+                                                pool no longer lists the worker. Characters not allowed in ids
+                                                become "_", and such an id gets a short hash appended
           name                       (string)   full worker name
           state                      (string)   ok / low / off / disabled
           lastShare                  (number)   unix ms

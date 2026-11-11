@@ -42,5 +42,11 @@ describe('hashrate-utils', () => {
             expect(formatHashrate(500)).to.equal('500 H/s');
             expect(formatHashrate(1e15)).to.equal('1 PH/s');
         });
+
+        it('switches to the next unit when the value rounds up to 1000', () => {
+            expect(formatHashrate(999999)).to.equal('1 MH/s');
+            expect(formatHashrate(999.996)).to.equal('1 kH/s');
+            expect(formatHashrate(999.99)).to.equal('999.99 H/s');
+        });
     });
 });

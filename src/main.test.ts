@@ -612,6 +612,9 @@ describe('pool devices', () => {
         setStateChangedAsync: (id: string, state: { val: unknown }) => Promise<void>;
         getStateAsync: (id: string) => Promise<{ val: unknown } | null>;
         getObjectAsync: (id: string) => Promise<object | null>;
+        getForeignObjectsAsync: (pattern: string, type?: string) => Promise<Record<string, object>>;
+        delObjectAsync: (id: string, options?: { recursive?: boolean }) => Promise<void>;
+        namespace: string;
         initDevice: (device: ioBroker.DeviceObject) => Promise<void>;
         onStateChange: (id: string, state: { val: unknown; ack: boolean }) => Promise<void>;
     }
@@ -633,6 +636,7 @@ describe('pool devices', () => {
         extendCalls: string[];
         publish: () => { stats?: (stats: PoolStats) => Promise<void>; online?: (online: boolean) => Promise<void> };
         active: Set<string>;
+        inits: () => number;
     } {
         const adapter = createTestAdapter() as unknown as PoolTestAdapter;
         const objects = new Map<string, { type?: string; common?: object }>();
@@ -648,8 +652,11 @@ describe('pool devices', () => {
             subscribeToStats: (cb: (stats: PoolStats) => Promise<void>) => (callbacks.stats = cb),
             subscribeToOnlineStatus: (cb: (online: boolean) => Promise<void>) => (callbacks.online = cb),
         };
+        let inits = 0;
+        adapter.namespace = 'miner.0';
         adapter.poolManager = {
             init: settings => {
+                inits++;
                 active.add((settings as { id: string }).id);
                 return Promise.resolve(pool);
             },
@@ -671,7 +678,28 @@ describe('pool devices', () => {
         adapter.setStateChangedAsync = adapter.setState;
         adapter.getStateAsync = id => Promise.resolve(writes.has(id) ? { val: writes.get(id) } : null);
         adapter.getObjectAsync = id => Promise.resolve(id === device._id ? device : null);
-        return { adapter, objects, writes, extendCalls, publish: () => callbacks, active };
+        adapter.getForeignObjectsAsync = (pattern, type) => {
+            expect(pattern.endsWith('.*')).to.equal(true);
+            expect(type).to.equal('channel');
+            const prefix = pattern.slice('miner.0.'.length, -1);
+            return Promise.resolve(
+                Object.fromEntries(
+                    [...objects.entries()]
+                        .filter(([id, obj]) => id.startsWith(prefix) && obj.type === type)
+                        .map(([id, obj]) => [`miner.0.${id}`, obj]),
+                ),
+            );
+        };
+        adapter.delObjectAsync = (id, options) => {
+            expect(options?.recursive).to.equal(true);
+            for (const existing of [...objects.keys()]) {
+                if (existing === id || existing.startsWith(`${id}.`)) {
+                    objects.delete(existing);
+                }
+            }
+            return Promise.resolve();
+        };
+        return { adapter, objects, writes, extendCalls, publish: () => callbacks, active, inits: () => inits };
     }
 
     it('creates the pool states, polls the pool and writes stats and workers', async () => {
@@ -722,6 +750,76 @@ describe('pool devices', () => {
 
         writes.set('miner.0.pool.my-pool.enabled', true);
         await adapter.onStateChange('miner.0.pool.my-pool.enabled', { val: true, ack: false });
+        expect(active.has('my-pool')).to.equal(true);
+    });
+
+    it('removes the channel of a worker the pool no longer reports, also one left from an earlier run', async () => {
+        const { adapter, objects, publish } = createPoolTestAdapter();
+        objects.set('pool.my-pool.workers.old', { type: 'channel' });
+        objects.set('pool.my-pool.workers.old.state', { type: 'state' });
+        await adapter.initDevice(device);
+
+        await publish().stats?.({ username: 'me', workers: [{ name: 'me.rig1' }, { name: 'me.rig2' }] });
+        expect(objects.has('pool.my-pool.workers.old')).to.equal(false);
+        expect(objects.has('pool.my-pool.workers.old.state')).to.equal(false);
+        expect(objects.has('pool.my-pool.workers.rig1.state')).to.equal(true);
+        expect(objects.has('pool.my-pool.workers.rig2.state')).to.equal(true);
+
+        await publish().stats?.({ username: 'me', workers: [{ name: 'me.rig2' }] });
+        expect(objects.has('pool.my-pool.workers.rig1')).to.equal(false);
+        expect(objects.has('pool.my-pool.workers.rig1.state')).to.equal(false);
+        expect(objects.has('pool.my-pool.workers.rig2.state')).to.equal(true);
+
+        // a worker that comes back gets its channel again
+        await publish().stats?.({ username: 'me', workers: [{ name: 'me.rig1' }, { name: 'me.rig2' }] });
+        expect(objects.has('pool.my-pool.workers.rig1.state')).to.equal(true);
+    });
+
+    it('keeps the worker channels when the pool did not report its workers', async () => {
+        const { adapter, objects, publish } = createPoolTestAdapter();
+        await adapter.initDevice(device);
+
+        await publish().stats?.({ username: 'me', workers: [{ name: 'me.rig1' }] });
+        await publish().stats?.({ username: 'me' });
+
+        expect(objects.has('pool.my-pool.workers.rig1.state')).to.equal(true);
+    });
+
+    it('keeps workers apart whose names differ only in characters not allowed in object ids', async () => {
+        const { adapter, objects, writes, publish } = createPoolTestAdapter();
+        await adapter.initDevice(device);
+
+        await publish().stats?.({
+            username: 'me',
+            workers: [
+                { name: 'me.rig.1', hashrate5m: 1 },
+                { name: 'me.rig_1', hashrate5m: 2 },
+            ],
+        });
+
+        const channels = [...objects.entries()].filter(
+            ([id, obj]) => id.startsWith('pool.my-pool.workers.') && obj.type === 'channel',
+        );
+        expect(channels.map(([, obj]) => (obj.common as { name: string }).name).sort()).to.deep.equal([
+            'me.rig.1',
+            'me.rig_1',
+        ]);
+        expect(writes.get('pool.my-pool.workers.rig_1.hashrate5m')).to.equal(2);
+    });
+
+    it('initializes the pool once when two enable requests arrive together', async () => {
+        const { adapter, writes, active, inits } = createPoolTestAdapter();
+        writes.set('miner.0.pool.my-pool.enabled', false);
+        await adapter.initDevice(device);
+        expect(inits()).to.equal(0);
+
+        writes.set('miner.0.pool.my-pool.enabled', true);
+        await Promise.all([
+            adapter.onStateChange('miner.0.pool.my-pool.enabled', { val: true, ack: false }),
+            adapter.onStateChange('miner.0.pool.my-pool.enabled', { val: true, ack: false }),
+        ]);
+
+        expect(inits()).to.equal(1);
         expect(active.has('my-pool')).to.equal(true);
     });
 

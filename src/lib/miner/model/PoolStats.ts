@@ -100,7 +100,7 @@ export interface PoolStats {
      */
     allTimeReward?: number;
     /**
-     * Per-worker statistics.
+     * Per-worker statistics: all workers of the account. Undefined if the pool didn't report its workers.
      */
     workers?: PoolWorkerStats[];
     /**

@@ -174,6 +174,7 @@ export class BraiinsPool extends Pool<BraiinsPoolSettings> {
             throw new Error(`unexpected profile response: ${JSON.stringify(profile)}`);
         }
         const unit = account.hash_rate_unit;
+        const workerList: unknown = workers?.btc?.workers;
 
         return {
             username: profile.username,
@@ -189,7 +190,10 @@ export class BraiinsPool extends Pool<BraiinsPoolSettings> {
             todayReward: parseNumber(account.today_reward),
             estimatedReward: parseNumber(account.estimated_reward),
             allTimeReward: parseNumber(account.all_time_reward),
-            workers: Object.entries(workers.btc?.workers ?? {}).map(([name, worker]) => toWorkerStats(name, worker)),
+            // without a worker list the workers are unknown, which is not the same as an account without workers
+            workers: isRecord(workerList)
+                ? Object.entries(workerList).map(([name, worker]) => toWorkerStats(name, worker))
+                : undefined,
             raw: { profile, workers },
         };
     }
@@ -208,13 +212,17 @@ export class BraiinsPool extends Pool<BraiinsPoolSettings> {
     private request<T>(path: string): Promise<T> {
         const baseUrl = this.getBaseUrl();
         return braiinsPoolThrottle.run(baseUrl, async () => {
+            // the request may have waited behind other accounts: don't use a rate-limit slot for a closed pool
+            if (this.isClosed()) {
+                throw new Error('pool was closed');
+            }
             this.logger.debug(`GET ${baseUrl}/${path}`);
             const response = await fetch(`${baseUrl}/${path}`, {
                 headers: {
                     Accept: 'application/json',
                     'Pool-Auth-Token': this.settings.apiToken,
                 },
-                signal: AbortSignal.timeout(this.getPollTimeoutMs()),
+                signal: AbortSignal.timeout(this.getRequestTimeoutMs()),
             });
 
             if (!response.ok) {
@@ -233,6 +241,10 @@ export class BraiinsPool extends Pool<BraiinsPoolSettings> {
             return (await response.json()) as T;
         });
     }
+}
+
+function isRecord(value: unknown): value is Record<string, BraiinsPoolWorker> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function toWorkerStats(name: string, worker: BraiinsPoolWorker): PoolWorkerStats {

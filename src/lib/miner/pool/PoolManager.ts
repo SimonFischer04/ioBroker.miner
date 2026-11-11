@@ -19,14 +19,20 @@ export class PoolManager {
     public async init(settings: PoolSettings): Promise<Pool<PoolSettings>> {
         logger.info(`[init] initializing pool with id ${settings.id}`);
 
+        if (settings.id !== undefined && this.hasPool(settings.id)) {
+            throw new Error(`pool with id ${settings.id} is already initialized`);
+        }
+
         const pool = createPool(settings);
+        // registered before anything is awaited, so a second init for the same id can't slip in
+        this.pools.push(pool);
         try {
             await pool.init();
         } catch (e) {
+            this.pools.splice(this.pools.indexOf(pool), 1);
             await pool.close();
             throw e;
         }
-        this.pools.push(pool);
         return pool;
     }
 
@@ -44,18 +50,18 @@ export class PoolManager {
             return;
         }
 
-        await pool.close();
+        // unregistered first: the pool no longer counts as active while its close is awaited
         this.pools.splice(this.pools.indexOf(pool), 1);
+        await pool.close();
     }
 
     /**
      * Stop polling all pools.
      */
     public async closeAll(): Promise<void> {
-        for (const pool of this.pools) {
+        for (const pool of this.pools.splice(0, this.pools.length)) {
             await pool.close();
         }
-        this.pools.splice(0, this.pools.length);
     }
 
     /**

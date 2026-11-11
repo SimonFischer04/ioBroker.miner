@@ -51,7 +51,8 @@ export function formatHashrate(hashesPerSecond: number): string {
     const units = ['H/s', 'kH/s', 'MH/s', 'GH/s', 'TH/s', 'PH/s', 'EH/s', 'ZH/s'];
     let value = hashesPerSecond;
     let index = 0;
-    while (Math.abs(value) >= 1000 && index < units.length - 1) {
+    // compare the rounded value: 999999 H/s is "1 MH/s", not "1000 kH/s"
+    while (Math.abs(Number(value.toFixed(2))) >= 1000 && index < units.length - 1) {
         value /= 1000;
         index++;
     }

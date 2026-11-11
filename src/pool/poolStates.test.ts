@@ -39,9 +39,23 @@ describe('poolStates', () => {
             expect(getWorkerObjectId('username.worker1', 'username')).to.equal('worker1');
         });
 
-        it('replaces characters not allowed in object ids', () => {
-            expect(getWorkerObjectId('other.s19 #1*', 'username')).to.equal('other_s19__1_');
-            expect(getWorkerObjectId('', undefined)).to.equal('_');
+        it('replaces characters not allowed in object ids and appends a hash of the name', () => {
+            expect(getWorkerObjectId('other.s19 #1*', 'username')).to.match(/^other_s19__1__[0-9a-f]{6}$/);
+            expect(getWorkerObjectId('', undefined)).to.match(/^_[0-9a-f]{6}$/);
+        });
+
+        it('gives workers different ids whose names differ only in replaced characters', () => {
+            const ids = ['username.rig.1', 'username.rig_1', 'username.rig 1', 'username.rig#1'].map(name =>
+                getWorkerObjectId(name, 'username'),
+            );
+            expect(new Set(ids).size).to.equal(4);
+            expect(ids[1]).to.equal('rig_1');
+        });
+
+        it('always gives a worker the same id', () => {
+            expect(getWorkerObjectId('username.rig.1', 'username')).to.equal(
+                getWorkerObjectId('username.rig.1', 'username'),
+            );
         });
     });
 });

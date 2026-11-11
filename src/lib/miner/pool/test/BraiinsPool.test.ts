@@ -142,7 +142,12 @@ describe('BraiinsPool', () => {
         });
 
         it('handles an account without workers', () => {
-            expect(BraiinsPool.toPoolStats(profileSample, {}).workers).to.deep.equal([]);
+            expect(BraiinsPool.toPoolStats(profileSample, { btc: { workers: {} } }).workers).to.deep.equal([]);
+        });
+
+        it('leaves the workers unknown when the response has no worker list', () => {
+            expect(BraiinsPool.toPoolStats(profileSample, {}).workers).to.equal(undefined);
+            expect(BraiinsPool.toPoolStats(profileSample, { btc: {} }).workers).to.equal(undefined);
         });
 
         it('rejects a profile response without account data', () => {
@@ -191,6 +196,26 @@ describe('BraiinsPool', () => {
             expect(((await pool.fetchStats().catch((e: unknown) => e)) as Error).message).to.contain(
                 'rejected the API token (HTTP 401: {"detail":"unauthorized"})',
             );
+        });
+
+        it('makes no request once the pool is closed', async () => {
+            let requests = 0;
+            const started = await startServer((_req, res) => {
+                requests++;
+                json(res, 200, profileSample);
+            });
+            server = started.server;
+
+            const pool = new BraiinsPool({
+                poolType: 'braiinsPool',
+                pollInterval: 60_000,
+                apiToken: 'token',
+                baseUrl: started.baseUrl,
+            });
+            await pool.close();
+
+            expect(((await pool.fetchStats().catch((e: unknown) => e)) as Error).message).to.contain('closed');
+            expect(requests).to.equal(0);
         });
 
         it('fails on other HTTP errors', async () => {
