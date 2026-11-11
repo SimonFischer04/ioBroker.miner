@@ -27,6 +27,7 @@ import {
     findDynamicCustomChannel,
     resolveCustomFeatures,
     type CustomChannelDefinition,
+    type CustomFeatureNotification,
     type DynamicCustomChannelDefinition,
 } from './lib/miner/model/CustomFeature';
 
@@ -723,17 +724,52 @@ export class MinerAdapter extends utils.Adapter {
         if (stats.custom) {
             const channels = miner.getCustomChannels();
             await this.createNewCustomChannels(deviceId, channels);
-            const known = new Set(resolveCustomFeatures(channels).map(f => f.id));
+            const known = new Map(resolveCustomFeatures(channels).map(f => [f.id, f.feature]));
             for (const [id, val] of Object.entries(stats.custom)) {
-                if (known.has(id)) {
-                    await this.setStateChangedAsync(`${deviceId}.${CUSTOM_CHANNEL}.${id}`, { val, ack: true });
+                const feature = known.get(id);
+                if (!feature) {
+                    continue;
                 }
+                const stateId = `${deviceId}.${CUSTOM_CHANNEL}.${id}`;
+                if (feature.notification && val === true) {
+                    // compare with the stored value, so the notification is raised once when the feature turns true,
+                    // not on every poll or adapter restart
+                    const wasTrue = (await this.getStateAsync(stateId))?.val === true;
+                    if (!wasTrue && isMiner(settings)) {
+                        await this.raiseCustomFeatureNotification(settings, feature.notification);
+                    }
+                }
+                await this.setStateChangedAsync(stateId, { val, ack: true });
             }
         }
 
         // Always update online / lastSeen
         await this.setDeviceOnline(settings, true);
         await this.setState(`${deviceId}.info.lastSeen`, { val: Date.now(), ack: true });
+    }
+
+    /**
+     * Raises the notification a custom feature declares, and logs it as a warning (for js-controllers without
+     * notification support, and for the log).
+     *
+     * @param settings - the device the feature belongs to
+     * @param notification - the notification the feature declares
+     */
+    private async raiseCustomFeatureNotification(
+        settings: IOBrokerMinerSettings,
+        notification: CustomFeatureNotification,
+    ): Promise<void> {
+        const message = `Miner "${settings.name}": ${notification.message}`;
+        this.log.warn(message);
+        try {
+            await this.registerNotification(
+                'miner',
+                notification.category as ioBroker.NotificationScopes['miner'],
+                message,
+            );
+        } catch (e) {
+            this.log.debug(`could not register notification: ${String(e)}`);
+        }
     }
 
     private async createDeviceStateObjects(settings: IOBrokerDeviceSettings): Promise<void> {

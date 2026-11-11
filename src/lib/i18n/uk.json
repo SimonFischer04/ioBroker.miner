@@ -43,7 +43,7 @@
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Вхід підтверджено: браузер зі сторінкою входу майнера увійде в систему протягом 5 секунд.",
     "The miner rejected the web password. Check it in the device settings.": "Майнер відхилив веб-пароль. Перевірте його в налаштуваннях пристрою.",
     "Could not approve the web login: %s": "Не вдалося підтвердити веб-вхід: %s",
-    "Set": "Встановити"
+    "Set": "Встановити",
+    "filter cleaning reminder (days)": "Нагадування про очищення фільтра (дні)",
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Днів роботи фільтра до нагадування про очищення пилового фільтра. 0 = вимк."
 }
-
-

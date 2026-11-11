@@ -43,7 +43,7 @@
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Aanmelding goedgekeurd: de browser met de aanmeldpagina van de miner wordt binnen 5 seconden aangemeld.",
     "The miner rejected the web password. Check it in the device settings.": "De miner heeft het webwachtwoord geweigerd. Controleer het in de apparaatinstellingen.",
     "Could not approve the web login: %s": "Webaanmelding kon niet worden goedgekeurd: %s",
-    "Set": "Instellen"
+    "Set": "Instellen",
+    "filter cleaning reminder (days)": "herinnering filter reinigen (dagen)",
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Dagen filterlooptijd tot de herinnering om het stoffilter te reinigen. 0 = uit."
 }
-
-

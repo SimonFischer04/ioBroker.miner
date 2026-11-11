@@ -4,7 +4,6 @@
  */
 
 const net = require('net');
-const { expect } = require('chai');
 
 const summaryVersionFixture = require('../../src/lib/miner/fixture/nano3s-summary+version.json');
 
@@ -95,8 +94,8 @@ exports.runTests = function (suite) {
 
             // offline after 3 failed polls: with the backoff that is a few seconds at a 500 ms poll interval
             await waitForState(harness, 'miner.0.miner.it-cgminer.info.online', false, 20_000);
-            const connection = await harness.states.getStateAsync('miner.0.info.connection');
-            expect(connection && connection.val).to.equal('');
+            // wait instead of reading once: the adapter writes info.online first and the list right after it
+            await waitForState(harness, 'miner.0.info.connection', '', 5_000);
         }).timeout(30_000);
     });
 };

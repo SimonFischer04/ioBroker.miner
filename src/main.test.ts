@@ -446,6 +446,9 @@ describe('custom features', () => {
             ['custom.light.color', 'color'],
             ['custom.lcd', 'header'],
             ['custom.lcd.on', 'switch'],
+            // read-only filter.runtime / filter.cleanDue are card rows, not controls
+            ['custom.filter', 'header'],
+            ['custom.filter.reset', 'button'],
         ]);
         const brightness = controls.find(c => c.id === 'custom.light.brightness');
         expect(brightness?.stateId).to.equal('miner.0.miner.dev.custom.light.brightness');
@@ -457,6 +460,33 @@ describe('custom features', () => {
             label: 'Static',
             value: 1,
         });
+    });
+
+    it('presses a button feature by writing true, as a button press carries no value', async () => {
+        const adapter = createTestAdapter() as unknown as CustomFeatureTestAdapter & {
+            getForeignStateAsync: () => Promise<null>;
+            setForeignStateAsync: (id: string, state: { val: unknown; ack: boolean }) => Promise<void>;
+        };
+        const written: { id: string; val: unknown; ack: boolean }[] = [];
+        adapter.getForeignStateAsync = () => Promise.resolve(null);
+        adapter.setForeignStateAsync = (id, state) => {
+            written.push({ id, ...state });
+            return Promise.resolve();
+        };
+        const controls = await adapter.deviceManagement.getControls(
+            'miner.0.miner.dev',
+            avalon,
+            avalon.getSupportedFeatures(),
+        );
+        const reset = controls.find(c => c.id === 'custom.filter.reset');
+
+        await (reset?.handler as (deviceId: string, controlId: string, state: unknown) => Promise<unknown>)(
+            'miner.0.miner.dev',
+            'custom.filter.reset',
+            null,
+        );
+
+        expect(written).to.deep.equal([{ id: 'miner.0.miner.dev.custom.filter.reset', val: true, ack: false }]);
     });
 });
 
@@ -514,5 +544,56 @@ describe('profile read-back', () => {
         expect(changed.filter(c => c.id.endsWith('.profile'))).to.deep.equal([
             { id: 'miner.dev.control.profile', val: 'high', ack: true },
         ]);
+    });
+});
+
+describe('custom feature notifications', () => {
+    it('raises the notification once when a feature with one turns true', async () => {
+        const adapter = createTestAdapter() as unknown as {
+            log: { warn: (msg: string) => void; debug: () => void };
+            setState: () => Promise<void>;
+            getStateAsync: (id: string) => Promise<{ val: unknown } | null>;
+            setStateChangedAsync: (id: string, state: { val: unknown; ack: boolean }) => Promise<void>;
+            registerNotification: (scope: string, category: string, message: string) => Promise<void>;
+            extendObject: () => Promise<void>;
+            processNewStats: (miner: object, settings: object, stats: object) => Promise<void>;
+        };
+        const stored = new Map<string, unknown>();
+        // processNewStats creates the objects of custom channels it sees for the first time
+        adapter.extendObject = () => Promise.resolve();
+        const notifications: [string, string, string][] = [];
+        adapter.log = { warn: () => {}, debug: () => {} };
+        adapter.setState = () => Promise.resolve();
+        adapter.getStateAsync = id => Promise.resolve(stored.has(id) ? { val: stored.get(id) } : null);
+        adapter.setStateChangedAsync = (id, state) => {
+            stored.set(id, state.val);
+            return Promise.resolve();
+        };
+        adapter.registerNotification = (scope, category, message) => {
+            notifications.push([scope, category, message]);
+            return Promise.resolve();
+        };
+        const miner = new AvalonMiner({
+            minerType: 'avalonMiner',
+            id: 'dev',
+            host: 'localhost',
+            port: 4028,
+            pollInterval: 1000,
+        });
+        const settings = { category: 'miner', name: 'Nano', settings: { id: 'dev' } };
+
+        await adapter.processNewStats(miner, settings, { custom: { 'filter.cleanDue': false } });
+        await adapter.processNewStats(miner, settings, { custom: { 'filter.cleanDue': true } });
+        await adapter.processNewStats(miner, settings, { custom: { 'filter.cleanDue': true } });
+
+        expect(notifications).to.have.length(1);
+        expect(notifications[0][0]).to.equal('miner');
+        expect(notifications[0][1]).to.equal('filterClean');
+        expect(notifications[0][2]).to.match(/^Miner "Nano": The dust filter should be cleaned/);
+
+        // cleaned and reset, due again later: notified again
+        await adapter.processNewStats(miner, settings, { custom: { 'filter.cleanDue': false } });
+        await adapter.processNewStats(miner, settings, { custom: { 'filter.cleanDue': true } });
+        expect(notifications).to.have.length(2);
     });
 });

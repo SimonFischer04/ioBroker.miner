@@ -33,10 +33,11 @@ import type { PartialDeep } from 'type-fest';
 import { createMiner } from './miner/miner/MinerFactory';
 import { getMinerFeatureFullId, MinerFeatureKey } from './miner/model/MinerFeature';
 import { describeUpdateStatus } from './update/updateStatus';
+import { DEFAULT_FILTER_CLEAN_INTERVAL_DAYS } from './miner/model/FilterStatus';
 import { AvalonMiner } from './miner/miner/AvalonMiner';
 import { isWrongPasswordError } from './miner/api/AvalonWebLogin';
 import type { Miner } from './miner/miner/Miner';
-import { CUSTOM_CHANNEL, type CustomFeatureDefinition } from './miner/model/CustomFeature';
+import { CUSTOM_CHANNEL, resolveCustomFeatures, type CustomFeatureDefinition } from './miner/model/CustomFeature';
 
 /**
  * How long a slider, color or text control waits for the user to stop changing it before sending the value: each
@@ -311,6 +312,19 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                             'password of the miner web interface, as set in the Avalon Family app. Only needed for the "Approve web login" action, which logs a browser in without scanning the QR code.',
                         hidden: "data.category !== 'miner' || data.minerType != 'avalonMiner'",
                     },
+                    filterCleanIntervalDays: {
+                        type: 'number',
+                        newLine: true,
+                        min: 0,
+                        step: 1,
+                        label: I18n.getTranslatedObject('filter cleaning reminder (days)'),
+                        help: I18n.getTranslatedObject(
+                            'Days of filter runtime until the reminder to clean the dust filter. 0 = off.',
+                        ),
+                        tooltip:
+                            'after this many days of filter runtime the adapter sets custom.filter.cleanDue and raises a notification. Reset the reminder after cleaning the filter.',
+                        hidden: "data.category !== 'miner' || data.minerType != 'avalonMiner'",
+                    },
                     enabled: {
                         type: 'checkbox',
                         newLine: true,
@@ -333,6 +347,9 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     username: (existingSettings.settings as BOSSettings).username ?? BOS_DEFAULT_USERNAME, // TODO: implement this properly
                     password: getPasswordFormValue(existingSettings), // TODO: implement this properly
                     webPassword: (existingSettings.settings as PartialDeep<AvalonMinerSettings>).webPassword ?? '',
+                    filterCleanIntervalDays:
+                        (existingSettings.settings as PartialDeep<AvalonMinerSettings>).filterCleanIntervalDays ??
+                        DEFAULT_FILTER_CLEAN_INTERVAL_DAYS,
                     enabled: existingSettings.enabled,
                 },
                 title,
@@ -560,6 +577,12 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     pollInterval,
                     port: 4028, // TODO: make configurable
                     webPassword: result.webPassword || undefined,
+                    // an emptied field means the default, not 0 (which turns the reminder off)
+                    filterCleanIntervalDays:
+                        typeof result.filterCleanIntervalDays === 'number' &&
+                        Number.isFinite(result.filterCleanIntervalDays)
+                            ? Math.max(0, result.filterCleanIntervalDays)
+                            : undefined,
                 };
                 minerSettings = {
                     ...minerSettings,
@@ -656,6 +679,35 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
         return items;
     }
 
+    /**
+     * Device card rows for the read-only custom features (e.g. a maintenance indicator); the writable ones are device
+     * controls (see getControls). Bound to their states, so they update live.
+     *
+     * @param deviceId - full object id of the device
+     * @param miner - a (not initialized) miner of the device's type
+     * @returns the card rows, keyed by name
+     */
+    private getCustomInfoItems(deviceId: string, miner: Miner<MinerSettings>): Record<string, ConfigItemAny> {
+        const items: Record<string, ConfigItemAny> = {};
+        for (const { id, feature } of resolveCustomFeatures(miner.getCustomChannels())) {
+            if (!feature.readable || feature.writable) {
+                continue;
+            }
+            items[`${CUSTOM_CHANNEL}_${id.replace(/\./g, '_')}`] = {
+                type: 'state',
+                oid: `${deviceId}.${CUSTOM_CHANNEL}.${id}`,
+                foreign: true,
+                label: feature.label,
+                unit: feature.unit,
+                // a boolean with a notification is a warning: highlight it while true
+                ...(feature.type === 'boolean' && feature.notification
+                    ? { trueTextStyle: { color: 'orange' }, falseTextStyle: { color: 'green' } }
+                    : {}),
+            };
+        }
+        return items;
+    }
+
     protected async loadDevices(context: DeviceLoadContext<string>): Promise<void> {
         const devices = await this.adapter.getDevicesAsync();
 
@@ -738,6 +790,8 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                         rssiStateId = stateId;
                     }
                 }
+
+                Object.assign(customInfoItems, this.getCustomInfoItems(device._id, dummyMiner));
 
                 if (supportedFeatures.includes(MinerFeatureKey.updateAvailable)) {
                     Object.assign(
@@ -892,7 +946,12 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
                     id,
                     stateId: `${deviceId}.${id}`,
                     label: feature.label,
-                    handler,
+                    // a button press carries no value: write true, which is what a press means for a button state
+                    handler:
+                        feature.role === 'button'
+                            ? (dId: string, controlId: string): Promise<ioBroker.State> =>
+                                  this.handleControl(dId, controlId, true)
+                            : handler,
                     getStateHandler,
                 });
             }
@@ -912,6 +971,9 @@ class MinerAdapterDeviceManagement extends DeviceManagement<MinerAdapter> {
      * @param feature - the custom feature
      */
     private getCustomFeatureControl(feature: CustomFeatureDefinition): Omit<DeviceControl<string>, 'id'> {
+        if (feature.role === 'button') {
+            return { type: 'button', variant: 'outlined' };
+        }
         if (feature.states) {
             return {
                 type: 'select',

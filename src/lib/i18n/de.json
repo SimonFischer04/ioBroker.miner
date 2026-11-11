@@ -43,7 +43,7 @@
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Anmeldung freigegeben: Der Browser mit der Anmeldeseite des Miners wird innerhalb von 5 Sekunden angemeldet.",
     "The miner rejected the web password. Check it in the device settings.": "Der Miner hat das Web-Passwort abgelehnt. Bitte in den Geräteeinstellungen prüfen.",
     "Could not approve the web login: %s": "Web-Anmeldung konnte nicht freigegeben werden: %s",
-    "Set": "Setzen"
+    "Set": "Setzen",
+    "filter cleaning reminder (days)": "Filter-Reinigungserinnerung (Tage)",
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Tage Filterlaufzeit bis zur Erinnerung, den Staubfilter zu reinigen. 0 = aus."
 }
-
-

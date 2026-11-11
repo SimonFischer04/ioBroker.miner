@@ -2,6 +2,9 @@
 .*/
 !.vscode/
 !.github/
+# project skills for Claude Code (personal settings stay local)
+!.claude/
+.claude/settings.local.json
 
 *.code-workspace
 node_modules

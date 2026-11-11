@@ -16,6 +16,7 @@ import { toUpdateCheckResult, type UpdateCheckContext, type UpdateCheckResult } 
 import type { UpdateSources } from '../../update/UpdateSources';
 import { parseAvalonBuild } from '../../update/version-compare';
 import { safeParseFloat } from '../../utils/parse-utils';
+import { isFilterCleanDue } from '../model/FilterStatus';
 import { buildQrAuthParameter, parseAuthChallenge, type AvalonAuthChallenge } from '../api/AvalonWebLogin';
 import type { CustomChannelDefinition, CustomFeatureValue } from '../model/CustomFeature';
 
@@ -35,6 +36,8 @@ enum AvalonMinerParameter {
     workModeLow = '0,workmode,set,0',
     workModeMedium = '0,workmode,set,1',
     workModeHigh = '0,workmode,set,2',
+    // confirms a cleaned dust filter: resets its runtime (litestats Filter[]). The firmware accepts only the value 1.
+    filterClean = '0,filter-clean,1',
     // Future: reboot = '0,reboot,0',
     // LED ring: `0,ledset,<effect>-<brightness>-<colorTemperature>-<red>-<green>-<blue>`, see buildLedSetParameter
     ledSet = '0,ledset',
@@ -111,6 +114,9 @@ export enum AvalonCustomFeature {
     lightColorTemperature = 'light.colorTemperature',
     lightColor = 'light.color',
     lcdOn = 'lcd.on',
+    filterRuntime = 'filter.runtime',
+    filterCleanDue = 'filter.cleanDue',
+    filterReset = 'filter.reset',
 }
 
 const AVALON_CUSTOM_CHANNELS: CustomChannelDefinition[] = [
@@ -190,6 +196,47 @@ const AVALON_CUSTOM_CHANNELS: CustomChannelDefinition[] = [
                 type: 'boolean',
                 role: 'switch',
                 readable: true,
+                writable: true,
+            },
+        ],
+    },
+    {
+        id: 'filter',
+        label: 'Dust Filter',
+        features: [
+            {
+                id: 'runtime',
+                label: 'Filter Runtime',
+                description: 'Runtime of the dust filter since it was last cleaned (reset).',
+                type: 'number',
+                role: 'value',
+                unit: 'h',
+                readable: true,
+                writable: false,
+            },
+            {
+                id: 'cleanDue',
+                label: 'Filter Cleaning Due',
+                description:
+                    'Whether the dust filter should be cleaned: its runtime reached the reminder interval of the device settings. Always false while the reminder is off.',
+                type: 'boolean',
+                role: 'indicator.maintenance',
+                readable: true,
+                writable: false,
+                notification: {
+                    category: 'filterClean',
+                    message:
+                        'The dust filter should be cleaned: its runtime reached the reminder interval of the device settings. After cleaning it, reset the filter reminder ("Reset Filter Reminder" in the device controls, or state custom.filter.reset).',
+                },
+            },
+            {
+                id: 'reset',
+                label: 'Reset Filter Reminder',
+                description:
+                    'Confirm that the dust filter was cleaned: resets its runtime on the miner, like "Filter Clear" in the Avalon Family app.',
+                type: 'boolean',
+                role: 'button',
+                readable: false,
                 writable: true,
             },
         ],
@@ -450,6 +497,14 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
             await this.sendAscset(`${AvalonMinerParameter.lcd}:${value ? 1 : 0}`, 'lcd');
             return;
         }
+        if (id === AvalonCustomFeature.filterReset) {
+            // a button: only a press (true) resets
+            if (value === true) {
+                await this.sendAscset(AvalonMinerParameter.filterClean, 'filter-clean');
+                this.logger.info('filter reminder reset');
+            }
+            return;
+        }
 
         const led: AvalonLedSettings = { ...(this.ledSettings ?? (await this.fetchLedSettings())) };
         switch (id as AvalonCustomFeature) {
@@ -593,6 +648,7 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
         const custom = this.toCustomValues(
             this.extractLedSettings(statsEntries, liteStatsEntries),
             this.extractTelemetryField('LcdOnoff', statsEntries, liteStatsEntries),
+            this.extractFilterRuntimeFromLiteStats(liteStatsEntries),
         );
 
         return {
@@ -606,14 +662,16 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
     }
 
     /**
-     * Custom feature values for the reported LED settings and display state.
+     * Custom feature values for the reported LED settings, display state and dust filter runtime.
      *
      * @param led - LED settings, if reported
      * @param lcdOnOff - value of the `LcdOnoff` telemetry field, if reported
+     * @param filterRuntime - dust filter runtime in minutes, if reported
      */
     private toCustomValues(
         led: AvalonLedSettings | undefined,
         lcdOnOff: string | undefined,
+        filterRuntime: number | undefined,
     ): Record<string, CustomFeatureValue> {
         const custom: Record<string, CustomFeatureValue> = {};
         if (led) {
@@ -628,6 +686,14 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
         }
         if (lcdOnOff === '0' || lcdOnOff === '1') {
             custom[AvalonCustomFeature.lcdOn] = lcdOnOff === '1';
+        }
+        if (filterRuntime !== undefined) {
+            // hours with one decimal: easier to read than the minutes the miner counts, still precise enough
+            custom[AvalonCustomFeature.filterRuntime] = Math.round(filterRuntime / 6) / 10;
+            custom[AvalonCustomFeature.filterCleanDue] = isFilterCleanDue(
+                filterRuntime,
+                this.settings.filterCleanIntervalDays,
+            );
         }
         return custom;
     }
@@ -696,6 +762,19 @@ export class AvalonMiner extends CGMiner<AvalonMinerSettings, AvalonMinerCommand
 
         const watts = safeParseFloat(parts[6]);
         return watts > 0 ? watts : undefined;
+    }
+
+    /**
+     * Extract the dust filter runtime from a litestats response: `Filter[33862]` in minutes since the filter was last
+     * cleaned (reset with `filter-clean`). Canaan's cgminer passes the miner's `filtermesh_time` through unchanged.
+     *
+     * @param liteStatsEntries - STATS array from a litestats response
+     * @returns runtime in minutes, or undefined if not reported (e.g. a firmware without litestats)
+     */
+    private extractFilterRuntimeFromLiteStats(liteStatsEntries: LiteStatsData[] | undefined): number | undefined {
+        // not safeParseFloat: it turns garbage into 0, which would look like a freshly cleaned filter
+        const runtime = Number.parseInt(this.firstDeviceTelemetry(liteStatsEntries)?.get('Filter') ?? '', 10);
+        return Number.isFinite(runtime) && runtime >= 0 ? runtime : undefined;
     }
 
     /**

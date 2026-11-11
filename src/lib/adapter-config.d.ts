@@ -8,6 +8,11 @@ declare global {
             /** Look up the latest firmware/software versions once a day (default: true). */
             checkForUpdates?: boolean;
         }
+
+        // notification scope of this adapter, see `notifications` in io-package.json
+        interface NotificationScopes {
+            miner: 'filterClean';
+        }
     }
 }
 

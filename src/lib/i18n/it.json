@@ -43,7 +43,7 @@
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Accesso approvato: il browser che mostra la pagina di accesso del miner verrà connesso entro 5 secondi.",
     "The miner rejected the web password. Check it in the device settings.": "Il miner ha rifiutato la password web. Controllala nelle impostazioni del dispositivo.",
     "Could not approve the web login: %s": "Impossibile approvare l'accesso web: %s",
-    "Set": "Imposta"
+    "Set": "Imposta",
+    "filter cleaning reminder (days)": "promemoria pulizia filtro (giorni)",
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Giorni di funzionamento del filtro prima del promemoria per pulire il filtro antipolvere. 0 = disattivato."
 }
-
-

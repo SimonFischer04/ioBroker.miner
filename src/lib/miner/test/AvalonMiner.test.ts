@@ -87,6 +87,9 @@ describe('AvalonMiner', () => {
             expect(stats.rssi).to.be.a('number');
             expect(stats.rssi).to.equal(-55);
 
+            // filter runtime from litestats telemetry: Filter[33862] → 33862 minutes = 564.4 h, due after 30 days
+            expect(stats.custom).to.include({ 'filter.runtime': 564.4, 'filter.cleanDue': false });
+
             // Efficiency: totalHashrate / power
             expect(stats.efficiency).to.be.a('number');
             if (stats.totalHashrate === undefined || stats.power === undefined) {
@@ -110,8 +113,37 @@ describe('AvalonMiner', () => {
             const stats = miner.parseSummaryVersionStatsResponse(fixture);
 
             expect(stats.rssi).to.be.undefined;
+            expect(stats.custom?.['filter.runtime']).to.be.undefined;
+            expect(stats.custom?.['filter.cleanDue']).to.be.undefined;
             expect(stats.power).to.equal(131);
             expect(stats.version).to.equal('4.11.1');
+        });
+
+        it('reports no filter runtime rather than 0 when the value is not a number', () => {
+            const garbled = structuredClone(liteStatsFixture) as LiteStatsResponse;
+            garbled.STATS[0]['MM ID0'] = garbled.STATS[0]['MM ID0'].replace('Filter[33862]', 'Filter[]');
+
+            expect(miner.parseSummaryVersionStatsResponse(withLiteStats([garbled])).custom?.['filter.runtime']).to.be
+                .undefined;
+        });
+
+        it('reports the filter cleaning due once the runtime reaches the interval of the device settings', () => {
+            const parse = (filterCleanIntervalDays: number): boolean | undefined =>
+                new AvalonMiner({
+                    minerType: 'avalonMiner',
+                    host: '10.10.30.51',
+                    port: 4028,
+                    pollInterval: 10000,
+                    filterCleanIntervalDays,
+                }).parseSummaryVersionStatsResponse(withLiteStats([liteStatsFixture as LiteStatsResponse])).custom?.[
+                    'filter.cleanDue'
+                ] as boolean | undefined;
+
+            // Filter[33862]: 23.5 days
+            expect(parse(23)).to.equal(true);
+            expect(parse(24)).to.equal(false);
+            // reminder off
+            expect(parse(0)).to.equal(false);
         });
 
         it('reports no RSSI rather than 0 when the value is not a number', () => {
@@ -349,6 +381,8 @@ describe('Avalon light and display', () => {
                 'light.colorTemperature': 50,
                 'light.color': '#0000ff',
                 'lcd.on': true,
+                'filter.runtime': 564.4,
+                'filter.cleanDue': false,
             });
         });
 
@@ -540,5 +574,75 @@ describe('Avalon light and display', () => {
             }
             expect(ascsets()).to.deep.equal([]);
         });
+    });
+});
+
+describe('Avalon dust filter reset', () => {
+    /**
+     * Writes `filter.reset` against a fake cgminer API that answers every request with `reply`.
+     *
+     * @param reply - raw reply of the fake miner
+     * @param value - the value written
+     * @returns the requests the miner received, and the error setCustomFeature threw (if any)
+     */
+    async function resetFilterAgainst(
+        reply: string,
+        value: unknown = true,
+    ): Promise<{ requests: { command: string; parameter: string }[]; error?: Error }> {
+        const requests: { command: string; parameter: string }[] = [];
+        const server = createServer(socket => {
+            socket.on('data', data => {
+                requests.push(JSON.parse(data.toString()) as { command: string; parameter: string });
+                socket.end(reply);
+            });
+        });
+        await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+
+        try {
+            const miner = new AvalonMiner({
+                minerType: 'avalonMiner',
+                host: '127.0.0.1',
+                port: (server.address() as AddressInfo).port,
+                pollInterval: 10000,
+            });
+            try {
+                await miner.setCustomFeature('filter.reset', value);
+                return { requests };
+            } catch (e) {
+                return { requests, error: e as Error };
+            }
+        } finally {
+            await new Promise(resolve => server.close(resolve));
+        }
+    }
+
+    const ok = JSON.stringify({
+        STATUS: [{ STATUS: 'I', When: 0, Code: 118, Msg: 'ASC 0 set OK', Description: 'cgminer 4.11.1' }],
+        id: 1,
+    });
+
+    it('sends filter-clean with the only value the firmware accepts', async () => {
+        const { requests, error } = await resetFilterAgainst(ok);
+
+        expect(error).to.be.undefined;
+        expect(requests).to.deep.equal([{ command: 'ascset', parameter: '0,filter-clean,1' }]);
+    });
+
+    it('sends nothing when the button state is written false', async () => {
+        const { requests, error } = await resetFilterAgainst(ok, false);
+
+        expect(error).to.be.undefined;
+        expect(requests).to.deep.equal([]);
+    });
+
+    it('rejects when the miner reports an error', async () => {
+        const { error } = await resetFilterAgainst(
+            JSON.stringify({
+                STATUS: [{ STATUS: 'E', When: 0, Code: 120, Msg: 'Input param error.', Description: 'cgminer 4.11.1' }],
+                id: 1,
+            }),
+        );
+
+        expect(error?.message).to.equal('Input param error.');
     });
 });

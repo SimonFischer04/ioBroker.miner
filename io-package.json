@@ -156,6 +156,71 @@
   "native": {
     "checkForUpdates": true
   },
+  "notifications": [
+    {
+      "scope": "miner",
+      "name": {
+        "en": "Miner",
+        "de": "Miner",
+        "ru": "Майнер",
+        "pt": "Minerador",
+        "nl": "Miner",
+        "fr": "Mineur",
+        "it": "Miner",
+        "es": "Minero",
+        "pl": "Koparka",
+        "uk": "Майнер",
+        "zh-cn": "矿机"
+      },
+      "description": {
+        "en": "Notifications of the miner adapter",
+        "de": "Benachrichtigungen des Miner-Adapters",
+        "ru": "Уведомления адаптера miner",
+        "pt": "Notificações do adaptador miner",
+        "nl": "Meldingen van de miner-adapter",
+        "fr": "Notifications de l'adaptateur miner",
+        "it": "Notifiche dell'adattatore miner",
+        "es": "Notificaciones del adaptador miner",
+        "pl": "Powiadomienia adaptera miner",
+        "uk": "Сповіщення адаптера miner",
+        "zh-cn": "miner 适配器的通知"
+      },
+      "categories": [
+        {
+          "category": "filterClean",
+          "name": {
+            "en": "Dust filter needs cleaning",
+            "de": "Staubfilter muss gereinigt werden",
+            "ru": "Пылевой фильтр нужно очистить",
+            "pt": "O filtro de pó precisa de limpeza",
+            "nl": "Stoffilter moet worden gereinigd",
+            "fr": "Le filtre à poussière doit être nettoyé",
+            "it": "Il filtro antipolvere va pulito",
+            "es": "Hay que limpiar el filtro de polvo",
+            "pl": "Filtr przeciwpyłowy wymaga czyszczenia",
+            "uk": "Пиловий фільтр потрібно очистити",
+            "zh-cn": "防尘滤网需要清洁"
+          },
+          "description": {
+            "en": "The dust filter of a miner has been running longer than the reminder interval in its device settings. Clean it, then reset the filter reminder in the device manager.",
+            "de": "Der Staubfilter eines Miners läuft länger als das Erinnerungsintervall in seinen Geräteeinstellungen. Reinige ihn und setze danach die Filtererinnerung im Gerätemanager zurück.",
+            "ru": "Пылевой фильтр майнера работает дольше интервала напоминания из настроек устройства. Очистите его, затем сбросьте напоминание о фильтре в менеджере устройств.",
+            "pt": "O filtro de pó de um minerador está a funcionar há mais tempo do que o intervalo de lembrete nas definições do dispositivo. Limpe-o e depois reponha o lembrete do filtro no gestor de dispositivos.",
+            "nl": "Het stoffilter van een miner draait langer dan het herinneringsinterval in de apparaatinstellingen. Reinig het en reset daarna de filterherinnering in de apparaatbeheerder.",
+            "fr": "Le filtre à poussière d'un mineur fonctionne depuis plus longtemps que l'intervalle de rappel défini dans ses paramètres. Nettoyez-le, puis réinitialisez le rappel du filtre dans le gestionnaire d'appareils.",
+            "it": "Il filtro antipolvere di un miner è in funzione da più tempo dell'intervallo di promemoria nelle impostazioni del dispositivo. Puliscilo, poi azzera il promemoria del filtro nel gestore dispositivi.",
+            "es": "El filtro de polvo de un minero lleva funcionando más tiempo que el intervalo de recordatorio de su configuración. Límpialo y después restablece el recordatorio del filtro en el administrador de dispositivos.",
+            "pl": "Filtr przeciwpyłowy koparki pracuje dłużej niż interwał przypomnienia w ustawieniach urządzenia. Wyczyść go, a następnie zresetuj przypomnienie o filtrze w menedżerze urządzeń.",
+            "uk": "Пиловий фільтр майнера працює довше за інтервал нагадування з налаштувань пристрою. Очистіть його, потім скиньте нагадування про фільтр у менеджері пристроїв.",
+            "zh-cn": "矿机的防尘滤网运行时间已超过设备设置中的提醒间隔。请清洁滤网，然后在设备管理器中重置滤网提醒。"
+          },
+          "severity": "notify",
+          "regex": [],
+          "limit": 10
+        }
+      ]
+    }
+  ],
   "objects": [],
   "instanceObjects": [
     {

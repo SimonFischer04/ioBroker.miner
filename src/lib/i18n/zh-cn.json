@@ -43,8 +43,7 @@
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "登录已批准：显示矿机登录页面的浏览器将在 5 秒内登录。",
     "The miner rejected the web password. Check it in the device settings.": "矿机拒绝了网页密码。请在设备设置中检查。",
     "Could not approve the web login: %s": "无法批准网页登录：%s",
-    "Set": "设置"
+    "Set": "设置",
+    "filter cleaning reminder (days)": "滤网清洁提醒（天）",
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "滤网运行多少天后提醒清洁防尘滤网。0 = 关闭。"
 }
-
-
-

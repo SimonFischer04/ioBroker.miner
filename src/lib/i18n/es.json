@@ -43,7 +43,7 @@
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Inicio de sesión aprobado: el navegador que muestra la página de inicio de sesión del minero iniciará sesión en 5 segundos.",
     "The miner rejected the web password. Check it in the device settings.": "El minero rechazó la contraseña web. Compruébela en la configuración del dispositivo.",
     "Could not approve the web login: %s": "No se pudo aprobar el inicio de sesión web: %s",
-    "Set": "Establecer"
+    "Set": "Establecer",
+    "filter cleaning reminder (days)": "recordatorio de limpieza del filtro (días)",
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Días de funcionamiento del filtro hasta el recordatorio de limpiar el filtro de polvo. 0 = desactivado."
 }
-
-

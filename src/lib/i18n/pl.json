@@ -43,7 +43,7 @@
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Logowanie zatwierdzone: przeglądarka wyświetlająca stronę logowania koparki zostanie zalogowana w ciągu 5 sekund.",
     "The miner rejected the web password. Check it in the device settings.": "Koparka odrzuciła hasło WWW. Sprawdź je w ustawieniach urządzenia.",
     "Could not approve the web login: %s": "Nie udało się zatwierdzić logowania WWW: %s",
-    "Set": "Ustaw"
+    "Set": "Ustaw",
+    "filter cleaning reminder (days)": "przypomnienie o czyszczeniu filtra (dni)",
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Dni pracy filtra do przypomnienia o wyczyszczeniu filtra przeciwpyłowego. 0 = wyłączone."
 }
-
-

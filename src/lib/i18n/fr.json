@@ -43,7 +43,7 @@
     "Login approved: the browser showing the miner's login page is logged in within 5 seconds.": "Connexion approuvée : le navigateur affichant la page de connexion du mineur sera connecté dans les 5 secondes.",
     "The miner rejected the web password. Check it in the device settings.": "Le mineur a refusé le mot de passe web. Vérifiez-le dans les paramètres de l'appareil.",
     "Could not approve the web login: %s": "Impossible d'approuver la connexion web : %s",
-    "Set": "Appliquer"
+    "Set": "Appliquer",
+    "filter cleaning reminder (days)": "rappel de nettoyage du filtre (jours)",
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Jours de fonctionnement du filtre avant le rappel de nettoyer le filtre à poussière. 0 = désactivé."
 }
-
-
