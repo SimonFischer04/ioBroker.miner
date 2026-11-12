@@ -234,6 +234,8 @@ Once more than one miner type supports the same thing, it is moved to the common
 * (claude) **NEW**: Custom feature channels can depend on the hardware (e.g. one per hashboard): they are created when a poll first reports them, and their objects are kept while the miner isn't polled yet
 * (claude) **NEW**: `custom` channel for features only a single miner type has (not standardised across miners yet); the device manager shows the writable ones, plus running and profile, as device controls
 * (claude) **NEW**: Pool support, starting with Braiins Pool: add a device with category `pool` and the API token of a Braiins Pool access profile to get the account's hashrate, worker counts, per-worker state and hashrate, balance and rewards under `miner.<instance>.pool.<poolId>`
+* (claude) **FIXED**: TeamRedMiner devices kept being polled, and their states written, after they were disabled or deleted
+* (claude) **FIXED**: Disabling or deleting a miner now waits for a poll that is just being written, so it can't write states afterwards; deleting an enabled device no longer logs a "this should not happen" error
 
 ### 1.2.0 (2026-11-03)
 * (claude) **NEW**: Check miners for available firmware/software updates once a day and show them in the device manager: new states `info.latestVersion` and `info.updateAvailable` (Braiins OS, XMRig, TeamRedMiner, IceRiver OC firmware, Avalon Nano 3), plus the auto-upgrade status for Braiins OS. Can be turned off in the instance settings; a "check for updates" action checks right away (#195)

@@ -823,6 +823,32 @@ describe('pool devices', () => {
         expect(active.has('my-pool')).to.equal(true);
     });
 
+    for (const enabledInSettings of [undefined, false]) {
+        it(`closes an active pool on delete without logging an error (settings.enabled=${enabledInSettings})`, async () => {
+            const { adapter, active } = createPoolTestAdapter();
+            const errors: string[] = [];
+            const deleting = adapter as unknown as {
+                log: { error: (message: string) => void };
+                delDevice: (id: string) => Promise<boolean>;
+                tryCloseDevice: (settings: object) => Promise<boolean>;
+            };
+            deleting.log.error = message => void errors.push(message);
+            await adapter.initDevice(device);
+            expect(active.has('my-pool')).to.equal(true);
+
+            // delDevice passes the settings of the device object, which don't hold `enabled`;
+            // updateDevice the ones of the form, which may already say disabled
+            if (enabledInSettings === undefined) {
+                expect(await deleting.delDevice(device._id)).to.equal(true);
+            } else {
+                expect(await deleting.tryCloseDevice({ ...device.native, enabled: enabledInSettings })).to.equal(true);
+            }
+
+            expect(active.has('my-pool')).to.equal(false);
+            expect(errors).to.deep.equal([]);
+        });
+    }
+
     it('does not poll a disabled pool', async () => {
         const { adapter, writes, active } = createPoolTestAdapter();
         writes.set('miner.0.pool.my-pool.enabled', false);

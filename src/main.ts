@@ -526,20 +526,14 @@ export class MinerAdapter extends utils.Adapter {
             return false;
         }
 
-        if (!settings.enabled) {
-            this.log.debug(`tryCloseDevice: skipped close, because ${settings.settings.id} is disabled`);
-
-            if (this.isDeviceActive(settings)) {
-                this.log.error(
-                    `tryCloseDevice: this should not happen, device ${settings.settings.id} is disabled but still active`,
-                );
-                await this.closeDevice(settings);
-            }
-
-            return true;
+        // Whether there is something to close is what the managers say, not `settings.enabled`: the settings of a
+        // device being deleted come from its object, which doesn't hold `enabled`, and the ones of a device being
+        // updated already hold the new value.
+        if (this.isDeviceActive(settings)) {
+            await this.closeDevice(settings);
+        } else {
+            this.log.debug(`tryCloseDevice: nothing to close, ${settings.settings.id} is not active`);
         }
-
-        await this.closeDevice(settings);
         return true;
     }
 

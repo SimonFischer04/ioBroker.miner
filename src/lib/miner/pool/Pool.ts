@@ -3,27 +3,12 @@ import type { PoolSettings } from '../model/PoolSettings';
 import type { PoolStats } from '../model/PoolStats';
 import type { PoolFeatureKey } from '../model/PoolFeature';
 import { Logger } from '../model/Logger';
-import { asyncBackoffInterval, type AsyncIntervalReturnType } from '../../utils/delay';
+import { BackoffPoller, getPollTimeoutMs } from '../../utils/backoff-poller';
 
 /**
  * Upper limit for the time between polls while the pool API keeps failing.
  */
 const MAX_POLL_BACKOFF_MS = 30 * 60 * 1000;
-
-/**
- * Shorten each backoff delay randomly by up to 20 %, so accounts behind the same outage don't all retry at once.
- */
-const POLL_BACKOFF_JITTER = 0.2;
-
-/**
- * Failed polls in a row after which the pool is reported offline. A single failure is usually just a network hiccup.
- */
-const OFFLINE_AFTER_FAILURES = 3;
-
-/**
- * Lower limit for the time a single request of a poll may take before it counts as failed.
- */
-const MIN_REQUEST_TIMEOUT_MS = 30_000;
 
 /**
  * A mining pool account whose statistics are polled from the pool's API.
@@ -32,14 +17,9 @@ export abstract class Pool<S extends PoolSettings> {
     protected logger: Logger;
     private statSubscriptions: ((stats: PoolStats) => Promise<void>)[] = [];
     private onlineStatusSubscriptions: ((online: boolean) => Promise<void>)[] = [];
-    private pollHandle: AsyncIntervalReturnType | undefined;
-    private online: boolean | undefined;
+    private poller: BackoffPoller<PoolStats> | undefined;
     private effectivePollInterval: number | undefined;
     private closed = false;
-    /**
-     * The subscriber notifications in progress, so {@link close} can wait for them.
-     */
-    private publishing: Promise<void> | undefined;
 
     /**
      * @param settings - pool-specific configuration
@@ -95,43 +75,17 @@ export abstract class Pool<S extends PoolSettings> {
         this.logger.info(`initializing with interval ${pollInterval}`);
 
         this.closed = false;
-        this.pollHandle = asyncBackoffInterval(
-            async () => {
-                const stats = await this.fetchStats();
-                if (this.closed) {
-                    return;
-                }
-                this.publishing = this.publish(stats);
-                try {
-                    await this.publishing;
-                } finally {
-                    this.publishing = undefined;
-                }
-            },
-            pollInterval,
-            {
-                shouldExecuteImmediately: true,
-                maxDelayMs: MAX_POLL_BACKOFF_MS,
-                jitter: POLL_BACKOFF_JITTER,
-                onError: (e, consecutiveFailures, nextDelayMs) => {
-                    if (this.closed) {
-                        return;
-                    }
-                    this.logger.error(
-                        `fetchStats failed (failure #${consecutiveFailures}, next retry in ${nextDelayMs}ms): ${String(e)}`,
-                    );
-                    if (consecutiveFailures >= OFFLINE_AFTER_FAILURES) {
-                        // tracked like a stats notification, so close() waits for it as well
-                        const reporting = this.setOnline(false).finally(() => {
-                            if (this.publishing === reporting) {
-                                this.publishing = undefined;
-                            }
-                        });
-                        this.publishing = reporting;
-                    }
-                },
-            },
-        );
+        this.poller = new BackoffPoller<PoolStats>({
+            subject: 'pool',
+            logger: this.logger,
+            pollIntervalMs: pollInterval,
+            maxBackoffMs: MAX_POLL_BACKOFF_MS,
+            // no pollTimeoutMs: see fetchStats
+            fetch: () => this.fetchStats(),
+            publishStats: stats => this.onStats(stats),
+            publishOnlineStatus: online => this.onOnlineStatus(online),
+        });
+        this.poller.start();
 
         return Promise.resolve();
     }
@@ -152,7 +106,7 @@ export abstract class Pool<S extends PoolSettings> {
      * How long a single request of a poll may take before it counts as failed.
      */
     protected getRequestTimeoutMs(): number {
-        return Math.max(this.getEffectivePollInterval(), MIN_REQUEST_TIMEOUT_MS);
+        return getPollTimeoutMs(this.getEffectivePollInterval());
     }
 
     /**
@@ -170,25 +124,10 @@ export abstract class Pool<S extends PoolSettings> {
      */
     public async close(): Promise<void> {
         this.closed = true;
-        this.pollHandle?.clear();
-        this.pollHandle = undefined;
-        try {
-            await this.publishing;
-        } catch {
-            // already reported by the poll
-        }
+        await this.poller?.stop();
+        this.poller = undefined;
         this.statSubscriptions = [];
         this.onlineStatusSubscriptions = [];
-    }
-
-    /**
-     * Report the pool online and hand new statistics to the subscribers.
-     *
-     * @param stats - the new statistics
-     */
-    private async publish(stats: PoolStats): Promise<void> {
-        await this.setOnline(true);
-        await this.onStats(stats);
     }
 
     /**
@@ -220,21 +159,14 @@ export abstract class Pool<S extends PoolSettings> {
         }
     }
 
-    private async setOnline(online: boolean): Promise<void> {
-        if (this.closed || this.online === online) {
-            return;
-        }
-        this.online = online;
-
-        if (!online) {
-            this.logger.warn(`${OFFLINE_AFTER_FAILURES} polls in a row failed, reporting the pool as offline`);
-        }
+    /**
+     * Notify subscribers that the pool API became reachable or unreachable.
+     *
+     * @param online - whether the pool API is reachable now
+     */
+    protected async onOnlineStatus(online: boolean): Promise<void> {
         for (const sub of this.onlineStatusSubscriptions) {
-            try {
-                await sub(online);
-            } catch (e) {
-                this.logger.error(`could not publish online status ${online}: ${String(e)}`);
-            }
+            await sub(online);
         }
     }
 

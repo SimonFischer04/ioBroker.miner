@@ -80,7 +80,10 @@ export class TeamRedMiner extends PollingMiner<TeamRedMinerSettings> {
      *
      */
     public override async close(): Promise<void> {
+        // the own polling first: it is what calls the sub-miners
+        await super.close();
         await this.claymoreMiner.close();
+        await this.cgMiner.close();
     }
 
     /**
