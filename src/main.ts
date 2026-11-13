@@ -4,8 +4,13 @@ import { I18n } from '@iobroker/adapter-core';
 import MinerAdapterDeviceManagement from './lib/MinerAdapterDeviceManagement';
 import { categoryKeys } from './lib/miner/model/Category';
 import { MinerManager } from './lib/miner/miner/MinerManager';
-import type { IOBrokerDeviceSettings, IOBrokerMinerSettings } from './miner/model/IOBrokerMinerSettings';
-import { decryptDeviceSettings, encryptDeviceSettings, isMiner } from './miner/model/IOBrokerMinerSettings';
+import type {
+    IOBrokerDeviceSettings,
+    IOBrokerKnownDeviceSettings,
+    IOBrokerMinerSettings,
+    IOBrokerPoolSettings,
+} from './miner/model/IOBrokerMinerSettings';
+import { decryptDeviceSettings, encryptDeviceSettings, isMiner, isPool } from './miner/model/IOBrokerMinerSettings';
 import { Level } from './lib/miner/model/Level';
 import {
     getMinerFeatureFullId,
@@ -14,6 +19,7 @@ import {
     minerFeatures,
 } from './lib/miner/model/MinerFeature';
 import { createMiner } from './lib/miner/miner/MinerFactory';
+import { createPool } from './lib/miner/pool/PoolFactory';
 import { Logger } from './lib/miner/model/Logger';
 import { isWithinPowerTargetConstraints, type Miner } from './lib/miner/miner/Miner';
 import type { MinerSettings } from './lib/miner/model/MinerSettings';
@@ -30,10 +36,39 @@ import {
     type CustomFeatureNotification,
     type DynamicCustomChannelDefinition,
 } from './lib/miner/model/CustomFeature';
+import { PoolManager } from './lib/miner/pool/PoolManager';
+import type { Pool } from './lib/miner/pool/Pool';
+import type { PoolSettings } from './lib/miner/model/PoolSettings';
+import type { PoolStats, PoolWorkerStats } from './lib/miner/model/PoolStats';
+import { PoolFeatureKey } from './lib/miner/model/PoolFeature';
+import {
+    getPoolStateObjects,
+    getPoolStateValues,
+    getWorkerObjectId,
+    getWorkerStateObjects,
+    getWorkerStateValues,
+    poolChannels,
+} from './pool/poolStates';
 
 /** First update check shortly after start, once the miners are initialized and reachable. */
 const UPDATE_CHECK_INITIAL_DELAY_MS = 60_000;
 const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Polls in a row a pool has to leave a worker out before its channel is removed. Removing deletes the channel's
+ * objects with their settings (e.g. history), so a single odd answer of the pool must not be enough.
+ */
+const POOL_WORKER_REMOVE_AFTER_POLLS = 3;
+
+/**
+ * The worker channels of a pool device, as relative object ids.
+ */
+interface PoolWorkerChannels {
+    /** channels created or refreshed in this run, so a poll doesn't recreate them */
+    created: Set<string>;
+    /** existing channels whose worker the pool didn't report, with the number of polls in a row it was missing */
+    missing: Map<string, number>;
+}
 
 /**
  *
@@ -41,6 +76,7 @@ const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 export class MinerAdapter extends utils.Adapter {
     private readonly deviceManagement: MinerAdapterDeviceManagement;
     public readonly minerManager: MinerManager = new MinerManager();
+    public readonly poolManager: PoolManager = new PoolManager();
     private readonly updateSources = new UpdateSources();
     private updateCheckHandle: AsyncIntervalReturnType | undefined;
     /**
@@ -52,6 +88,14 @@ export class MinerAdapter extends utils.Adapter {
      * DynamicCustomChannelDefinition) are created when a poll first reports them.
      */
     private readonly customChannelObjects = new Map<string, Set<string>>();
+    /**
+     * The worker channels of a pool, by device object id. A pool without an entry hasn't been polled in this run yet.
+     */
+    private readonly poolWorkerChannels = new Map<string, PoolWorkerChannels>();
+    /**
+     * The last enable/disable in progress per device, see {@link runExclusive}.
+     */
+    private readonly deviceQueues = new Map<string, Promise<void>>();
 
     /**
      *
@@ -90,7 +134,7 @@ export class MinerAdapter extends utils.Adapter {
         // Reset the connection indicator during startup. Before 1.2.0 it was a boolean: existing instances keep their
         // object from the old version, so bring its type in line with the list it holds now
         await this.extendObject('info.connection', {
-            common: { type: 'string', role: 'info.status', name: 'List of reachable miners' },
+            common: { type: 'string', role: 'info.status', name: 'List of reachable miners and pools' },
         });
         await this.setState('info.connection', '', true);
 
@@ -104,6 +148,7 @@ export class MinerAdapter extends utils.Adapter {
         this.subscribeStates('miner.*.control.*');
         this.subscribeStates(`miner.*.${CUSTOM_CHANNEL}.*`);
         this.subscribeStates('miner.*.enabled');
+        this.subscribeStates('pool.*.enabled');
 
         this.scheduleUpdateChecks();
     }
@@ -117,6 +162,7 @@ export class MinerAdapter extends utils.Adapter {
         try {
             this.updateCheckHandle?.clear();
             await this.minerManager.closeAll();
+            await this.poolManager.closeAll();
 
             if (this.deviceManagement) {
                 await this.deviceManagement.close();
@@ -177,7 +223,7 @@ export class MinerAdapter extends utils.Adapter {
             const deviceSettings = decryptDeviceSettings(obj.native as IOBrokerDeviceSettings, value =>
                 this.decrypt(value),
             );
-            if (!isMiner(deviceSettings)) {
+            if (!isMiner(deviceSettings) && !isPool(deviceSettings)) {
                 this.log.warn(`category ${deviceSettings.category} not yet supported`);
                 return;
             }
@@ -186,16 +232,33 @@ export class MinerAdapter extends utils.Adapter {
             // example: control.running or enabled
             const minerObjectId: string = parts.slice(4).join('.');
 
-            switch (minerObjectId) {
-                case 'enabled': {
-                    const enabled = state.val === true;
-                    this.log.info(`${enabled ? 'enable' : 'disable'} requested for device ${deviceSettings.name}`);
+            if (minerObjectId === 'enabled') {
+                const enabled = state.val === true;
+                this.log.info(`${enabled ? 'enable' : 'disable'} requested for device ${deviceSettings.name}`);
 
-                    await this.setDeviceEnabled(deviceObjectId, deviceSettings, enabled);
+                // one after another per device: two requests arriving together would both find the device inactive
+                // and initialize it twice, and a disable arriving during an enable would have nothing to close yet
+                await this.runExclusive(deviceObjectId, async () => {
+                    if (!(await this.getObjectAsync(deviceObjectId))) {
+                        // deleted while this request was waiting its turn
+                        this.log.debug(`device ${deviceObjectId} no longer exists, ignoring ${id}`);
+                        return;
+                    }
+                    // Acknowledged before it is applied: initializing a device reads this state. Acknowledged
+                    // afterwards, the `false` of a disable would still stand when an enable queued right behind it
+                    // initializes the device, which would then stay off although the state ends up `true`.
                     await this.setState(id, { val: enabled, ack: true });
-                    break;
-                }
+                    await this.setDeviceEnabled(deviceObjectId, deviceSettings, enabled);
+                });
+                return;
+            }
 
+            if (!isMiner(deviceSettings)) {
+                this.log.warn(`unknown handling of state ${id}`);
+                return;
+            }
+
+            switch (minerObjectId) {
                 case getMinerFeatureFullId(MinerFeatureKey.running): {
                     this.log.debug(`running state changed to ${state.val}`);
 
@@ -361,8 +424,7 @@ export class MinerAdapter extends utils.Adapter {
     }
 
     private async configureDeviceObject(settings: IOBrokerDeviceSettings): Promise<ioBroker.DeviceObject | undefined> {
-        if (!isMiner(settings)) {
-            // TODO: pool support
+        if (!isMiner(settings) && !isPool(settings)) {
             this.log.error(`category ${settings.category} is not yet supported.`);
             return;
         }
@@ -370,14 +432,15 @@ export class MinerAdapter extends utils.Adapter {
         // TODO: fill settings.mac using arp request
         const id = this.getDeviceObjectId(settings);
 
-        this.log.debug(`extended object ${id} with: ${JSON.stringify(settings)}`);
+        // don't log the settings themselves: they hold passwords and API tokens in clear text here
+        this.log.debug(`extending device object ${id}`);
         // strip old (<=v1.0.4) enabled prop from native
         const { enabled: _enabled, ...nativeSettings } = settings;
 
         await this.extendObject(id, {
             type: 'device',
             common: {
-                name: settings.name || settings.settings.host,
+                name: this.getDeviceDisplayName(settings),
             },
             native: encryptDeviceSettings(nativeSettings, value => this.encrypt(value)),
         });
@@ -395,8 +458,6 @@ export class MinerAdapter extends utils.Adapter {
         });
 
         const obj: ioBroker.DeviceObject = (await this.getObjectAsync(id)) as ioBroker.DeviceObject;
-        this.log.debug(`configureDeviceObject: ${JSON.stringify(obj)}`);
-
         return obj;
     }
 
@@ -408,11 +469,12 @@ export class MinerAdapter extends utils.Adapter {
         const obj = await this.configureDeviceObject(settings);
 
         if (obj == null) {
-            this.log.error(`could not create device object for ${JSON.stringify(settings)}`);
+            // not the settings themselves: they hold passwords and API tokens
+            this.log.error(`could not create the device object for a new ${settings.category} device`);
             return;
         }
 
-        await this.initDevice(obj, isMiner(settings) ? settings.enabled : undefined);
+        await this.initDevice(obj, isMiner(settings) || isPool(settings) ? settings.enabled : undefined);
     }
 
     /**
@@ -422,23 +484,26 @@ export class MinerAdapter extends utils.Adapter {
     public async updateDevice(settings: IOBrokerDeviceSettings): Promise<void> {
         // PS: don't just delDevice and addDevice, as this would lose all state history, ...
 
-        if (!isMiner(settings)) {
-            // TODO: pool support
+        if (!isMiner(settings) && !isPool(settings)) {
             this.log.error(`category ${settings.category} is not yet supported.`);
             return;
         }
 
-        await this.setState(`${this.getDeviceObjectId(settings)}.enabled`, {
-            val: settings.enabled,
-            ack: true,
+        // queued behind an enable/disable of the device that is still in progress, which would otherwise finish
+        // after the update and initialize the device a second time
+        await this.runExclusive(`${this.namespace}.${this.getDeviceObjectId(settings)}`, async () => {
+            await this.setState(`${this.getDeviceObjectId(settings)}.enabled`, {
+                val: settings.enabled,
+                ack: true,
+            });
+
+            if (!(await this.tryCloseDevice(settings))) {
+                this.log.error(`updateDevice could not close device ${settings.settings.id}`);
+                return;
+            }
+
+            await this.addDevice(settings);
         });
-
-        if (!(await this.tryCloseMiner(settings))) {
-            this.log.error(`updateDevice could not close miner ${settings.settings.id}`);
-            return;
-        }
-
-        await this.addDevice(settings);
     }
 
     /**
@@ -446,7 +511,13 @@ export class MinerAdapter extends utils.Adapter {
      *
      * @param deviceId - The ioBroker-object-id of the device to delete
      */
-    public async delDevice(deviceId: string): Promise<boolean> {
+    public delDevice(deviceId: string): Promise<boolean> {
+        // queued behind an enable/disable of the device that is still in progress, which would otherwise finish
+        // after the delete: recreate states of the deleted device and leave a miner / pool nothing can stop
+        return this.runExclusive(deviceId, () => this.removeDevice(deviceId));
+    }
+
+    private async removeDevice(deviceId: string): Promise<boolean> {
         this.log.info(`deleteDevice device ${deviceId}`);
         const obj = await this.getObjectAsync(deviceId);
 
@@ -459,55 +530,118 @@ export class MinerAdapter extends utils.Adapter {
             this.decrypt(value),
         );
 
-        if (!isMiner(settings)) {
-            // TODO: pool support
+        if (!isMiner(settings) && !isPool(settings)) {
             this.log.error(`deleteDevice category ${obj.native.category} not yet supported`);
             return false;
         }
 
-        if (!(await this.tryCloseMiner(settings))) {
-            this.log.error(`delDevice could not close miner ${settings.settings.id}`);
+        if (!(await this.tryCloseDevice(settings))) {
+            this.log.error(`delDevice could not close device ${settings.settings.id}`);
             return false;
         }
 
         await this.delObjectAsync(deviceId, { recursive: true });
         // deviceId is the full object id here, the set holds the relative one
-        this.onlineDevices.delete(this.getDeviceObjectId(settings));
-        this.customChannelObjects.delete(this.getDeviceObjectId(settings));
+        const relativeDeviceId = this.getDeviceObjectId(settings);
+        this.onlineDevices.delete(relativeDeviceId);
+        this.poolWorkerChannels.delete(relativeDeviceId);
+        this.customChannelObjects.delete(relativeDeviceId);
         await this.updateConnectionState();
 
         this.log.info(`${deviceId} deleted`);
         return true;
     }
 
-    private async tryCloseMiner(settings: IOBrokerMinerSettings): Promise<boolean> {
+    private async tryCloseDevice(settings: IOBrokerKnownDeviceSettings): Promise<boolean> {
         if (settings.settings.id === undefined) {
-            this.log.error('tryCloseMiner: minerId is undefined');
+            this.log.error('tryCloseDevice: device id is undefined');
             return false;
         }
 
-        if (!settings.enabled) {
-            this.log.debug(`tryCloseMiner: skipped miner close, because ${settings.settings.id} is disabled`);
-
-            if (this.minerManager.hasMiner(settings.settings.id)) {
-                this.log.error(
-                    `tryCloseMiner: this should not happen, miner ${settings.settings.id} is disabled but still in minerManager`,
-                );
-                await this.minerManager.close(settings.settings.id);
-            }
-
-            return true;
+        // Whether there is something to close is what the managers say, not `settings.enabled`: the settings of a
+        // device being deleted come from its object, which doesn't hold `enabled`, and the ones of a device being
+        // updated already hold the new value.
+        if (this.isDeviceActive(settings)) {
+            await this.closeDevice(settings);
+        } else {
+            this.log.debug(`tryCloseDevice: nothing to close, ${settings.settings.id} is not active`);
         }
-
-        await this.minerManager.close(settings.settings.id);
         return true;
+    }
+
+    /**
+     * Runs tasks for the same device one after another, in the order they were requested. A failed task doesn't
+     * keep the following ones from running.
+     *
+     * @param deviceObjectId - full object id of the device the task is for
+     * @param task - what to run once the earlier tasks for the device are done
+     */
+    private runExclusive<T>(deviceObjectId: string, task: () => Promise<T>): Promise<T> {
+        const previous = this.deviceQueues.get(deviceObjectId) ?? Promise.resolve();
+        const run = previous.then(task);
+        const settled = run
+            .catch(() => undefined)
+            .then(() => {
+                if (this.deviceQueues.get(deviceObjectId) === settled) {
+                    this.deviceQueues.delete(deviceObjectId);
+                }
+            });
+        this.deviceQueues.set(deviceObjectId, settled);
+        return run;
+    }
+
+    /**
+     * Whether the miner / pool of the device is initialized (connected, polled).
+     *
+     * @param settings - the device settings
+     */
+    private isDeviceActive(settings: IOBrokerKnownDeviceSettings): boolean {
+        const id = settings.settings.id;
+        if (id === undefined) {
+            return false;
+        }
+        return isPool(settings) ? this.poolManager.hasPool(id) : this.minerManager.hasMiner(id);
+    }
+
+    /**
+     * Unload the miner / pool of the device.
+     *
+     * @param settings - the device settings
+     */
+    private async closeDevice(settings: IOBrokerKnownDeviceSettings): Promise<void> {
+        const id = settings.settings.id;
+        if (id === undefined) {
+            return;
+        }
+        if (isPool(settings)) {
+            await this.poolManager.close(id);
+        } else {
+            await this.minerManager.close(id);
+        }
+    }
+
+    /**
+     * Name used for the device object and in `info.connection`.
+     *
+     * @param settings - the device settings
+     */
+    private getDeviceDisplayName(settings: IOBrokerKnownDeviceSettings): string {
+        if (settings.name) {
+            return settings.name;
+        }
+        return isPool(settings) ? settings.settings.poolType : settings.settings.host;
     }
 
     private async initDevice(device: ioBroker.DeviceObject, initialEnabled?: boolean): Promise<void> {
         const settings: IOBrokerDeviceSettings = decryptDeviceSettings(device.native as IOBrokerDeviceSettings, value =>
             this.decrypt(value),
         );
-        this.log.info(`initialising device ${JSON.stringify(settings)}`);
+        this.log.debug(`initialising device ${device._id}`);
+
+        if (isPool(settings)) {
+            await this.initPoolDevice(device, settings, initialEnabled);
+            return;
+        }
 
         if (!isMiner(settings)) {
             this.log.error(`tryKnownDevices category ${settings.category} not yet supported`);
@@ -567,7 +701,7 @@ export class MinerAdapter extends utils.Adapter {
 
     private async setDeviceEnabled(
         deviceObjectId: string,
-        settings: IOBrokerMinerSettings,
+        settings: IOBrokerKnownDeviceSettings,
         enabled: boolean,
     ): Promise<void> {
         if (settings.settings.id === undefined) {
@@ -575,12 +709,12 @@ export class MinerAdapter extends utils.Adapter {
             return;
         }
 
-        if (settings.enabled === enabled && this.minerManager.hasMiner(settings.settings.id) === enabled) {
+        if (settings.enabled === enabled && this.isDeviceActive(settings) === enabled) {
             return;
         }
 
         if (enabled) {
-            if (this.minerManager.hasMiner(settings.settings.id)) {
+            if (this.isDeviceActive(settings)) {
                 return;
             }
 
@@ -594,8 +728,8 @@ export class MinerAdapter extends utils.Adapter {
             return;
         }
 
-        if (this.minerManager.hasMiner(settings.settings.id)) {
-            await this.minerManager.close(settings.settings.id);
+        if (this.isDeviceActive(settings)) {
+            await this.closeDevice(settings);
         }
         await this.setDeviceOnline(settings, false);
     }
@@ -635,7 +769,10 @@ export class MinerAdapter extends utils.Adapter {
         const deviceId = this.getDeviceObjectId(settings);
         await this.setState(`${deviceId}.info.online`, { val: online, ack: true });
         if (online) {
-            this.onlineDevices.set(deviceId, isMiner(settings) ? settings.name || settings.settings.host : deviceId);
+            this.onlineDevices.set(
+                deviceId,
+                isMiner(settings) || isPool(settings) ? this.getDeviceDisplayName(settings) : deviceId,
+            );
         } else {
             this.onlineDevices.delete(deviceId);
         }
@@ -643,9 +780,10 @@ export class MinerAdapter extends utils.Adapter {
     }
 
     /**
-     * Lists the reachable miners in `info.connection`, comma-separated like other multi-device adapters (e.g. sonoff)
+     * Lists the reachable devices in `info.connection`, comma-separated like other multi-device adapters (e.g. sonoff)
      * do: the admin shows the instance green while the list is not empty, and shows the list itself. Green needs just
-     * one reachable miner - requiring all would turn it yellow whenever a single miner is switched off, e.g. at night.
+     * one reachable device - requiring all would turn it yellow whenever a single miner is switched off, e.g. at night.
+     * Pools count as well: an instance that only watches a pool account would never turn green otherwise.
      */
     private async updateConnectionState(): Promise<void> {
         const names = [...this.onlineDevices.values()].sort((a, b) => a.localeCompare(b));
@@ -1050,6 +1188,169 @@ export class MinerAdapter extends utils.Adapter {
         }
     }
 
+    /**
+     * Create the states of a pool account and start polling it, unless it is disabled.
+     *
+     * @param device - the device object
+     * @param settings - the decrypted pool settings
+     * @param initialEnabled - whether the device is enabled, if its `enabled` state doesn't exist yet
+     */
+    private async initPoolDevice(
+        device: ioBroker.DeviceObject,
+        settings: IOBrokerPoolSettings,
+        initialEnabled?: boolean,
+    ): Promise<void> {
+        let pool: Pool<PoolSettings>;
+        try {
+            await this.createPoolStateObjects(settings);
+            const enabledState = await this.getStateAsync(`${device._id}.enabled`);
+            settings.enabled = (enabledState?.val ?? initialEnabled ?? true) as boolean;
+
+            const deviceId = this.getDeviceObjectId(settings);
+            await this.setState(`${deviceId}.info.poolType`, { val: settings.settings.poolType, ack: true });
+            await this.setState(`${deviceId}.enabled`, { val: settings.enabled, ack: true });
+            await this.setDeviceOnline(settings, false);
+
+            if (!settings.enabled) {
+                this.log.info(`pool ${settings.name} is disabled`);
+                return;
+            }
+
+            if (settings.settings.id !== undefined && this.poolManager.hasPool(settings.settings.id)) {
+                this.log.debug(`pool ${settings.settings.id} is already initialized`);
+                return;
+            }
+            pool = await this.poolManager.init(settings.settings);
+        } catch (e) {
+            this.log.error(`could not initialize pool ${settings.name || settings.settings.poolType}: ${String(e)}`);
+            return;
+        }
+
+        pool.subscribeToStats(async (stats: PoolStats) => {
+            await this.processNewPoolStats(pool, settings, stats);
+        });
+        pool.subscribeToOnlineStatus(async (online: boolean) => {
+            await this.setDeviceOnline(settings, online);
+        });
+    }
+
+    private async createPoolStateObjects(settings: IOBrokerPoolSettings): Promise<void> {
+        const deviceId = this.getDeviceObjectId(settings);
+        const features = createPool(settings.settings).getSupportedFeatures();
+
+        for (const [channel, name] of Object.entries(poolChannels)) {
+            if (channel === 'workers' && !features.includes(PoolFeatureKey.workers)) {
+                continue;
+            }
+            if (channel === 'raw' && !features.includes(PoolFeatureKey.rawStats)) {
+                continue;
+            }
+            if (channel === 'rewards' && !features.includes(PoolFeatureKey.rewards)) {
+                continue;
+            }
+            await this.extendObject(`${deviceId}.${channel}`, { type: 'channel', common: { name } });
+        }
+
+        await this.extendObject(`${deviceId}.enabled`, {
+            type: 'state',
+            common: { name: 'Enabled', type: 'boolean', role: 'switch.enable', read: true, write: true },
+        });
+
+        for (const [id, common] of Object.entries(getPoolStateObjects(features))) {
+            await this.extendObject(`${deviceId}.${id}`, { type: 'state', common });
+        }
+    }
+
+    private async processNewPoolStats(
+        pool: Pool<PoolSettings>,
+        settings: IOBrokerPoolSettings,
+        stats: PoolStats,
+    ): Promise<void> {
+        const deviceId = this.getDeviceObjectId(settings);
+        const features = pool.getSupportedFeatures();
+
+        for (const [id, val] of Object.entries(getPoolStateValues(stats, features))) {
+            await this.setState(`${deviceId}.${id}`, { val, ack: true });
+        }
+
+        if (features.includes(PoolFeatureKey.workers) && stats.workers !== undefined) {
+            await this.writePoolWorkers(deviceId, stats.workers, stats.username);
+        }
+
+        await this.setDeviceOnline(settings, true);
+        await this.setState(`${deviceId}.info.lastSeen`, { val: Date.now(), ack: true });
+    }
+
+    /**
+     * Writes the states of the workers a pool reported: creates the channel of a worker that is new, and removes the
+     * channel of one the pool no longer reports (deleted or renamed there), so it doesn't stay behind with its last
+     * state and hashrate. A channel is only removed once several polls in a row didn't report its worker.
+     *
+     * @param deviceId - object id of the pool device
+     * @param workers - all workers of the account
+     * @param username - the account's username, if known
+     */
+    private async writePoolWorkers(deviceId: string, workers: PoolWorkerStats[], username?: string): Promise<void> {
+        const reported = new Map(
+            workers.map(worker => [`${deviceId}.workers.${getWorkerObjectId(worker.name, username)}`, worker]),
+        );
+
+        let channels = this.poolWorkerChannels.get(deviceId);
+        if (!channels) {
+            // first poll of this run: the channels of earlier runs are checked for removed workers as well
+            channels = { created: new Set(), missing: new Map() };
+            for (const workerId of await this.getPoolWorkerChannelIds(deviceId)) {
+                channels.missing.set(workerId, 0);
+            }
+            this.poolWorkerChannels.set(deviceId, channels);
+        }
+        const { created, missing } = channels;
+
+        for (const workerId of new Set([...created, ...missing.keys()])) {
+            if (reported.has(workerId)) {
+                missing.delete(workerId);
+                continue;
+            }
+            const polls = (missing.get(workerId) ?? 0) + 1;
+            if (polls < POOL_WORKER_REMOVE_AFTER_POLLS) {
+                missing.set(workerId, polls);
+                continue;
+            }
+            this.log.info(`Removing worker no longer reported by the pool: ${workerId}`);
+            await this.delObjectAsync(workerId, { recursive: true });
+            created.delete(workerId);
+            missing.delete(workerId);
+        }
+
+        for (const [workerId, worker] of reported) {
+            if (!created.has(workerId)) {
+                await this.extendObject(workerId, { type: 'channel', common: { name: worker.name } });
+                for (const [id, common] of Object.entries(getWorkerStateObjects())) {
+                    await this.extendObject(`${workerId}.${id}`, { type: 'state', common });
+                }
+                created.add(workerId);
+            }
+            for (const [id, val] of Object.entries(getWorkerStateValues(worker))) {
+                await this.setState(`${workerId}.${id}`, { val, ack: true });
+            }
+        }
+    }
+
+    /**
+     * The worker channels that exist below a pool device, as relative object ids.
+     *
+     * @param deviceId - object id of the pool device
+     */
+    private async getPoolWorkerChannelIds(deviceId: string): Promise<string[]> {
+        const prefix = `${deviceId}.workers.`;
+        return (
+            Object.keys(await this.getForeignObjectsAsync(`${this.namespace}.${prefix}*`, 'channel'))
+                .map(id => id.slice(this.namespace.length + 1))
+                // the worker channels only, nothing below them
+                .filter(id => !id.slice(prefix.length).includes('.'))
+        );
+    }
+
     private scheduleUpdateChecks(): void {
         // instances created before the setting existed have no value for it: treat that as the default (on)
         if (this.config.checkForUpdates === false) {
@@ -1186,8 +1487,7 @@ export class MinerAdapter extends utils.Adapter {
     }
 
     private getDeviceObjectId(settings: IOBrokerDeviceSettings): string {
-        if (!isMiner(settings)) {
-            // TODO: pool support
+        if (!isMiner(settings) && !isPool(settings)) {
             this.log.error(`category ${settings.category} is not yet supported.`);
             return '<unsupported>';
         }

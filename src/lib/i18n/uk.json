@@ -16,7 +16,6 @@
     "Please enter an IP address": "Будь ласка, введіть IP адресу",
     "Power Target": "Цільова потужність",
     "Refresh device list": "Оновити список пристроїв",
-    "Pool support is not yet available": "Підтримка пулів ще не доступна. В розробці.",
     "Profile": "Профіль",
     "RSSI": "RSSI",
     "Running": "Працює",
@@ -45,5 +44,13 @@
     "Could not approve the web login: %s": "Не вдалося підтвердити веб-вхід: %s",
     "Set": "Встановити",
     "filter cleaning reminder (days)": "Нагадування про очищення фільтра (дні)",
-    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Днів роботи фільтра до нагадування про очищення пилового фільтра. 0 = вимк."
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Днів роботи фільтра до нагадування про очищення пилового фільтра. 0 = вимк.",
+    "Miner": "Майнер",
+    "Pool": "Пул",
+    "API token": "API-токен",
+    "Braiins Pool: Settings → Access Profiles: create a profile with web API access and generate a token.": "Braiins Pool: Settings → Access Profiles: створіть профіль із доступом до веб-API та згенеруйте токен.",
+    "Please enter the API token": "Будь ласка, введіть API-токен",
+    "Hashrate (60 min)": "Хешрейт (60 хв)",
+    "Active workers": "Активні воркери",
+    "Current balance": "Поточний баланс"
 }
