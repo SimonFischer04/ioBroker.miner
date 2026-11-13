@@ -637,12 +637,14 @@ describe('pool devices', () => {
         publish: () => { stats?: (stats: PoolStats) => Promise<void>; online?: (online: boolean) => Promise<void> };
         active: Set<string>;
         inits: () => number;
+        writesAfterDelete: string[];
     } {
         const adapter = createTestAdapter() as unknown as PoolTestAdapter;
         const objects = new Map<string, { type?: string; common?: object }>();
         const writes = new Map<string, unknown>();
         const extendCalls: string[] = [];
         const active = new Set<string>();
+        let deviceDeleted = false;
         const callbacks: {
             stats?: (stats: PoolStats) => Promise<void>;
             online?: (online: boolean) => Promise<void>;
@@ -671,13 +673,17 @@ describe('pool devices', () => {
             objects.set(id, obj);
             return Promise.resolve();
         };
+        const writesAfterDelete: string[] = [];
         adapter.setState = (id, state) => {
+            if (deviceDeleted && id.includes('my-pool')) {
+                writesAfterDelete.push(id);
+            }
             writes.set(id, state.val);
             return Promise.resolve();
         };
         adapter.setStateChangedAsync = adapter.setState;
         adapter.getStateAsync = id => Promise.resolve(writes.has(id) ? { val: writes.get(id) } : null);
-        adapter.getObjectAsync = id => Promise.resolve(id === device._id ? device : null);
+        adapter.getObjectAsync = id => Promise.resolve(id === device._id && !deviceDeleted ? device : null);
         adapter.getForeignObjectsAsync = (pattern, type) => {
             expect(pattern.endsWith('.*')).to.equal(true);
             expect(type).to.equal('channel');
@@ -692,6 +698,7 @@ describe('pool devices', () => {
         };
         adapter.delObjectAsync = (id, options) => {
             expect(options?.recursive).to.equal(true);
+            deviceDeleted ||= id === device._id;
             for (const existing of [...objects.keys()]) {
                 if (existing === id || existing.startsWith(`${id}.`)) {
                     objects.delete(existing);
@@ -699,7 +706,16 @@ describe('pool devices', () => {
             }
             return Promise.resolve();
         };
-        return { adapter, objects, writes, extendCalls, publish: () => callbacks, active, inits: () => inits };
+        return {
+            adapter,
+            objects,
+            writes,
+            extendCalls,
+            publish: () => callbacks,
+            active,
+            inits: () => inits,
+            writesAfterDelete,
+        };
     }
 
     it('creates the pool states, polls the pool and writes stats and workers', async () => {
@@ -753,25 +769,37 @@ describe('pool devices', () => {
         expect(active.has('my-pool')).to.equal(true);
     });
 
-    it('removes the channel of a worker the pool no longer reports, also one left from an earlier run', async () => {
+    it('removes the channel of a worker once 3 polls in a row did not report it, also one left from an earlier run', async () => {
         const { adapter, objects, publish } = createPoolTestAdapter();
         objects.set('pool.my-pool.workers.old', { type: 'channel' });
         objects.set('pool.my-pool.workers.old.state', { type: 'state' });
         await adapter.initDevice(device);
+        const poll = (...names: string[]): Promise<void> | undefined =>
+            publish().stats?.({ username: 'me', workers: names.map(name => ({ name })) });
 
-        await publish().stats?.({ username: 'me', workers: [{ name: 'me.rig1' }, { name: 'me.rig2' }] });
+        await poll('me.rig1', 'me.rig2');
+        await poll('me.rig1', 'me.rig2');
+        expect(objects.has('pool.my-pool.workers.old.state')).to.equal(true);
+        await poll('me.rig1', 'me.rig2');
         expect(objects.has('pool.my-pool.workers.old')).to.equal(false);
         expect(objects.has('pool.my-pool.workers.old.state')).to.equal(false);
         expect(objects.has('pool.my-pool.workers.rig1.state')).to.equal(true);
-        expect(objects.has('pool.my-pool.workers.rig2.state')).to.equal(true);
 
-        await publish().stats?.({ username: 'me', workers: [{ name: 'me.rig2' }] });
+        // rig1 is missing twice, comes back, and is missing twice again: never 3 polls in a row
+        await poll('me.rig2');
+        await poll('me.rig2');
+        await poll('me.rig1', 'me.rig2');
+        await poll('me.rig2');
+        await poll('me.rig2');
+        expect(objects.has('pool.my-pool.workers.rig1.state')).to.equal(true);
+
+        await poll('me.rig2');
         expect(objects.has('pool.my-pool.workers.rig1')).to.equal(false);
         expect(objects.has('pool.my-pool.workers.rig1.state')).to.equal(false);
         expect(objects.has('pool.my-pool.workers.rig2.state')).to.equal(true);
 
         // a worker that comes back gets its channel again
-        await publish().stats?.({ username: 'me', workers: [{ name: 'me.rig1' }, { name: 'me.rig2' }] });
+        await poll('me.rig1', 'me.rig2');
         expect(objects.has('pool.my-pool.workers.rig1.state')).to.equal(true);
     });
 
@@ -821,6 +849,68 @@ describe('pool devices', () => {
 
         expect(inits()).to.equal(1);
         expect(active.has('my-pool')).to.equal(true);
+    });
+
+    it('polls again after a disable that is followed by an enable right away', async () => {
+        const { adapter, writes, active } = createPoolTestAdapter();
+        await adapter.initDevice(device);
+        expect(active.has('my-pool')).to.equal(true);
+
+        // both writes have arrived before the first one is handled, as when a script restarts the device
+        writes.set('miner.0.pool.my-pool.enabled', true);
+        await Promise.all([
+            adapter.onStateChange('miner.0.pool.my-pool.enabled', { val: false, ack: false }),
+            adapter.onStateChange('miner.0.pool.my-pool.enabled', { val: true, ack: false }),
+        ]);
+
+        expect(active.has('my-pool')).to.equal(true);
+        expect(writes.get('miner.0.pool.my-pool.enabled')).to.equal(true);
+    });
+
+    it('deletes a device only after an enable in progress has finished, so nothing is left polling', async () => {
+        const { adapter, writes, active } = createPoolTestAdapter();
+        writes.set('miner.0.pool.my-pool.enabled', false);
+        await adapter.initDevice(device);
+
+        // hold the enable while it creates the state objects
+        let continueEnabling: (() => void) | undefined;
+        const extendObject = adapter.extendObject;
+        adapter.extendObject = async (id, obj) => {
+            if (!continueEnabling) {
+                await new Promise<void>(resolve => {
+                    continueEnabling = resolve;
+                });
+            }
+            await extendObject(id, obj);
+        };
+        writes.set('miner.0.pool.my-pool.enabled', true);
+        const enabling = adapter.onStateChange('miner.0.pool.my-pool.enabled', { val: true, ack: false });
+        while (!continueEnabling) {
+            await new Promise(resolve => setImmediate(resolve));
+        }
+        const deleting = (adapter as unknown as { delDevice: (id: string) => Promise<boolean> }).delDevice(device._id);
+        continueEnabling();
+        await enabling;
+
+        expect(await deleting).to.equal(true);
+        expect(active.has('my-pool')).to.equal(false);
+    });
+
+    it('ignores an enable request that is handled after its device was deleted', async () => {
+        const { adapter, writes, active, inits, writesAfterDelete } = createPoolTestAdapter();
+        writes.set('miner.0.pool.my-pool.enabled', false);
+        await adapter.initDevice(device);
+
+        // the delete is queued first: the enable still has to read the device object before it queues
+        writes.set('miner.0.pool.my-pool.enabled', true);
+        const enabling = adapter.onStateChange('miner.0.pool.my-pool.enabled', { val: true, ack: false });
+        await (adapter as unknown as { delDevice: (id: string) => Promise<boolean> }).delDevice(device._id);
+        await enabling;
+
+        expect(inits()).to.equal(0);
+        expect(active.has('my-pool')).to.equal(false);
+        // nothing is written for the deleted device
+        expect(writesAfterDelete).to.deep.equal([]);
     });
 
     for (const enabledInSettings of [undefined, false]) {

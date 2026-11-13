@@ -47,8 +47,10 @@ export class MinerManager {
             return;
         }
 
-        await miner.close();
+        // unregistered first: closing waits for stats that are being published, and a second close() arriving
+        // meanwhile must not find the miner again
         this.miners.splice(this.miners.indexOf(miner), 1);
+        await miner.close();
     }
 
     /**
@@ -57,10 +59,9 @@ export class MinerManager {
     public async closeAll(): Promise<void> {
         logger.log('[closeAll] unloading all miners');
 
-        for (const miner of this.miners) {
+        for (const miner of this.miners.splice(0, this.miners.length)) {
             await miner.close();
         }
-        this.miners.splice(0, this.miners.length);
     }
 
     /**

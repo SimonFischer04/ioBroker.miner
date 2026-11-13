@@ -19,15 +19,24 @@ export class RequestThrottle {
      *
      * @param key - requests with the same key are spaced, e.g. the API's base URL
      * @param request - the request to run
+     * @param isCancelled - checked when it is the request's turn: if it returns true, the request is rejected
+     * without being run and without taking a slot, so the next one doesn't have to wait for the spacing
      */
-    public run<T>(key: string, request: () => Promise<T>): Promise<T> {
+    public run<T>(key: string, request: () => Promise<T>, isCancelled?: () => boolean): Promise<T> {
         const previous = this.queues.get(key) ?? Promise.resolve();
         const next = previous
             .catch(() => undefined)
             .then(async () => {
+                const cancelIfRequested = (): void => {
+                    if (isCancelled?.()) {
+                        throw new Error('request was cancelled');
+                    }
+                };
+                cancelIfRequested();
                 const waitMs = (this.lastFinished.get(key) ?? -Infinity) + this.minSpacingMs - Date.now();
                 if (waitMs > 0) {
                     await delay(waitMs);
+                    cancelIfRequested();
                 }
                 try {
                     return await request();

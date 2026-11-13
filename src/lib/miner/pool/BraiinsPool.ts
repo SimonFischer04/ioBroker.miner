@@ -190,10 +190,14 @@ export class BraiinsPool extends Pool<BraiinsPoolSettings> {
             todayReward: parseNumber(account.today_reward),
             estimatedReward: parseNumber(account.estimated_reward),
             allTimeReward: parseNumber(account.all_time_reward),
-            // without a worker list the workers are unknown, which is not the same as an account without workers
-            workers: isRecord(workerList)
-                ? Object.entries(workerList).map(([name, worker]) => toWorkerStats(name, worker))
-                : undefined,
+            // Without a worker list the workers are unknown, which is not the same as an account without workers.
+            // The same goes for a missing username: the object ids of the workers are derived from it.
+            workers:
+                isRecord(workerList) && profile.username
+                    ? Object.entries(workerList)
+                          .filter((entry): entry is [string, BraiinsPoolWorker] => isRecord(entry[1]))
+                          .map(([name, worker]) => toWorkerStats(name, worker))
+                    : undefined,
             raw: { profile, workers },
         };
     }
@@ -211,39 +215,40 @@ export class BraiinsPool extends Pool<BraiinsPoolSettings> {
 
     private request<T>(path: string): Promise<T> {
         const baseUrl = this.getBaseUrl();
-        return braiinsPoolThrottle.run(baseUrl, async () => {
-            // the request may have waited behind other accounts: don't use a rate-limit slot for a closed pool
-            if (this.isClosed()) {
-                throw new Error('pool was closed');
-            }
-            this.logger.debug(`GET ${baseUrl}/${path}`);
-            const response = await fetch(`${baseUrl}/${path}`, {
-                headers: {
-                    Accept: 'application/json',
-                    'Pool-Auth-Token': this.settings.apiToken,
-                },
-                signal: AbortSignal.timeout(this.getRequestTimeoutMs()),
-            });
+        return braiinsPoolThrottle.run(
+            baseUrl,
+            async () => {
+                this.logger.debug(`GET ${baseUrl}/${path}`);
+                const response = await fetch(`${baseUrl}/${path}`, {
+                    headers: {
+                        Accept: 'application/json',
+                        'Pool-Auth-Token': this.settings.apiToken,
+                    },
+                    signal: AbortSignal.timeout(this.getRequestTimeoutMs()),
+                });
 
-            if (!response.ok) {
-                // the start of the body usually says why, e.g. a proxy or bot protection answering instead of the API
-                const body = (await response.text().catch(() => '')).trim().slice(0, 200);
-                const details = body ? `: ${body}` : '';
-                if (response.status === 401 || response.status === 403) {
+                if (!response.ok) {
+                    // the start of the body usually says why, e.g. a proxy or bot protection answering instead of the API
+                    const body = (await response.text().catch(() => '')).trim().slice(0, 200);
+                    const details = body ? `: ${body}` : '';
+                    if (response.status === 401 || response.status === 403) {
+                        throw new Error(
+                            `the pool rejected the API token (HTTP ${response.status}${details}). Check the access profile's token and that it has web API access`,
+                        );
+                    }
                     throw new Error(
-                        `the pool rejected the API token (HTTP ${response.status}${details}). Check the access profile's token and that it has web API access`,
+                        `pool API request ${path} failed: HTTP ${response.status} ${response.statusText}${details}`,
                     );
                 }
-                throw new Error(
-                    `pool API request ${path} failed: HTTP ${response.status} ${response.statusText}${details}`,
-                );
-            }
-            return (await response.json()) as T;
-        });
+                return (await response.json()) as T;
+            },
+            // the request may have waited behind other accounts: a closed pool must not use a rate-limit slot
+            () => this.isClosed(),
+        );
     }
 }
 
-function isRecord(value: unknown): value is Record<string, BraiinsPoolWorker> {
+function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 

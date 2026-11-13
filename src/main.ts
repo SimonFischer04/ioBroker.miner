@@ -55,6 +55,22 @@ const UPDATE_CHECK_INITIAL_DELAY_MS = 60_000;
 const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 /**
+ * Polls in a row a pool has to leave a worker out before its channel is removed. Removing deletes the channel's
+ * objects with their settings (e.g. history), so a single odd answer of the pool must not be enough.
+ */
+const POOL_WORKER_REMOVE_AFTER_POLLS = 3;
+
+/**
+ * The worker channels of a pool device, as relative object ids.
+ */
+interface PoolWorkerChannels {
+    /** channels created or refreshed in this run, so a poll doesn't recreate them */
+    created: Set<string>;
+    /** existing channels whose worker the pool didn't report, with the number of polls in a row it was missing */
+    missing: Map<string, number>;
+}
+
+/**
  *
  */
 export class MinerAdapter extends utils.Adapter {
@@ -73,10 +89,9 @@ export class MinerAdapter extends utils.Adapter {
      */
     private readonly customChannelObjects = new Map<string, Set<string>>();
     /**
-     * The worker channels of a pool that were created or refreshed in this run, by device object id, so a poll
-     * doesn't recreate them. A pool without an entry hasn't been polled in this run yet.
+     * The worker channels of a pool, by device object id. A pool without an entry hasn't been polled in this run yet.
      */
-    private readonly poolWorkerChannels = new Map<string, Set<string>>();
+    private readonly poolWorkerChannels = new Map<string, PoolWorkerChannels>();
     /**
      * The last enable/disable in progress per device, see {@link runExclusive}.
      */
@@ -119,7 +134,7 @@ export class MinerAdapter extends utils.Adapter {
         // Reset the connection indicator during startup. Before 1.2.0 it was a boolean: existing instances keep their
         // object from the old version, so bring its type in line with the list it holds now
         await this.extendObject('info.connection', {
-            common: { type: 'string', role: 'info.status', name: 'List of reachable miners' },
+            common: { type: 'string', role: 'info.status', name: 'List of reachable miners and pools' },
         });
         await this.setState('info.connection', '', true);
 
@@ -224,8 +239,16 @@ export class MinerAdapter extends utils.Adapter {
                 // one after another per device: two requests arriving together would both find the device inactive
                 // and initialize it twice, and a disable arriving during an enable would have nothing to close yet
                 await this.runExclusive(deviceObjectId, async () => {
-                    await this.setDeviceEnabled(deviceObjectId, deviceSettings, enabled);
+                    if (!(await this.getObjectAsync(deviceObjectId))) {
+                        // deleted while this request was waiting its turn
+                        this.log.debug(`device ${deviceObjectId} no longer exists, ignoring ${id}`);
+                        return;
+                    }
+                    // Acknowledged before it is applied: initializing a device reads this state. Acknowledged
+                    // afterwards, the `false` of a disable would still stand when an enable queued right behind it
+                    // initializes the device, which would then stay off although the state ends up `true`.
                     await this.setState(id, { val: enabled, ack: true });
+                    await this.setDeviceEnabled(deviceObjectId, deviceSettings, enabled);
                 });
                 return;
             }
@@ -435,8 +458,6 @@ export class MinerAdapter extends utils.Adapter {
         });
 
         const obj: ioBroker.DeviceObject = (await this.getObjectAsync(id)) as ioBroker.DeviceObject;
-        this.log.debug(`configureDeviceObject: ${JSON.stringify(obj)}`);
-
         return obj;
     }
 
@@ -448,7 +469,8 @@ export class MinerAdapter extends utils.Adapter {
         const obj = await this.configureDeviceObject(settings);
 
         if (obj == null) {
-            this.log.error(`could not create device object for ${JSON.stringify(settings)}`);
+            // not the settings themselves: they hold passwords and API tokens
+            this.log.error(`could not create the device object for a new ${settings.category} device`);
             return;
         }
 
@@ -467,17 +489,21 @@ export class MinerAdapter extends utils.Adapter {
             return;
         }
 
-        await this.setState(`${this.getDeviceObjectId(settings)}.enabled`, {
-            val: settings.enabled,
-            ack: true,
+        // queued behind an enable/disable of the device that is still in progress, which would otherwise finish
+        // after the update and initialize the device a second time
+        await this.runExclusive(`${this.namespace}.${this.getDeviceObjectId(settings)}`, async () => {
+            await this.setState(`${this.getDeviceObjectId(settings)}.enabled`, {
+                val: settings.enabled,
+                ack: true,
+            });
+
+            if (!(await this.tryCloseDevice(settings))) {
+                this.log.error(`updateDevice could not close device ${settings.settings.id}`);
+                return;
+            }
+
+            await this.addDevice(settings);
         });
-
-        if (!(await this.tryCloseDevice(settings))) {
-            this.log.error(`updateDevice could not close device ${settings.settings.id}`);
-            return;
-        }
-
-        await this.addDevice(settings);
     }
 
     /**
@@ -485,7 +511,13 @@ export class MinerAdapter extends utils.Adapter {
      *
      * @param deviceId - The ioBroker-object-id of the device to delete
      */
-    public async delDevice(deviceId: string): Promise<boolean> {
+    public delDevice(deviceId: string): Promise<boolean> {
+        // queued behind an enable/disable of the device that is still in progress, which would otherwise finish
+        // after the delete: recreate states of the deleted device and leave a miner / pool nothing can stop
+        return this.runExclusive(deviceId, () => this.removeDevice(deviceId));
+    }
+
+    private async removeDevice(deviceId: string): Promise<boolean> {
         this.log.info(`deleteDevice device ${deviceId}`);
         const obj = await this.getObjectAsync(deviceId);
 
@@ -541,10 +573,10 @@ export class MinerAdapter extends utils.Adapter {
      * Runs tasks for the same device one after another, in the order they were requested. A failed task doesn't
      * keep the following ones from running.
      *
-     * @param deviceObjectId - the device the task is for
+     * @param deviceObjectId - full object id of the device the task is for
      * @param task - what to run once the earlier tasks for the device are done
      */
-    private runExclusive(deviceObjectId: string, task: () => Promise<void>): Promise<void> {
+    private runExclusive<T>(deviceObjectId: string, task: () => Promise<T>): Promise<T> {
         const previous = this.deviceQueues.get(deviceObjectId) ?? Promise.resolve();
         const run = previous.then(task);
         const settled = run
@@ -748,9 +780,10 @@ export class MinerAdapter extends utils.Adapter {
     }
 
     /**
-     * Lists the reachable miners in `info.connection`, comma-separated like other multi-device adapters (e.g. sonoff)
+     * Lists the reachable devices in `info.connection`, comma-separated like other multi-device adapters (e.g. sonoff)
      * do: the admin shows the instance green while the list is not empty, and shows the list itself. Green needs just
-     * one reachable miner - requiring all would turn it yellow whenever a single miner is switched off, e.g. at night.
+     * one reachable device - requiring all would turn it yellow whenever a single miner is switched off, e.g. at night.
+     * Pools count as well: an instance that only watches a pool account would never turn green otherwise.
      */
     private async updateConnectionState(): Promise<void> {
         const names = [...this.onlineDevices.values()].sort((a, b) => a.localeCompare(b));
@@ -1251,7 +1284,7 @@ export class MinerAdapter extends utils.Adapter {
     /**
      * Writes the states of the workers a pool reported: creates the channel of a worker that is new, and removes the
      * channel of one the pool no longer reports (deleted or renamed there), so it doesn't stay behind with its last
-     * state and hashrate.
+     * state and hashrate. A channel is only removed once several polls in a row didn't report its worker.
      *
      * @param deviceId - object id of the pool device
      * @param workers - all workers of the account
@@ -1262,19 +1295,31 @@ export class MinerAdapter extends utils.Adapter {
             workers.map(worker => [`${deviceId}.workers.${getWorkerObjectId(worker.name, username)}`, worker]),
         );
 
-        let created = this.poolWorkerChannels.get(deviceId);
-        // first poll of this run: the channels of earlier runs are the ones to check for removed workers
-        const existing = created ?? (await this.getPoolWorkerChannelIds(deviceId));
-        if (!created) {
-            created = new Set();
-            this.poolWorkerChannels.set(deviceId, created);
-        }
-        for (const workerId of existing) {
-            if (!reported.has(workerId)) {
-                this.log.info(`Removing worker no longer reported by the pool: ${workerId}`);
-                await this.delObjectAsync(workerId, { recursive: true });
-                created.delete(workerId);
+        let channels = this.poolWorkerChannels.get(deviceId);
+        if (!channels) {
+            // first poll of this run: the channels of earlier runs are checked for removed workers as well
+            channels = { created: new Set(), missing: new Map() };
+            for (const workerId of await this.getPoolWorkerChannelIds(deviceId)) {
+                channels.missing.set(workerId, 0);
             }
+            this.poolWorkerChannels.set(deviceId, channels);
+        }
+        const { created, missing } = channels;
+
+        for (const workerId of new Set([...created, ...missing.keys()])) {
+            if (reported.has(workerId)) {
+                missing.delete(workerId);
+                continue;
+            }
+            const polls = (missing.get(workerId) ?? 0) + 1;
+            if (polls < POOL_WORKER_REMOVE_AFTER_POLLS) {
+                missing.set(workerId, polls);
+                continue;
+            }
+            this.log.info(`Removing worker no longer reported by the pool: ${workerId}`);
+            await this.delObjectAsync(workerId, { recursive: true });
+            created.delete(workerId);
+            missing.delete(workerId);
         }
 
         for (const [workerId, worker] of reported) {

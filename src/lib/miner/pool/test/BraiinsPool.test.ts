@@ -150,6 +150,19 @@ describe('BraiinsPool', () => {
             expect(BraiinsPool.toPoolStats(profileSample, { btc: {} }).workers).to.equal(undefined);
         });
 
+        it('skips worker entries that are not objects instead of failing the poll', () => {
+            const stats = BraiinsPool.toPoolStats(profileSample, {
+                btc: { workers: { 'username.broken': null as never, 'username.ok': { state: 'ok' } } },
+            });
+            expect(stats.workers?.map(worker => worker.name)).to.deep.equal(['username.ok']);
+        });
+
+        it('leaves the workers unknown without a username, which their object ids are derived from', () => {
+            const stats = BraiinsPool.toPoolStats({ btc: profileSample.btc }, workersSample);
+            expect(stats.workers).to.equal(undefined);
+            expect(stats.hashrate5m).to.equal(27978e9);
+        });
+
         it('rejects a profile response without account data', () => {
             expect(() => BraiinsPool.toPoolStats({ username: 'x' }, workersSample)).to.throw(
                 'unexpected profile response',
@@ -214,7 +227,7 @@ describe('BraiinsPool', () => {
             });
             await pool.close();
 
-            expect(((await pool.fetchStats().catch((e: unknown) => e)) as Error).message).to.contain('closed');
+            expect(((await pool.fetchStats().catch((e: unknown) => e)) as Error).message).to.contain('cancelled');
             expect(requests).to.equal(0);
         });
 

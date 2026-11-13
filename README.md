@@ -128,8 +128,8 @@ miner.0
       rewards
         currentBalance / todayReward / estimatedReward / allTimeReward (number) BTC
       workers
-        <worker>                     (channel)  worker name without the "<username>." prefix; removed when the
-                                                pool no longer lists the worker. Characters not allowed in ids
+        <worker>                     (channel)  worker name without the "<username>." prefix; removed once the
+                                                pool didn't list the worker in 3 polls in a row. Characters not allowed in ids
                                                 become "_", and such an id gets a short hash appended
           name                       (string)   full worker name
           state                      (string)   ok / low / off / disabled
@@ -235,6 +235,7 @@ Once more than one miner type supports the same thing, it is moved to the common
 * (claude) **NEW**: `custom` channel for features only a single miner type has (not standardised across miners yet); the device manager shows the writable ones, plus running and profile, as device controls
 * (claude) **NEW**: Pool support, starting with Braiins Pool: add a device with category `pool` and the API token of a Braiins Pool access profile to get the account's hashrate, worker counts, per-worker state and hashrate, balance and rewards under `miner.<instance>.pool.<poolId>`
 * (claude) **FIXED**: TeamRedMiner devices kept being polled, and their states written, after they were disabled or deleted
+* (claude) **FIXED**: Setting `enabled` to `false` and right away to `true` again (e.g. from a script, to restart a device) could leave the device enabled but not polled
 * (claude) **FIXED**: Disabling or deleting a miner now waits for a poll that is just being written, so it can't write states afterwards; deleting an enabled device no longer logs a "this should not happen" error
 
 ### 1.2.0 (2026-11-03)

@@ -36,4 +36,42 @@ describe('RequestThrottle', () => {
         expect(((await failed.catch((e: unknown) => e)) as Error).message).to.contain('boom');
         expect(await next).to.equal('ok');
     });
+
+    it('rejects a cancelled request without running it or making the next one wait', async () => {
+        const throttle = new RequestThrottle(10_000);
+        let ran = false;
+        await throttle.run('a', () => Promise.resolve());
+
+        // the spacing after the first request has not passed: a request that is not cancelled would wait 10 s
+        const cancelled = throttle.run(
+            'a',
+            () => {
+                ran = true;
+                return Promise.resolve();
+            },
+            () => true,
+        );
+        const start = Date.now();
+        expect(((await cancelled.catch((e: unknown) => e)) as Error).message).to.contain('cancelled');
+
+        expect(ran).to.equal(false);
+        expect(Date.now() - start).to.be.below(1000);
+    });
+
+    it('does not count a cancelled request as a request: the spacing still starts at the last real one', async () => {
+        const throttle = new RequestThrottle(60);
+        await throttle.run('a', () => Promise.resolve());
+        const start = Date.now();
+        await throttle
+            .run(
+                'a',
+                () => Promise.resolve(),
+                () => true,
+            )
+            .catch(() => undefined);
+        await throttle.run('a', () => Promise.resolve());
+
+        // one spacing, not two
+        expect(Date.now() - start).to.be.within(40, 110);
+    });
 });
