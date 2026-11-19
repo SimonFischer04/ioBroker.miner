@@ -9,6 +9,7 @@ import type {
     XMRigSettings,
 } from '../../lib/miner/model/MinerSettings';
 import type { Category, categoryKeys } from '../../lib/miner/model/Category';
+import type { BraiinsPoolSettings, PoolSettings } from '../../lib/miner/model/PoolSettings';
 import { Logger } from '../../lib/miner/model/Logger';
 
 const logger = Logger.getLogger('IOBrokerMinerSettings');
@@ -66,8 +67,24 @@ export interface IOBrokerPoolSettings extends IOBrokerDeviceSettings {
      *
      */
     category: (typeof categoryKeys)[1];
-    // TODO
+    /**
+     * name for the user to identify the pool account
+     */
+    name: string;
+    /**
+     * adapter allows to temporarily disable handling a pool account (not polled)
+     */
+    enabled: boolean;
+    /**
+     *
+     */
+    settings: PoolSettings;
 }
+
+/**
+ * Settings of a device the adapter knows how to handle.
+ */
+export type IOBrokerKnownDeviceSettings = IOBrokerMinerSettings | IOBrokerPoolSettings;
 
 // TODO: check everywhere this is used
 /**
@@ -76,6 +93,36 @@ export interface IOBrokerPoolSettings extends IOBrokerDeviceSettings {
  */
 export function isMiner(settings?: Partial<IOBrokerDeviceSettings>): settings is IOBrokerMinerSettings {
     return settings?.category === 'miner';
+}
+
+/**
+ *
+ * @param settings - the device settings to check
+ */
+export function isPool(settings?: Partial<IOBrokerDeviceSettings>): settings is IOBrokerPoolSettings {
+    return settings?.category === 'pool';
+}
+
+/**
+ * Encrypt or decrypt the secrets of a pool account's settings.
+ *
+ * @param settings - the pool account settings, changed in place
+ * @param transform - encrypts or decrypts a value
+ */
+function transformPoolSecrets(settings: IOBrokerPoolSettings, transform: (value: string) => string): void {
+    switch (settings.settings.poolType) {
+        case 'braiinsPool': {
+            const braiinsSettings = settings.settings as BraiinsPoolSettings;
+            if (braiinsSettings.apiToken) {
+                braiinsSettings.apiToken = transform(braiinsSettings.apiToken);
+            }
+            break;
+        }
+
+        default: {
+            break;
+        }
+    }
 }
 
 /**
@@ -88,8 +135,11 @@ export function encryptDeviceSettings(
     settings: IOBrokerDeviceSettings,
     encryptFunction: (value: string) => string,
 ): IOBrokerDeviceSettings {
+    if (isPool(settings)) {
+        transformPoolSecrets(settings, encryptFunction);
+        return settings;
+    }
     if (!isMiner(settings)) {
-        // TODO: pool support
         logger.error(`category ${settings.category} is not yet supported.`);
         return settings;
     }
@@ -162,8 +212,11 @@ export function decryptDeviceSettings(
     settings: IOBrokerDeviceSettings,
     decryptFunction: (value: string) => string,
 ): IOBrokerDeviceSettings {
+    if (isPool(settings)) {
+        transformPoolSecrets(settings, decryptFunction);
+        return settings;
+    }
     if (!isMiner(settings)) {
-        // TODO: pool support
         logger.error(`category ${settings.category} is not yet supported.`);
         return settings;
     }

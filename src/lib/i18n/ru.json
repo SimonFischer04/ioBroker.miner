@@ -16,7 +16,6 @@
     "Please enter an IP address": "Пожалуйста, введите IP адрес",
     "Power Target": "Целевая мощность",
     "Refresh device list": "Обновить список устройств",
-    "Pool support is not yet available": "Поддержка пулов ещё не доступна. В разработке.",
     "Profile": "Профиль",
     "RSSI": "RSSI",
     "Running": "Работает",
@@ -45,5 +44,13 @@
     "Could not approve the web login: %s": "Не удалось подтвердить веб-вход: %s",
     "Set": "Установить",
     "filter cleaning reminder (days)": "Напоминание об очистке фильтра (дни)",
-    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Дней работы фильтра до напоминания об очистке пылевого фильтра. 0 = выкл."
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Дней работы фильтра до напоминания об очистке пылевого фильтра. 0 = выкл.",
+    "Miner": "Майнер",
+    "Pool": "Пул",
+    "API token": "API-токен",
+    "Braiins Pool: Settings → Access Profiles: create a profile with web API access and generate a token.": "Braiins Pool: Settings → Access Profiles: создайте профиль с доступом к веб-API и сгенерируйте токен.",
+    "Please enter the API token": "Пожалуйста, введите API-токен",
+    "Hashrate (60 min)": "Хешрейт (60 мин)",
+    "Active workers": "Активные воркеры",
+    "Current balance": "Текущий баланс"
 }

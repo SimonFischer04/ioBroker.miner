@@ -236,7 +236,7 @@
       "type": "state",
       "common": {
         "role": "info.status",
-        "name": "List of reachable miners",
+        "name": "List of reachable miners and pools",
         "type": "string",
         "read": true,
         "write": false,

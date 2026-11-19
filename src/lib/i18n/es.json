@@ -16,7 +16,6 @@
     "Please enter an IP address": "Por favor ingrese una dirección IP",
     "Power Target": "Objetivo de potencia",
     "Refresh device list": "Actualizar lista de dispositivos",
-    "Pool support is not yet available": "El soporte de pools aún no está disponible. Trabajo en progreso.",
     "Profile": "Perfil",
     "RSSI": "RSSI",
     "Running": "En ejecución",
@@ -45,5 +44,13 @@
     "Could not approve the web login: %s": "No se pudo aprobar el inicio de sesión web: %s",
     "Set": "Establecer",
     "filter cleaning reminder (days)": "recordatorio de limpieza del filtro (días)",
-    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Días de funcionamiento del filtro hasta el recordatorio de limpiar el filtro de polvo. 0 = desactivado."
+    "Days of filter runtime until the reminder to clean the dust filter. 0 = off.": "Días de funcionamiento del filtro hasta el recordatorio de limpiar el filtro de polvo. 0 = desactivado.",
+    "Miner": "Minero",
+    "Pool": "Pool",
+    "API token": "Token de API",
+    "Braiins Pool: Settings → Access Profiles: create a profile with web API access and generate a token.": "Braiins Pool: Settings → Access Profiles: cree un perfil con acceso a la API web y genere un token.",
+    "Please enter the API token": "Por favor, introduzca el token de API",
+    "Hashrate (60 min)": "Tasa de hash (60 min)",
+    "Active workers": "Workers activos",
+    "Current balance": "Saldo actual"
 }

@@ -18,7 +18,7 @@ Interact with different crypto miner apis
 - [X] v0.1: device management, trm implementation
 - [X] more miners support: bos+, xmrig, avalon, ...?
 - [ ] implement more features (controls + info from devices)
-- [ ] pools support
+- [ ] pools support (started: Braiins Pool)
 - [ ] device discover
 - [ ] sentry
 - [ ] more: see Todo.md / issues
@@ -66,6 +66,15 @@ Avalon Nano 3 / 3S miners count how long their dust filter has been running sinc
 
 Firmware checks for BOS use the last reported control-board type and installed version, including while the device is offline or disabled. A BOS device must have reported its identity at least once. Avalon update checks currently cover the exact Nano 3 model only: the app's `nano3` feed has no verified Nano 3S compatibility, so Nano 3S update status remains unknown.
 
+### Pools
+Besides miners, the adapter can monitor your account at a mining pool. Add a device with category `pool` in the device manager. Supported pools:
+
+- **Braiins Pool** (`braiinsPool`, BTC): uses the pool's [monitoring API](https://academy.braiins.com/en/braiins-pool/monitoring/). In the pool's web interface go to Settings → Access Profiles, create an access profile with web API access and generate a token, then enter it as `API token`. The adapter only reads statistics: hashrate, worker counts and states, balance and rewards.
+
+  The pool updates its statistics about once a minute and allows only about one API request every 5 seconds (more can get your IP banned). Each poll makes two requests, so the poll interval is at least 30 seconds (default: 60 seconds), and requests of all Braiins Pool accounts in the adapter are spaced 5 seconds apart. With many accounts a poll simply waits its turn, so with more than about 5 accounts each one is polled less often than every 60 seconds.
+
+`info.online` of a pool shows whether the pool API is reachable with the token; it switches to `false` after 3 failed polls in a row.
+
 ## Object model
 
 All objects are created under:
@@ -101,6 +110,34 @@ Each miner device has a writable top-level `enabled` state:
 Set this state to `false` to disable the miner in the adapter at runtime. Disabled miners are unloaded and no polling/control handling is active for them. Set it back to `true` to initialize the miner again without restarting the adapter.
 
 This is different from `control.running`: `enabled` controls whether the adapter manages the miner at all, while `control.running` asks a supported miner to start or stop mining.
+
+### Pool tree
+```
+miner.0
+  pool
+    <poolId>                         (device)
+      enabled                        (boolean)  enable/disable polling of this pool account
+      info
+        poolType                     (string)   e.g. braiinsPool
+        username                     (string)   account name at the pool
+        online                       (boolean)  pool API reachable
+        lastSeen                     (number)   unix ms
+      stats
+        hashrate5m / hashrate60m / hashrate24h / hashrateYesterday   (number) H/s
+        workersOk / workersLow / workersOff / workersDisabled        (number)
+      rewards
+        currentBalance / todayReward / estimatedReward / allTimeReward (number) BTC
+      workers
+        <worker>                     (channel)  worker name without the "<username>." prefix; removed once the
+                                                pool didn't list the worker in 3 polls in a row. Characters not allowed in ids
+                                                become "_", and such an id gets a short hash appended
+          name                       (string)   full worker name
+          state                      (string)   ok / low / off / disabled
+          lastShare                  (number)   unix ms
+          hashrateScoring / hashrate5m / hashrate60m / hashrate24h   (number) H/s
+      raw
+        stats                        (string)   raw API responses (expert)
+```
 
 ### Example tree
 This is just an overview / idea / plan. Not all of them are implemented yet, but it should give you an idea of the intended structure and naming. The actual implementation may differ in some details, but the general structure should be similar to this.
@@ -196,6 +233,10 @@ Once more than one miner type supports the same thing, it is moved to the common
 * (claude) **NEW**: Braiins OS (`bos`): per-hashboard custom features under `custom.hashboard<id>`: chip count and type, hottest chip temperature, board/inlet/outlet (and water) temperatures, voltage, frequency, hashrate and nominal hashrate. Braiins OS reports chip data only per board, not per chip
 * (claude) **NEW**: Custom feature channels can depend on the hardware (e.g. one per hashboard): they are created when a poll first reports them, and their objects are kept while the miner isn't polled yet
 * (claude) **NEW**: `custom` channel for features only a single miner type has (not standardised across miners yet); the device manager shows the writable ones, plus running and profile, as device controls
+* (claude) **NEW**: Pool support, starting with Braiins Pool: add a device with category `pool` and the API token of a Braiins Pool access profile to get the account's hashrate, worker counts, per-worker state and hashrate, balance and rewards under `miner.<instance>.pool.<poolId>`
+* (claude) **FIXED**: TeamRedMiner devices kept being polled, and their states written, after they were disabled or deleted
+* (claude) **FIXED**: Setting `enabled` to `false` and right away to `true` again (e.g. from a script, to restart a device) could leave the device enabled but not polled
+* (claude) **FIXED**: Disabling or deleting a miner now waits for a poll that is just being written, so it can't write states afterwards; deleting an enabled device no longer logs a "this should not happen" error
 
 ### 1.2.0 (2026-11-03)
 * (claude) **NEW**: Check miners for available firmware/software updates once a day and show them in the device manager: new states `info.latestVersion` and `info.updateAvailable` (Braiins OS, XMRig, TeamRedMiner, IceRiver OC firmware, Avalon Nano 3), plus the auto-upgrade status for Braiins OS. Can be turned off in the instance settings; a "check for updates" action checks right away (#195)

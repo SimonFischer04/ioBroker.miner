@@ -4,6 +4,9 @@ import type { PollingMinerSettings } from '../model/MinerSettings';
 import type { MinerFeatureKey } from '../model/MinerFeature';
 import type { MinerStats } from '../model/MinerStats';
 import { resetTimerBackend, setTimerBackend, type TimerBackend } from '../../utils/delay';
+import { Logger } from '../model/Logger';
+import { Level } from '../model/Level';
+import { TeamRedMiner } from '../miner/TeamRedMiner';
 
 class TestPollingMiner extends PollingMiner<PollingMinerSettings> {
     public fetchStatsStub: () => Promise<MinerStats> = () => Promise.resolve({});
@@ -310,6 +313,68 @@ describe('PollingMiner', () => {
         });
     });
 
+    it('close() waits for stats that are being published', async () => {
+        const miner = new TestPollingMiner(1000);
+        let finishWriting: (() => void) | undefined;
+        let closed = false;
+        miner.subscribeToStats(
+            () =>
+                new Promise<void>(resolve => {
+                    finishWriting = resolve;
+                }),
+        );
+
+        await miner.init();
+        await settle();
+        const closing = miner.close().then(() => (closed = true));
+        await settle();
+        expect(closed).to.equal(false);
+
+        finishWriting?.();
+        await closing;
+        expect(closed).to.equal(true);
+    });
+
+    it('does not publish stats that arrive after close()', async () => {
+        const miner = new TestPollingMiner(1000);
+        let finishPoll: (() => void) | undefined;
+        miner.fetchStatsStub = () =>
+            new Promise<MinerStats>(resolve => {
+                finishPoll = () => resolve({ power: 1 });
+            });
+        const received: MinerStats[] = [];
+        miner.subscribeToStats(stats => {
+            received.push(stats);
+            return Promise.resolve();
+        });
+
+        await miner.init();
+        await miner.close();
+        // subscribed again, as the adapter does when the device is re-enabled with the same object
+        miner.subscribeToStats(stats => {
+            received.push(stats);
+            return Promise.resolve();
+        });
+        finishPoll?.();
+        await settle();
+
+        expect(received).to.deep.equal([]);
+    });
+
+    it('logs the offline warning once, not with every further failed poll', async () => {
+        const savedLogger = Logger.logger;
+        const warnings: string[] = [];
+        Logger.setLogger({ log: (level, message) => void (level === Level.WARN && warnings.push(message)) });
+        try {
+            await backoffDelays(1000, 6);
+        } finally {
+            Logger.setLogger(savedLogger);
+        }
+
+        expect(warnings).to.have.length(1);
+        expect(warnings[0]).to.contain('3 polls in a row failed, reporting the miner as offline');
+    });
+
     it('close() cancels the pending poll', async () => {
         const miner = new TestPollingMiner(1000);
 
@@ -349,5 +414,29 @@ describe('PollingMiner', () => {
         // the resolved poll must not have scheduled another one
         expect(scheduled).to.have.length(0);
         expect(fetchCount).to.equal(1);
+    });
+
+    it('TeamRedMiner.close() stops its polling', async () => {
+        const miner = new TeamRedMiner({
+            minerType: 'teamRedMiner',
+            host: '127.0.0.1',
+            pollInterval: 1000,
+            claymore: { minerType: 'claymoreMiner', host: '127.0.0.1', port: 9, password: '', pollInterval: 1000 },
+            cgminer: { minerType: 'cgMiner', host: '127.0.0.1', port: 9, pollInterval: 1000 },
+        });
+        let fetchCount = 0;
+        miner.fetchStats = () => {
+            fetchCount++;
+            return Promise.resolve({});
+        };
+
+        await miner.init();
+        await settle();
+        expect(fetchCount).to.equal(1);
+        expect(scheduled).to.have.length(1);
+
+        await miner.close();
+
+        expect(scheduled).to.have.length(0);
     });
 });
